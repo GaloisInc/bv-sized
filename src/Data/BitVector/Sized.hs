@@ -28,7 +28,6 @@ module Data.BitVector.Sized
     -- | These are functions that involve bit vectors of different lengths.
   , bvConcat, (<:>)
   , bvExtract
-  , bvTrunc
   , bvZext
   , bvSext
     -- * Conversions to Integer

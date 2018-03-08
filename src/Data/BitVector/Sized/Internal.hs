@@ -39,10 +39,9 @@ module Data.BitVector.Sized.Internal
     -- * Bitwise operations (variable width)
     -- | These are functions that involve bit vectors of different lengths.
   , bvConcat, (<:>)
-  , bvExtract
-  , bvTrunc
-  , bvZext
-  , bvSext
+  , bvExtract, bvExtractWithRepr
+  , bvZext, bvZextWithRepr
+  , bvSext, bvSextWithRepr
     -- * Conversions to Integer
   , bvIntegerU
   , bvIntegerS
@@ -118,8 +117,7 @@ bvComplement (BV wRepr x) = BV wRepr (truncBits width (complement x))
 bvShift :: BitVector w -> Int -> BitVector w
 bvShift bvec@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` shf))
   where width = natValue wRepr
-        -- use signed representation so right shifts are arithmetic
-        x     = bvIntegerS bvec
+        x     = bvIntegerS bvec -- arithmetic right shift when negative
 
 -- | Bitwise rotate.
 bvRotate :: BitVector w -> Int -> BitVector w
@@ -207,23 +205,39 @@ bvExtract :: forall w w' . (KnownNat w')
 bvExtract pos bvec = bv xShf
   where (BV _ xShf) = bvShift bvec (- pos)
 
--- | Truncate a bit vector to one of smaller length.
-bvTrunc :: forall w w' . (KnownNat w', w' <= w)
-        => BitVector w
-        -> BitVector w'
-bvTrunc (BV _ x) = bv x -- bv function handles the truncation.
+-- | Unconstrained variant of 'bvExtract' with an explicit 'NatRepr' argument.
+bvExtractWithRepr :: NatRepr w'
+                  -> Int
+                  -> BitVector w
+                  -> BitVector w'
+bvExtractWithRepr repr pos bvec = BV repr xShf
+  where (BV _ xShf) = bvShift bvec (- pos)
 
--- | Zero-extend a vector to one of greater length.
-bvZext :: forall w w' . (KnownNat w', w <= w')
+-- | Zero-extend a vector to one of greater length. If given an input of greater
+-- length than the output type, this performs a truncation.
+bvZext :: forall w w' . KnownNat w'
        => BitVector w
        -> BitVector w'
 bvZext (BV _ x) = bv x
 
--- | Sign-extend a vector to one of greater length.
-bvSext :: forall w w' . (KnownNat w', w <= w')
+-- | Unconstrained variant of 'bvZext' with an explicit 'NatRepr' argument.
+bvZextWithRepr :: NatRepr w'
+               -> BitVector w
+               -> BitVector w'
+bvZextWithRepr repr (BV _ x) = BV repr x
+
+-- | Sign-extend a vector to one of greater length. If given an input of greater
+-- length than the output type, this performs a truncation.
+bvSext :: forall w w' . KnownNat w'
        => BitVector w
        -> BitVector w'
 bvSext bvec = bv (bvIntegerS bvec)
+
+-- | Unconstrained variant of 'bvSext' with an explicit 'NatRepr' argument.
+bvSextWithRepr :: NatRepr w'
+               -> BitVector w
+               -> BitVector w'
+bvSextWithRepr repr bvec = BV repr (bvIntegerS bvec)
 
 ----------------------------------------
 -- Class instances
