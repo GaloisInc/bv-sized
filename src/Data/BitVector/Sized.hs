@@ -15,6 +15,9 @@ Portability : portable
 
 This module defines a width-parameterized 'BitVector' type and various associated
 operations that assume a 2's complement representation.
+
+For more fine-grained access to the internals (including explicit 'Data.Parameterized.NatRepr's), see
+'Data.BitVector.Sized.Internal'.
 -}
 
 module Data.BitVector.Sized
