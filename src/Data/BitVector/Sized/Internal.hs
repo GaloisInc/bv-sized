@@ -177,6 +177,9 @@ bvSignum bvec@(BV wRepr _) = (bvShift bvec (1 - width)) `bvAnd` (BV wRepr 0x1)
 --
 -- >>> (bv 0xAA :: BitVector 8) `bvConcat` (bv 0xBCDEF0 :: BitVector 24)
 -- 0xaabcdef0<32>
+--
+-- Note that the first argument gets placed in the higher-order bits. The above
+-- example should be illustrative enough.
 bvConcat :: BitVector v -> BitVector w -> BitVector (v+w)
 bvConcat (BV hiWRepr hi) (BV loWRepr lo) =
   BV (hiWRepr `addNat` loWRepr) ((hi `shiftL` loWidth) .|. lo)
@@ -255,12 +258,20 @@ instance KnownNat w => FiniteBits (BitVector w) where
   finiteBitSize = bvWidth
 
 instance KnownNat w => Num (BitVector w) where
-  (+) = bvAdd
-  (*) = bvMul
-  abs = bvAbs
-  signum = bvSignum
+  (+)         = bvAdd
+  (*)         = bvMul
+  abs         = bvAbs
+  signum      = bvSignum
   fromInteger = bv
-  negate = bvNegate
+  negate      = bvNegate
+
+instance KnownNat w => Enum (BitVector w) where
+  toEnum   = bv . fromIntegral
+  fromEnum = fromIntegral . bvIntegerU
+
+instance KnownNat w => Bounded (BitVector w) where
+  minBound = bv 0
+  maxBound = bv (-1)
 
 ----------------------------------------
 -- Pretty Printing
