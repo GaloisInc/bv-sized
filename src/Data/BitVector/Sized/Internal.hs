@@ -42,7 +42,7 @@ module Data.BitVector.Sized.Internal
   , bvExtract, bvExtractWithRepr
   , bvZext, bvZextWithRepr
   , bvSext, bvSextWithRepr
-  , bvMulH
+  , bvMulFU, bvMulFS
     -- * Conversions to Integer
   , bvIntegerU
   , bvIntegerS
@@ -240,11 +240,19 @@ bvSextWithRepr :: NatRepr w'
                -> BitVector w'
 bvSextWithRepr repr bvec = BV repr (bvIntegerS bvec)
 
--- | Multiply two bit vectors, returning a bit vector whose length is equal to the
--- sum of the inputs. This allows us to return the non-truncated product of any two
--- 'BitVector's.
-bvMulH :: BitVector w -> BitVector w' -> BitVector (w+w')
-bvMulH (BV wRepr x) (BV wRepr' y) = BV (wRepr `addNat` wRepr') (x*y)
+-- | Fully multiply two bit vectors as unsigned integers, returning a bit vector
+-- whose length is equal to the sum of the inputs.
+bvMulFU :: BitVector w -> BitVector w' -> BitVector (w+w')
+bvMulFU (BV wRepr x) (BV wRepr' y) = BV (wRepr `addNat` wRepr') (x*y)
+
+-- | Fultiply two bit vectors as signed integers, returning a bit vector whose length
+-- is equal to the sum of the inputs.
+bvMulFS :: BitVector w -> BitVector w' -> BitVector (w+w')
+bvMulFS bvec1@(BV wRepr _) bvec2@(BV wRepr' _) = BV prodRepr (truncBits width (x'*y'))
+  where x' = bvIntegerS bvec1
+        y' = bvIntegerS bvec2
+        prodRepr = wRepr `addNat` wRepr'
+        width = natValue prodRepr
 
 ----------------------------------------
 -- Class instances

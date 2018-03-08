@@ -24,7 +24,7 @@ module Data.BitVector.Sized
   , bvExtract
   , bvZext
   , bvSext
-  , bvMulH
+  , bvMulFU, bvMulFS
     -- * Conversions to Integer
   , bvIntegerU
   , bvIntegerS
