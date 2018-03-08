@@ -52,7 +52,7 @@ import Data.Parameterized.Classes
 import Data.Parameterized.NatRepr
 import GHC.TypeLits
 import Text.Printf
-
+import Unsafe.Coerce (unsafeCoerce)
 ----------------------------------------
 -- BitVector data type definitions
 
@@ -253,6 +253,12 @@ instance Eq (BitVector w) where
 
 instance EqF BitVector where
   (BV _ x) `eqF` (BV _ y) = x == y
+
+instance TestEquality BitVector where
+  testEquality (BV wRepr x) (BV wRepr' y) =
+    case natValue wRepr == natValue wRepr' && x == y of
+      True  -> Just (unsafeCoerce (Refl :: a :~: a))
+      False -> Nothing
 
 instance KnownNat w => Bits (BitVector w) where
   (.&.)        = bvAnd
