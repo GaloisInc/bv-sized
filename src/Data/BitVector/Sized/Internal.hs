@@ -26,12 +26,9 @@ module Data.BitVector.Sized.Internal
     -- * Bitwise operations (width-preserving)
     -- | These are alternative versions of some of the 'Bits' functions where we do
     -- not need to know the width at compile time. They are all width-preserving.
-  , bvAnd
-  , bvOr
-  , bvXor
+  , bvAnd, bvOr, bvXor
   , bvComplement
-  , bvShift
-  , bvRotate
+  , bvShift, bvRotate
   , bvWidth
   , bvTestBit
   , bvPopCount
@@ -65,8 +62,9 @@ data BitVector (w :: Nat) :: * where
   BV :: NatRepr w -> Integer -> BitVector w
 
 -- | Construct a bit vector in a context where the width is inferrable from the type
--- context. If the width is not large enough to hold the integer in 2's complement
--- representation, we silently truncate it to fit.
+-- context. The 'Integer' input (an unbounded data type, hence with an infinite-width
+-- bit representation), whether positive or negative is silently truncated to fit
+-- into the number of bits demanded by the return type.
 --
 -- >>> bv 0xA :: BitVector 4
 -- 0xa<4>
