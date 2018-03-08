@@ -36,12 +36,13 @@ module Data.BitVector.Sized.Internal
   , bvAdd, bvMul
   , bvAbs, bvNegate
   , bvSignum
-    -- * Bitwise operations (variable width)
+    -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
   , bvConcat, (<:>)
   , bvExtract, bvExtractWithRepr
   , bvZext, bvZextWithRepr
   , bvSext, bvSextWithRepr
+  , bvMulH
     -- * Conversions to Integer
   , bvIntegerU
   , bvIntegerS
@@ -238,6 +239,12 @@ bvSextWithRepr :: NatRepr w'
                -> BitVector w
                -> BitVector w'
 bvSextWithRepr repr bvec = BV repr (bvIntegerS bvec)
+
+-- | Multiply two bit vectors, returning a bit vector whose length is equal to the
+-- sum of the inputs. This allows us to return the non-truncated product of any two
+-- 'BitVector's.
+bvMulH :: BitVector w -> BitVector w' -> BitVector (w+w')
+bvMulH (BV wRepr x) (BV wRepr' y) = BV (wRepr `addNat` wRepr') (x*y)
 
 ----------------------------------------
 -- Class instances
