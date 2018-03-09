@@ -176,6 +176,8 @@ bvSignum bvec@(BV wRepr _) = (bvShift bvec (1 - width)) `bvAnd` (BV wRepr 0x1)
 --
 -- >>> (bv 0xAA :: BitVector 8) `bvConcat` (bv 0xBCDEF0 :: BitVector 24)
 -- 0xaabcdef0<32>
+-- >>> :type it
+-- it :: BitVector 32
 --
 -- Note that the first argument gets placed in the higher-order bits. The above
 -- example should be illustrative enough.
