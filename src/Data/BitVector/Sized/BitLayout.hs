@@ -17,7 +17,13 @@ This module defines a 'BitLayout' datatype which encodes a chunk-to-chunk mappin
 overlaps) from a smaller bit vector into a larger one.
 -}
 
-module Data.BitVector.Sized.BitLayout where
+module Data.BitVector.Sized.BitLayout
+  ( ChunkIdx(..)
+  , chunkIdx
+  , BitLayout, empty, (|>)
+  , inject
+  , extract
+  ) where
 
 import Data.BitVector.Sized.Internal
 import Data.Foldable
@@ -28,10 +34,11 @@ import GHC.TypeLits
 
 -- | ChunkIdx type.
 data ChunkIdx (w :: Nat) :: * where
-  ChunkIdx :: NatRepr w -- ^ width of range
-           -> Int       -- ^ index of range start
+  ChunkIdx :: NatRepr w -- width of range
+           -> Int       -- index of range start
            -> ChunkIdx w
 
+-- | Construct a ChunkIdx in a context where the chunk width is known at compile time.
 chunkIdx :: KnownNat w => Int -> ChunkIdx w
 chunkIdx start = ChunkIdx knownNat start
 
@@ -49,27 +56,34 @@ data BitLayout (t :: Nat) (s :: Nat) :: * where
   BitLayout :: NatRepr t -> NatRepr s -> Seq (Some ChunkIdx) -> BitLayout t s
 
 instance Show (BitLayout t s) where
-  show (BitLayout _ _ br) = show br
+  show (BitLayout _ _ cIdxs) = show cIdxs
 
+-- | Construct an empty BitLayout.
 empty :: KnownNat t => BitLayout t 0
 empty = BitLayout knownNat knownNat S.empty
 
--- TODO: either here or at the end, do some kind of runtime check to ensure this is
--- sensible. Probably best to do it here. Might be an easy way to implement it using
--- a bit vector.
-singleton :: ChunkIdx r -> BitLayout r r
-singleton br@(ChunkIdx repr _) = BitLayout repr repr (S.singleton $ Some br)
-
--- | TODO: Do runtime check here for overlap. This way all bit layouts will be
--- correct-by-construction and we don't have to do runtime checks while using them,
--- just when building them.
-(|>) :: BitLayout t s -> ChunkIdx r -> BitLayout t (r + s)
-BitLayout tRepr sRepr chunkIdxs |> br@(ChunkIdx rRepr _rangeStart) =
-  BitLayout tRepr (rRepr `addNat` sRepr) (chunkIdxs S.|> Some br)
+-- TODO: Should this be in Maybe?
+-- | Add a chunk index to a bit layout.
+(|>) :: ChunkIdx r -> BitLayout t s -> BitLayout t (r + s)
+cIdx@(ChunkIdx rRepr _rangeStart) |> bl@(BitLayout tRepr sRepr chunkIdxs) =
+  if cIdx `chunkFits` bl
+  then BitLayout tRepr (rRepr `addNat` sRepr) (chunkIdxs S.|> Some cIdx)
+  else error $ "chunk " ++ show cIdx ++ " does not fit in layout: " ++ show bl
 
 -- TODO: check this
-infixl 6 |>
+infixr 6 |>
 
+chunkFits :: ChunkIdx r -> BitLayout t s -> Bool
+chunkFits cIdx@(ChunkIdx rRepr _) (BitLayout tRepr sRepr chunkIdxs) =
+  (natValue rRepr + natValue sRepr <= natValue tRepr) &&
+  noOverlaps cIdx (toList chunkIdxs)
+
+-- TODO: complete this function
+noOverlaps :: ChunkIdx r -> [Some ChunkIdx] -> Bool
+noOverlaps _cIdx _cIdxs = True
+
+-- | Given a starting position, OR a smaller BitVector s with a larger BitVector t at
+-- that position.
 bvOrAt :: Int
        -> BitVector s
        -> BitVector t
@@ -77,7 +91,8 @@ bvOrAt :: Int
 bvOrAt start sVec tVec@(BV tRepr _) =
   (bvZextWithRepr tRepr sVec `bvShift` start) `bvOr` tVec
 
--- TODO: runtime check, possibly throw runtime error.
+-- | Given a list of ChunkIdxs, inject each chunk from a source BitVector s into a
+-- target BitVector t.
 bvOrAtAll :: NatRepr t
           -> [Some ChunkIdx]
           -> BitVector s
@@ -87,10 +102,10 @@ bvOrAtAll tRepr (Some (ChunkIdx chunkRepr chunkStart) : chunkIdxs) sVec =
   bvOrAt chunkStart (bvTruncBits sVec chunkWidth) (bvOrAtAll tRepr chunkIdxs (sVec `bvShift` (- chunkWidth)))
   where chunkWidth = fromIntegral (natValue chunkRepr)
 
--- TODO: Require that s <= t? (Probably not)
-inject :: BitLayout t s -> BitVector s -> BitVector t
-inject (BitLayout tRepr _ chunkIdxs) sVec =
-  bvOrAtAll tRepr (toList chunkIdxs) sVec
+-- | Use a BitLayout to inject a smaller vector into a larger one.
+inject :: BitLayout t s -> BitVector s -> BitVector t -> BitVector t
+inject (BitLayout tRepr _ chunkIdxs) sVec tVec =
+  (bvOrAtAll tRepr (toList chunkIdxs) sVec) `bvOr` tVec
 
 -- First, extract the appropriate bits as a BitVector t, where the relevant bits
 -- start at the LSB of the vector (so, mask and shiftL). Then, truncate to a
@@ -114,6 +129,7 @@ extractAll sRepr start (cIdx@(Some (ChunkIdx chunkRepr _)) : chunkIdxs) tVec =
   extractChunk sRepr start cIdx tVec `bvOr` extractAll sRepr (start + chunkWidth) chunkIdxs tVec
   where chunkWidth = fromInteger (natValue chunkRepr)
 
+-- | Use a BitLayout to extract a smaller vector from a larger one.
 extract :: BitLayout t s -> BitVector t -> BitVector s
 extract (BitLayout _ sRepr chunkIdxs) tVec =
   extractAll sRepr 0 (toList chunkIdxs) tVec

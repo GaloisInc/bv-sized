@@ -140,6 +140,8 @@ bvTestBit (BV _ x) b = testBit x b
 bvPopCount :: BitVector w -> Int
 bvPopCount (BV _ x) = popCount x
 
+-- | Truncate a bit vector to a particular width given at runtime, while keeping the
+-- type-level width constant.
 bvTruncBits :: BitVector w -> Int -> BitVector w
 bvTruncBits (BV wRepr x) b = BV wRepr (truncBits b x)
 
