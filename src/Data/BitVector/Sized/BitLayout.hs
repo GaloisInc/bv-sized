@@ -60,8 +60,11 @@ empty = BitLayout knownNat knownNat S.empty
 singleton :: ChunkIdx r -> BitLayout r r
 singleton br@(ChunkIdx repr _) = BitLayout repr repr (S.singleton $ Some br)
 
-(|>) :: ChunkIdx r -> BitLayout t s -> BitLayout t (r + s)
-br@(ChunkIdx rRepr _rangeStart) |> BitLayout tRepr sRepr chunkIdxs =
+-- | TODO: Do runtime check here for overlap. This way all bit layouts will be
+-- correct-by-construction and we don't have to do runtime checks while using them,
+-- just when building them.
+(|>) :: BitLayout t s -> ChunkIdx r -> BitLayout t (r + s)
+BitLayout tRepr sRepr chunkIdxs |> br@(ChunkIdx rRepr _rangeStart) =
   BitLayout tRepr (rRepr `addNat` sRepr) (chunkIdxs S.|> Some br)
 
 -- TODO: check this
@@ -81,10 +84,36 @@ bvOrAtAll :: NatRepr t
           -> BitVector t
 bvOrAtAll tRepr [] _ = BV tRepr 0
 bvOrAtAll tRepr (Some (ChunkIdx chunkRepr chunkStart) : chunkIdxs) sVec =
-  bvOrAt chunkStart sVec (bvOrAtAll tRepr chunkIdxs (sVec `bvShift` (- chunkWidth)))
+  bvOrAt chunkStart (bvTruncBits sVec chunkWidth) (bvOrAtAll tRepr chunkIdxs (sVec `bvShift` (- chunkWidth)))
   where chunkWidth = fromIntegral (natValue chunkRepr)
 
+-- TODO: Require that s <= t? (Probably not)
 inject :: BitLayout t s -> BitVector s -> BitVector t
 inject (BitLayout tRepr _ chunkIdxs) sVec =
   bvOrAtAll tRepr (toList chunkIdxs) sVec
 
+-- First, extract the appropriate bits as a BitVector t, where the relevant bits
+-- start at the LSB of the vector (so, mask and shiftL). Then, truncate to a
+-- BitVector s, and shiftinto the starting position.
+extractChunk :: NatRepr s     -- ^ width of output
+             -> Int           -- ^ where to place the chunk in the result
+             -> Some ChunkIdx -- ^ location/width of chunk in the input
+             -> BitVector t   -- ^ input vector
+             -> BitVector s
+extractChunk sRepr sStart (Some (ChunkIdx chunkRepr tStart)) tVec =
+  bvShift extractedChunk sStart
+  where extractedChunk = bvZextWithRepr sRepr (bvExtractWithRepr chunkRepr tStart tVec)
+
+extractAll :: NatRepr s       -- ^ determines width of output vector
+           -> Int             -- ^ current position in output vector
+           -> [Some ChunkIdx] -- ^ list of remaining chunks to place in output vector
+           -> BitVector t     -- ^ input vector
+           -> BitVector s
+extractAll sRepr _ [] _ = BV sRepr 0
+extractAll sRepr start (cIdx@(Some (ChunkIdx chunkRepr _)) : chunkIdxs) tVec =
+  extractChunk sRepr start cIdx tVec `bvOr` extractAll sRepr (start + chunkWidth) chunkIdxs tVec
+  where chunkWidth = fromInteger (natValue chunkRepr)
+
+extract :: BitLayout t s -> BitVector t -> BitVector s
+extract (BitLayout _ sRepr chunkIdxs) tVec =
+  extractAll sRepr 0 (toList chunkIdxs) tVec

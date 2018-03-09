@@ -32,6 +32,7 @@ module Data.BitVector.Sized.Internal
   , bvWidth
   , bvTestBit
   , bvPopCount
+  , bvTruncBits
     -- * Arithmetic operations (width-preserving)
   , bvAdd, bvMul
   , bvAbs, bvNegate
@@ -138,6 +139,9 @@ bvTestBit (BV _ x) b = testBit x b
 -- | Get the number of 1 bits in a 'BitVector'.
 bvPopCount :: BitVector w -> Int
 bvPopCount (BV _ x) = popCount x
+
+bvTruncBits :: BitVector w -> Int -> BitVector w
+bvTruncBits (BV wRepr x) b = BV wRepr (truncBits b x)
 
 ----------------------------------------
 -- BitVector w arithmetic operations (fixed width)
