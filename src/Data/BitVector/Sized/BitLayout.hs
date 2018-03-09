@@ -68,7 +68,9 @@ empty = BitLayout knownNat knownNat S.empty
 cIdx@(ChunkIdx rRepr _rangeStart) |> bl@(BitLayout tRepr sRepr chunkIdxs) =
   if cIdx `chunkFits` bl
   then BitLayout tRepr (rRepr `addNat` sRepr) (chunkIdxs S.|> Some cIdx)
-  else error $ "chunk " ++ show cIdx ++ " does not fit in layout: " ++ show bl
+  else error $
+       "chunk " ++ show cIdx ++ " does not fit in layout of size " ++
+       show (natValue tRepr) ++ ": " ++ show bl
 
 -- TODO: check this
 infixr 6 |>
@@ -78,9 +80,16 @@ chunkFits cIdx@(ChunkIdx rRepr _) (BitLayout tRepr sRepr chunkIdxs) =
   (natValue rRepr + natValue sRepr <= natValue tRepr) &&
   noOverlaps cIdx (toList chunkIdxs)
 
--- TODO: complete this function
 noOverlaps :: ChunkIdx r -> [Some ChunkIdx] -> Bool
-noOverlaps _cIdx _cIdxs = True
+noOverlaps cIdx cIdxs = all (chunksDontOverlap (Some cIdx)) cIdxs
+
+chunksDontOverlap :: Some ChunkIdx -> Some ChunkIdx -> Bool
+chunksDontOverlap (Some (ChunkIdx chunkRepr1 start1)) (Some (ChunkIdx chunkRepr2 start2)) =
+  case start1 <= start2 of
+    True  -> start1 + chunkWidth1 <= start2
+    False -> start2 + chunkWidth2 <= start1
+  where chunkWidth1 = fromIntegral (natValue chunkRepr1)
+        chunkWidth2 = fromIntegral (natValue chunkRepr2)
 
 -- | Given a starting position, OR a smaller BitVector s with a larger BitVector t at
 -- that position.
