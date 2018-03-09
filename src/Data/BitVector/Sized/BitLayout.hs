@@ -19,33 +19,34 @@ overlaps) from a smaller bit vector into a larger one.
 
 module Data.BitVector.Sized.BitLayout where
 
-import Data.BitVector.Sized
+import Data.BitVector.Sized.Internal
+import Data.Foldable
 import Data.Parameterized
 import qualified Data.Sequence as S
-import Data.Sequence (Seq, (|>))
+import Data.Sequence (Seq)
 import GHC.TypeLits
 
--- | BitRange type.
-data BitRange (w :: Nat) :: * where
-  BitRange :: NatRepr w -- ^ width of range
+-- | ChunkIdx type.
+data ChunkIdx (w :: Nat) :: * where
+  ChunkIdx :: NatRepr w -- ^ width of range
            -> Int       -- ^ index of range start
-           -> BitRange w
+           -> ChunkIdx w
 
-bitRange :: KnownNat w => Int -> BitRange w
-bitRange start = BitRange knownNat start
+chunkIdx :: KnownNat w => Int -> ChunkIdx w
+chunkIdx start = ChunkIdx knownNat start
 
-instance Show (BitRange w) where
-  show (BitRange wRepr start) =
+instance Show (ChunkIdx w) where
+  show (ChunkIdx wRepr start) =
     "[" ++ show start ++ "..." ++ show (start + width - 1) ++ "]"
     where width = fromIntegral (natValue wRepr)
 
-instance ShowF BitRange where
+instance ShowF ChunkIdx where
   showF = show
 
 -- | BitLayout type. t is the target width, s is the source width. s should always be
 -- less than or equal to t.
 data BitLayout (t :: Nat) (s :: Nat) :: * where
-  BitLayout :: NatRepr t -> NatRepr s -> Seq (Some BitRange) -> BitLayout t s
+  BitLayout :: NatRepr t -> NatRepr s -> Seq (Some ChunkIdx) -> BitLayout t s
 
 instance Show (BitLayout t s) where
   show (BitLayout _ _ br) = show br
@@ -56,12 +57,34 @@ empty = BitLayout knownNat knownNat S.empty
 -- TODO: either here or at the end, do some kind of runtime check to ensure this is
 -- sensible. Probably best to do it here. Might be an easy way to implement it using
 -- a bit vector.
-singleton :: BitRange r -> BitLayout r r
-singleton br@(BitRange repr _) = BitLayout repr repr (S.singleton br)
+singleton :: ChunkIdx r -> BitLayout r r
+singleton br@(ChunkIdx repr _) = BitLayout repr repr (S.singleton $ Some br)
 
-(|>) ::  BitLayout t s -> BitRange r -> BitLayout t (r + s)
-br@(BitRange rRepr _rangeStart) >:> BitLayout tRepr sRepr bitRanges =
-  BitLayout tRepr (rRepr `addNat` sRepr) (bitRanges |> Some br)
+(|>) :: ChunkIdx r -> BitLayout t s -> BitLayout t (r + s)
+br@(ChunkIdx rRepr _rangeStart) |> BitLayout tRepr sRepr chunkIdxs =
+  BitLayout tRepr (rRepr `addNat` sRepr) (chunkIdxs S.|> Some br)
 
 -- TODO: check this
-infixl 6 >:>
+infixl 6 |>
+
+bvOrAt :: Int
+       -> BitVector s
+       -> BitVector t
+       -> BitVector t
+bvOrAt start sVec tVec@(BV tRepr _) =
+  (bvZextWithRepr tRepr sVec `bvShift` start) `bvOr` tVec
+
+-- TODO: runtime check, possibly throw runtime error.
+bvOrAtAll :: NatRepr t
+          -> [Some ChunkIdx]
+          -> BitVector s
+          -> BitVector t
+bvOrAtAll tRepr [] _ = BV tRepr 0
+bvOrAtAll tRepr (Some (ChunkIdx chunkRepr chunkStart) : chunkIdxs) sVec =
+  bvOrAt chunkStart sVec (bvOrAtAll tRepr chunkIdxs (sVec `bvShift` (- chunkWidth)))
+  where chunkWidth = fromIntegral (natValue chunkRepr)
+
+inject :: BitLayout t s -> BitVector s -> BitVector t
+inject (BitLayout tRepr _ chunkIdxs) sVec =
+  bvOrAtAll tRepr (toList chunkIdxs) sVec
+
