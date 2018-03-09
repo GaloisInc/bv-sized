@@ -13,12 +13,13 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-This module defines a 'BitLayout' datatype which encodes a chunk-to-chunk mapping
-from a smaller bit vector into a larger one.
+This module defines a 'BitLayout' datatype which encodes a chunk-to-chunk mapping (no
+overlaps) from a smaller bit vector into a larger one.
 -}
 
 module Data.BitVector.Sized.BitLayout where
 
+import Data.BitVector.Sized
 import Data.Parameterized
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, (|>))
@@ -52,14 +53,15 @@ instance Show (BitLayout t s) where
 empty :: KnownNat t => BitLayout t 0
 empty = BitLayout knownNat knownNat S.empty
 
--- | TODO: either here or at the end, do some kind of runtime check to ensure this is
+-- TODO: either here or at the end, do some kind of runtime check to ensure this is
 -- sensible. Probably best to do it here. Might be an easy way to implement it using
 -- a bit vector.
-(>:>) :: BitRange r -> BitLayout t s -> BitLayout t (r + s)
+singleton :: BitRange r -> BitLayout r r
+singleton br@(BitRange repr _) = BitLayout repr repr (S.singleton br)
+
+(|>) ::  BitLayout t s -> BitRange r -> BitLayout t (r + s)
 br@(BitRange rRepr _rangeStart) >:> BitLayout tRepr sRepr bitRanges =
   BitLayout tRepr (rRepr `addNat` sRepr) (bitRanges |> Some br)
-
-
 
 -- TODO: check this
 infixl 6 >:>
