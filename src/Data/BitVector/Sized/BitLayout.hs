@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -18,27 +19,34 @@ overlaps) from a smaller bit vector into a larger one.
 -}
 
 module Data.BitVector.Sized.BitLayout
-  ( ChunkIdx(..)
+  ( -- * ChunkIdx
+    ChunkIdx(..)
   , chunkIdx
+    -- * BitLayout
   , BitLayout, empty, (|>)
   , inject
   , extract
+    -- * Lens
+  , layoutLens
   ) where
 
 import Data.BitVector.Sized.Internal
 import Data.Foldable
+import Control.Lens hiding ((|>))
 import Data.Parameterized
 import qualified Data.Sequence as S
 import Data.Sequence (Seq)
 import GHC.TypeLits
 
--- | ChunkIdx type.
+-- | 'ChunkIdx' type, parameterized by chunk width. The internal 'Int' is the
+-- position of the least significant bit of the chunk, and the type-level nat 'w' is
+-- the width of the chunk.
 data ChunkIdx (w :: Nat) :: * where
   ChunkIdx :: NatRepr w -- width of range
            -> Int       -- index of range start
            -> ChunkIdx w
 
--- | Construct a ChunkIdx in a context where the chunk width is known at compile time.
+-- | Construct a 'ChunkIdx' in a context where the chunk width is known at compile time.
 chunkIdx :: KnownNat w => Int -> ChunkIdx w
 chunkIdx start = ChunkIdx knownNat start
 
@@ -50,20 +58,20 @@ instance Show (ChunkIdx w) where
 instance ShowF ChunkIdx where
   showF = show
 
--- | BitLayout type. t is the target width, s is the source width. s should always be
--- less than or equal to t.
+-- | BitLayout type. @t@ is the target width, @s@ is the source width. @s@ should
+-- always be less than or equal to @t@.
 data BitLayout (t :: Nat) (s :: Nat) :: * where
   BitLayout :: NatRepr t -> NatRepr s -> Seq (Some ChunkIdx) -> BitLayout t s
 
 instance Show (BitLayout t s) where
   show (BitLayout _ _ cIdxs) = show cIdxs
 
--- | Construct an empty BitLayout.
+-- | Construct an empty 'BitLayout'.
 empty :: KnownNat t => BitLayout t 0
 empty = BitLayout knownNat knownNat S.empty
 
 -- TODO: Should this be in Maybe?
--- | Add a chunk index to a bit layout.
+-- | Add a 'ChunkIdx' to a 'BitLayout'.
 (|>) :: ChunkIdx r -> BitLayout t s -> BitLayout t (r + s)
 cIdx@(ChunkIdx rRepr _rangeStart) |> bl@(BitLayout tRepr sRepr chunkIdxs) =
   if cIdx `chunkFits` bl
@@ -76,8 +84,10 @@ cIdx@(ChunkIdx rRepr _rangeStart) |> bl@(BitLayout tRepr sRepr chunkIdxs) =
 infixr 6 |>
 
 chunkFits :: ChunkIdx r -> BitLayout t s -> Bool
-chunkFits cIdx@(ChunkIdx rRepr _) (BitLayout tRepr sRepr chunkIdxs) =
-  (natValue rRepr + natValue sRepr <= natValue tRepr) &&
+chunkFits cIdx@(ChunkIdx rRepr start) (BitLayout tRepr sRepr chunkIdxs) =
+  (natValue rRepr + natValue sRepr <= natValue tRepr) && -- widths are ok
+  (fromIntegral start + natValue rRepr <= natValue tRepr) && -- chunk lies within the bit vector
+  (0 <= start) &&
   noOverlaps cIdx (toList chunkIdxs)
 
 noOverlaps :: ChunkIdx r -> [Some ChunkIdx] -> Bool
@@ -91,8 +101,8 @@ chunksDontOverlap (Some (ChunkIdx chunkRepr1 start1)) (Some (ChunkIdx chunkRepr2
   where chunkWidth1 = fromIntegral (natValue chunkRepr1)
         chunkWidth2 = fromIntegral (natValue chunkRepr2)
 
--- | Given a starting position, OR a smaller BitVector s with a larger BitVector t at
--- that position.
+-- | Given a starting position, insert (via "or") a smaller 'BitVector' @s@ with a larger
+-- 'BitVector' @t@ at that position.
 bvOrAt :: Int
        -> BitVector s
        -> BitVector t
@@ -112,8 +122,8 @@ bvOrAtAll tRepr (Some (ChunkIdx chunkRepr chunkStart) : chunkIdxs) sVec =
   where chunkWidth = fromIntegral (natValue chunkRepr)
 
 -- | Use a BitLayout to inject a smaller vector into a larger one.
-inject :: BitLayout t s -> BitVector s -> BitVector t -> BitVector t
-inject (BitLayout tRepr _ chunkIdxs) sVec tVec =
+inject :: BitLayout t s ->  BitVector t -> BitVector s -> BitVector t
+inject (BitLayout tRepr _ chunkIdxs) tVec sVec =
   (bvOrAtAll tRepr (toList chunkIdxs) sVec) `bvOr` tVec
 
 -- First, extract the appropriate bits as a BitVector t, where the relevant bits
@@ -142,3 +152,7 @@ extractAll sRepr start (cIdx@(Some (ChunkIdx chunkRepr _)) : chunkIdxs) tVec =
 extract :: BitLayout t s -> BitVector t -> BitVector s
 extract (BitLayout _ sRepr chunkIdxs) tVec =
   extractAll sRepr 0 (toList chunkIdxs) tVec
+
+-- | Lens for bit layout.
+layoutLens :: BitLayout t s -> Simple Lens (BitVector t) (BitVector s)
+layoutLens layout = lens (extract layout) (inject layout)
