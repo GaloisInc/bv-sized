@@ -63,8 +63,10 @@ chunk :: KnownNat w => Int -> Chunk w
 chunk start = Chunk knownNat start
 
 instance Show (Chunk w) where
-  show (Chunk wRepr start) =
-    "[" ++ show start ++ "..." ++ show (start + width - 1) ++ "]"
+  show (Chunk wRepr start)
+    | width == 0 =
+      "[" ++ show start ++ "..." ++ show (start + width - 1) ++ "]"
+    | otherwise = "[" ++ show start ++ "]"
     where width = fromIntegral (natValue wRepr)
 
 instance ShowF Chunk where
@@ -113,7 +115,7 @@ instance ShowF Chunk where
 -- above, you can either use the 'Lens' interface or the functions 'inject' and
 -- 'extract', which give an explicit setter and getter, respectively.
 --
--- Example use of @inject@/@extract:
+-- Example use of @inject@/@extract@:
 --
 -- >>> let bl = (chunk 25 :: Chunk 7) <: (chunk 7 :: Chunk 5) <: (empty :: BitLayout 32 0)
 -- >>> bl

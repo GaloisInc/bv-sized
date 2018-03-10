@@ -16,7 +16,7 @@ For more fine-grained access to the internals (including explicit
 
 module Data.BitVector.Sized
   ( -- * BitVector type
-    BitVector
+    BitVector(..)
   , bv
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.

@@ -277,6 +277,9 @@ instance Eq (BitVector w) where
 instance EqF BitVector where
   (BV _ x) `eqF` (BV _ y) = x == y
 
+instance Ord (BitVector w) where
+  (BV _ x) `compare` (BV _ y) = x `compare` y
+
 instance TestEquality BitVector where
   testEquality (BV wRepr x) (BV wRepr' y) =
     case natValue wRepr == natValue wRepr' && x == y of
