@@ -253,8 +253,8 @@ bvSextWithRepr repr bvec = BV repr (bvIntegerS bvec)
 bvMulFU :: BitVector w -> BitVector w' -> BitVector (w+w')
 bvMulFU (BV wRepr x) (BV wRepr' y) = BV (wRepr `addNat` wRepr') (x*y)
 
--- | Fultiply two bit vectors as signed integers, returning a bit vector whose length
--- is equal to the sum of the inputs.
+-- | Fully multiply two bit vectors as signed integers, returning a bit vector whose
+-- length is equal to the sum of the inputs.
 bvMulFS :: BitVector w -> BitVector w' -> BitVector (w+w')
 bvMulFS bvec1@(BV wRepr _) bvec2@(BV wRepr' _) = BV prodRepr (truncBits width (x'*y'))
   where x' = bvIntegerS bvec1
