@@ -31,7 +31,7 @@ module Data.BitVector.Sized.BitLayout
   , layoutLens
   ) where
 
-import Data.BitVector.Sized.Internal
+import Data.BitVector.Sized
 import Data.Foldable
 import Control.Lens
 import Data.Parameterized
