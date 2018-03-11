@@ -219,8 +219,9 @@ bvExtractWithRepr :: NatRepr w'
                   -> Int
                   -> BitVector w
                   -> BitVector w'
-bvExtractWithRepr repr pos bvec = BV repr xShf
+bvExtractWithRepr repr pos bvec = BV repr (truncBits width xShf)
   where (BV _ xShf) = bvShift bvec (- pos)
+        width = natValue repr
 
 -- | Zero-extend a vector to one of greater length. If given an input of greater
 -- length than the output type, this performs a truncation.
@@ -233,7 +234,8 @@ bvZext (BV _ x) = bv x
 bvZextWithRepr :: NatRepr w'
                -> BitVector w
                -> BitVector w'
-bvZextWithRepr repr (BV _ x) = BV repr x
+bvZextWithRepr repr (BV _ x) = BV repr (truncBits width x)
+  where width = natValue repr
 
 -- | Sign-extend a vector to one of greater length. If given an input of greater
 -- length than the output type, this performs a truncation.
@@ -246,7 +248,8 @@ bvSext bvec = bv (bvIntegerS bvec)
 bvSextWithRepr :: NatRepr w'
                -> BitVector w
                -> BitVector w'
-bvSextWithRepr repr bvec = BV repr (bvIntegerS bvec)
+bvSextWithRepr repr bvec = BV repr (truncBits width (bvIntegerS bvec))
+  where width = natValue repr
 
 -- | Fully multiply two bit vectors as unsigned integers, returning a bit vector
 -- whose length is equal to the sum of the inputs.

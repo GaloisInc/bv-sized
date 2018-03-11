@@ -209,9 +209,9 @@ extractChunk :: NatRepr s     -- ^ width of output
              -> Some Chunk    -- ^ location/width of chunk in the input
              -> BitVector t   -- ^ input vector
              -> BitVector s
-extractChunk sRepr sStart (Some (Chunk chunkRepr tStart)) tVec =
+extractChunk sRepr sStart (Some (Chunk chunkRepr chunkStart)) tVec =
   bvShift extractedChunk sStart
-  where extractedChunk = bvZextWithRepr sRepr (bvExtractWithRepr chunkRepr tStart tVec)
+  where extractedChunk = bvZextWithRepr sRepr (bvExtractWithRepr chunkRepr chunkStart tVec)
 
 extractAll :: NatRepr s       -- ^ determines width of output vector
            -> Int             -- ^ current position in output vector
@@ -219,8 +219,9 @@ extractAll :: NatRepr s       -- ^ determines width of output vector
            -> BitVector t     -- ^ input vector
            -> BitVector s
 extractAll sRepr _ [] _ = BV sRepr 0
-extractAll sRepr start (cIdx@(Some (Chunk chunkRepr _)) : chunks) tVec =
-  extractChunk sRepr start cIdx tVec `bvOr` extractAll sRepr (start + chunkWidth) chunks tVec
+extractAll sRepr outStart (cIdx@(Some (Chunk chunkRepr _)) : chunks) tVec =
+  extractChunk sRepr outStart cIdx tVec `bvOr`
+  extractAll sRepr (outStart + chunkWidth) chunks tVec
   where chunkWidth = fromInteger (natValue chunkRepr)
 
 -- | Use a 'BitLayout' to extract a smaller vector from a larger one.
