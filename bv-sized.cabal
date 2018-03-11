@@ -17,7 +17,7 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     Data.BitVector.Sized
-                     , Data.BitVector.Sized.Layout
+                     , Data.BitVector.Sized.BitLayout
   build-depends:       base >= 4.7 && < 5
                      , containers >= 0.5.11 && < 0.6
                      , lens >= 4 && < 5
