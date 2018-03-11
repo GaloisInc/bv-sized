@@ -24,7 +24,8 @@ module Data.BitVector.Sized.BitLayout
     Chunk(..)
   , chunk
     -- * BitLayout
-  , BitLayout, empty, (<:)
+  , BitLayout
+  , empty, (<:)
   , inject
   , extract
     -- * Lens
