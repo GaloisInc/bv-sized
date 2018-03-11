@@ -8,3 +8,7 @@
     without truncation
   * removed Internal module, now export all those functions in Data.BitVector.Sized
   * fixed the bv*WithRepr functions, which were not truncating the inputs properly
+
+## 0.1.1.1 *March 2018*
+  * added BitLayout
+
