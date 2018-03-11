@@ -98,9 +98,9 @@ instance ShowF Chunk where
 --      7     5
 -- @
 --
--- Here, bits A, B, C, and D are just labeled as such to illustrate their place after
--- the mapping. The @BitLayout 32 12@ defined above as the @layout@ variable would
--- map that 12-bit vector to the following 32-bit vector:
+-- Here, bits @A@, @B@, @C@, and @D@ are just labeled as such to illustrate their
+-- place after the mapping. The @BitLayout 32 12@ defined above as the @layout@
+-- variable would map that 12-bit vector to the following 32-bit vector:
 --
 -- @
 --      (Bit 25)          (Bit 5)
