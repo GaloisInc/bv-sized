@@ -93,21 +93,21 @@ instance ShowF Chunk where
 -- listed like so:
 --
 -- @
--- 0bMXXXXXXXXXXL
+-- 0bAXXXXXBCXXXD
 --   |-----||---|
 --      7     5
 -- @
 --
--- Here, bit @M@ is the most significant bit, and @L@ is the least. The @BitLayout 32
--- 12@ defined above as the @layout@ variable would map that 12-bit vector to the
--- following 32-bit vector:
+-- Here, bits A, B, C, and D are just labeled as such to illustrate their place after
+-- the mapping. The @BitLayout 32 12@ defined above as the @layout@ variable would
+-- map that 12-bit vector to the following 32-bit vector:
 --
 -- @
 --      (Bit 25)          (Bit 5)
 --         |                 |
 --         |                 |
 --         v                 v
--- 0bMXXXXXX0000000000000XXXXL0000000
+-- 0bAXXXXXB0000000000000CXXXD0000000
 --   |-----|             |---|
 --      7                  5
 -- @
