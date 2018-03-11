@@ -64,7 +64,7 @@ chunk start = Chunk knownNat start
 
 instance Show (Chunk w) where
   show (Chunk wRepr start)
-    | width == 0 =
+    | width > 0 =
       "[" ++ show start ++ "..." ++ show (start + width - 1) ++ "]"
     | otherwise = "[" ++ show start ++ "]"
     where width = fromIntegral (natValue wRepr)
