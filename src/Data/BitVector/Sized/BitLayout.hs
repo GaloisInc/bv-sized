@@ -77,7 +77,7 @@ instance ShowF Chunk where
 -- target width, @s@ is the source width. @s@ should always be less than or equal to
 -- @t@.
 --
--- To construct a 'BitLayout', use the 'empty' constructor and the '|>' operator,
+-- To construct a 'BitLayout', use the 'empty' constructor and the '<:' operator,
 -- like so:
 --
 -- >>> empty :: BitLayout 32 0
