@@ -67,11 +67,12 @@ data BitVector (w :: Nat) :: * where
 --
 -- >>> bitVector 0xA :: BitVector 4
 -- 0xa<4>
--- >>> bitVector 0xA :: BitVector 3
+-- >>> 0xA :: BitVector 4
+-- >>> 0xA :: BitVector 3
 -- 0x2<3>
--- >>> bitVector (-1) :: BitVector 8
+-- >>> (-1) :: BitVector 8
 -- 0xff<8>
--- >>> bitVector (-1) :: BitVector 32
+-- >>> (-1) :: BitVector 32
 -- 0xffffffff<32>
 bitVector :: KnownNat w => Integer -> BitVector w
 bitVector x = BV wRepr (truncBits width (fromIntegral x))
@@ -177,7 +178,7 @@ bvSignum bvec@(BV wRepr _) = (bvShift bvec (1 - width)) `bvAnd` (BV wRepr 0x1)
 
 -- | Concatenate two bit vectors.
 --
--- >>> (bitVector 0xAA :: BitVector 8) `bvConcat` (bitVector 0xBCDEF0 :: BitVector 24)
+-- >>> (0xAA :: BitVector 8 `bvConcat` 0xBCDEF0 :: BitVector 24)
 -- 0xaabcdef0<32>
 -- >>> :type it
 -- it :: BitVector 32
@@ -199,7 +200,7 @@ infixl 6 <:>
 -- given explicitly as an argument of type 'Int', and the length of the slice is
 -- inferred from a type-level context.
 --
--- >>> bvExtract 12 (bitVector 0xAABCDEF0 :: BitVector 32) :: BitVector 8
+-- >>> bvExtract 12 (0xAABCDEF0 :: BitVector 32) :: BitVector 8
 -- 0xcd<8>
 --
 -- Note that 'bvExtract' does not do any bounds checking whatsoever; if you try and
