@@ -20,7 +20,7 @@ operations that assume a 2's complement representation.
 module Data.BitVector.Sized
   ( -- * BitVector type
     BitVector(..)
-  , bv
+  , bitVector
     -- * Bitwise operations (width-preserving)
     -- | These are alternative versions of some of the 'Bits' functions where we do
     -- not need to know the width at compile time. They are all width-preserving.
@@ -65,17 +65,16 @@ data BitVector (w :: Nat) :: * where
 -- bit representation), whether positive or negative is silently truncated to fit
 -- into the number of bits demanded by the return type.
 --
--- >>> bv 0xA :: BitVector 4
+-- >>> bitVector 0xA :: BitVector 4
 -- 0xa<4>
--- >>> bv 0xA :: BitVector 3
+-- >>> bitVector 0xA :: BitVector 3
 -- 0x2<3>
--- >>> bv (-1) :: BitVector 8
+-- >>> bitVector (-1) :: BitVector 8
 -- 0xff<8>
--- >>> bv (-1) :: BitVector 32
+-- >>> bitVector (-1) :: BitVector 32
 -- 0xffffffff<32>
-
-bv :: KnownNat w => Integer -> BitVector w
-bv x = BV wRepr (truncBits width (fromIntegral x))
+bitVector :: KnownNat w => Integer -> BitVector w
+bitVector x = BV wRepr (truncBits width (fromIntegral x))
   where wRepr = knownNat
         width = natValue wRepr
 
@@ -178,7 +177,7 @@ bvSignum bvec@(BV wRepr _) = (bvShift bvec (1 - width)) `bvAnd` (BV wRepr 0x1)
 
 -- | Concatenate two bit vectors.
 --
--- >>> (bv 0xAA :: BitVector 8) `bvConcat` (bv 0xBCDEF0 :: BitVector 24)
+-- >>> (bitVector 0xAA :: BitVector 8) `bvConcat` (bitVector 0xBCDEF0 :: BitVector 24)
 -- 0xaabcdef0<32>
 -- >>> :type it
 -- it :: BitVector 32
@@ -200,7 +199,7 @@ infixl 6 <:>
 -- given explicitly as an argument of type 'Int', and the length of the slice is
 -- inferred from a type-level context.
 --
--- >>> bvExtract 12 (bv 0xAABCDEF0 :: BitVector 32) :: BitVector 8
+-- >>> bvExtract 12 (bitVector 0xAABCDEF0 :: BitVector 32) :: BitVector 8
 -- 0xcd<8>
 --
 -- Note that 'bvExtract' does not do any bounds checking whatsoever; if you try and
@@ -209,7 +208,7 @@ bvExtract :: forall w w' . (KnownNat w')
           => Int
           -> BitVector w
           -> BitVector w'
-bvExtract pos bvec = bv xShf
+bvExtract pos bvec = bitVector xShf
   where (BV _ xShf) = bvShift bvec (- pos)
 
 -- | Unconstrained variant of 'bvExtract' with an explicit 'NatRepr' argument.
@@ -226,7 +225,7 @@ bvExtractWithRepr repr pos bvec = BV repr (truncBits width xShf)
 bvZext :: forall w w' . KnownNat w'
        => BitVector w
        -> BitVector w'
-bvZext (BV _ x) = bv x
+bvZext (BV _ x) = bitVector x
 
 -- | Unconstrained variant of 'bvZext' with an explicit 'NatRepr' argument.
 bvZextWithRepr :: NatRepr w'
@@ -240,7 +239,7 @@ bvZextWithRepr repr (BV _ x) = BV repr (truncBits width x)
 bvSext :: forall w w' . KnownNat w'
        => BitVector w
        -> BitVector w'
-bvSext bvec = bv (bvIntegerS bvec)
+bvSext bvec = bitVector (bvIntegerS bvec)
 
 -- | Unconstrained variant of 'bvSext' with an explicit 'NatRepr' argument.
 bvSextWithRepr :: NatRepr w'
@@ -298,7 +297,7 @@ instance KnownNat w => Bits (BitVector w) where
   bitSizeMaybe = Just . bvWidth
   isSigned     = const False
   testBit      = bvTestBit
-  bit          = bv . bit
+  bit          = bitVector . bit
   popCount     = bvPopCount
 
 instance KnownNat w => FiniteBits (BitVector w) where
@@ -309,16 +308,16 @@ instance KnownNat w => Num (BitVector w) where
   (*)         = bvMul
   abs         = bvAbs
   signum      = bvSignum
-  fromInteger = bv
+  fromInteger = bitVector
   negate      = bvNegate
 
 instance KnownNat w => Enum (BitVector w) where
-  toEnum   = bv . fromIntegral
+  toEnum   = bitVector . fromIntegral
   fromEnum = fromIntegral . bvIntegerU
 
 instance KnownNat w => Bounded (BitVector w) where
-  minBound = bv 0
-  maxBound = bv (-1)
+  minBound = bitVector 0
+  maxBound = bitVector (-1)
 
 ----------------------------------------
 -- UTILITIES
