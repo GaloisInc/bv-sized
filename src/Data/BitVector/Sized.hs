@@ -35,6 +35,7 @@ module Data.BitVector.Sized
   , bvAdd, bvMul
   , bvAbs, bvNegate
   , bvSignum
+  , bvLTS, bvLTU
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
   , bvConcat, (<:>)
@@ -119,21 +120,21 @@ bvShift bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` shf))
   where width = natValue wRepr
         x     = bvIntegerS bv -- arithmetic right shift when negative
 
-pos :: Int -> Int
-pos x | x < 0 = 0
-pos x = x
+toPos :: Int -> Int
+toPos x | x < 0 = 0
+toPos x = x
 
 -- | Left shift.
 bvShiftL :: BitVector w -> Int -> BitVector w
-bvShiftL bv shf = bvShift bv (pos shf)
+bvShiftL bv shf = bvShift bv (toPos shf)
 
 -- | Right arithmetic shift.
 bvShiftRA :: BitVector w -> Int -> BitVector w
-bvShiftRA bv shf = bvShift bv (- (pos shf))
+bvShiftRA bv shf = bvShift bv (- (toPos shf))
 
 -- | Right logical shift.
 bvShiftRL :: BitVector w -> Int -> BitVector w
-bvShiftRL bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` pos shf))
+bvShiftRL bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` toPos shf))
   where width = natValue wRepr
         x     = bvIntegerU bv
 
@@ -190,6 +191,14 @@ bvNegate (BV wRepr x) = BV wRepr (truncBits width (-x))
 bvSignum :: BitVector w -> BitVector w
 bvSignum bv@(BV wRepr _) = (bvShift bv (1 - width)) `bvAnd` (BV wRepr 0x1)
   where width = fromIntegral (natValue wRepr)
+
+-- | Signed less than.
+bvLTS :: BitVector w -> BitVector w -> Bool
+bvLTS bv1 bv2 = bvIntegerS bv1 < bvIntegerS bv2
+
+-- | Unsigned less than.
+bvLTU :: BitVector w -> BitVector w -> Bool
+bvLTU bv1 bv2 = bvIntegerU bv1 < bvIntegerU bv2
 
 ----------------------------------------
 -- Width-changing operations
