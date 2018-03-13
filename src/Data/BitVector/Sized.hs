@@ -26,7 +26,7 @@ module Data.BitVector.Sized
     -- not need to know the width at compile time. They are all width-preserving.
   , bvAnd, bvOr, bvXor
   , bvComplement
-  , bvShift, bvRotate
+  , bvShift, bvShiftL, bvShiftRA, bvShiftRL,  bvRotate
   , bvWidth
   , bvTestBit
   , bvPopCount
@@ -88,10 +88,10 @@ bvIntegerU (BV _ x) = x
 
 -- | Signed interpretation of a bit vector as an Integer.
 bvIntegerS :: BitVector w -> Integer
-bvIntegerS bvec = case bvTestBit bvec (width - 1) of
-  True  -> bvIntegerU bvec - (1 `shiftL` width)
-  False -> bvIntegerU bvec
-  where width = bvWidth bvec
+bvIntegerS bv = case bvTestBit bv (width - 1) of
+  True  -> bvIntegerU bv - (1 `shiftL` width)
+  False -> bvIntegerU bv
+  where width = bvWidth bv
 
 ----------------------------------------
 -- BitVector w operations (fixed width)
@@ -115,16 +115,31 @@ bvComplement (BV wRepr x) = BV wRepr (truncBits width (complement x))
 
 -- | Bitwise shift.
 bvShift :: BitVector w -> Int -> BitVector w
-bvShift bvec@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` shf))
+bvShift bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` shf))
   where width = natValue wRepr
-        x     = bvIntegerS bvec -- arithmetic right shift when negative
+        x     = bvIntegerS bv -- arithmetic right shift when negative
+
+pos :: Int -> Int
+pos x | x < 0 = 0
+pos x = x
+
+bvShiftL :: BitVector w -> Int -> BitVector w
+bvShiftL bv shf = bvShift bv (pos shf)
+
+bvShiftRA :: BitVector w -> Int -> BitVector w
+bvShiftRA bv shf = bvShift bv (- (pos shf))
+
+bvShiftRL :: BitVector w -> Int -> BitVector w
+bvShiftRL bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` pos shf))
+  where width = natValue wRepr
+        x     = bvIntegerU bv
 
 -- | Bitwise rotate.
 bvRotate :: BitVector w -> Int -> BitVector w
-bvRotate bvec rot' = leftChunk `bvOr` rightChunk
-  where rot = rot' `mod` (bvWidth bvec)
-        leftChunk = bvShift bvec rot
-        rightChunk = bvShift bvec (rot - bvWidth bvec)
+bvRotate bv rot' = leftChunk `bvOr` rightChunk
+  where rot = rot' `mod` (bvWidth bv)
+        leftChunk = bvShift bv rot
+        rightChunk = bvShift bv (rot - bvWidth bv)
 
 -- | Get the width of a 'BitVector'.
 bvWidth :: BitVector w -> Int
@@ -158,9 +173,9 @@ bvMul (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x * y))
 
 -- | Bitwise absolute value.
 bvAbs :: BitVector w -> BitVector w
-bvAbs bvec@(BV wRepr _) = BV wRepr abs_x
+bvAbs bv@(BV wRepr _) = BV wRepr abs_x
   where width = natValue wRepr
-        x     = bvIntegerS bvec
+        x     = bvIntegerS bv
         abs_x = truncBits width (abs x) -- this is necessary
 
 -- | Bitwise negation.
@@ -170,7 +185,7 @@ bvNegate (BV wRepr x) = BV wRepr (truncBits width (-x))
 
 -- | Get the sign bit as a 'BitVector'.
 bvSignum :: BitVector w -> BitVector w
-bvSignum bvec@(BV wRepr _) = (bvShift bvec (1 - width)) `bvAnd` (BV wRepr 0x1)
+bvSignum bv@(BV wRepr _) = (bvShift bv (1 - width)) `bvAnd` (BV wRepr 0x1)
   where width = fromIntegral (natValue wRepr)
 
 ----------------------------------------
@@ -209,16 +224,16 @@ bvExtract :: forall w w' . (KnownNat w')
           => Int
           -> BitVector w
           -> BitVector w'
-bvExtract pos bvec = bitVector xShf
-  where (BV _ xShf) = bvShift bvec (- pos)
+bvExtract pos bv = bitVector xShf
+  where (BV _ xShf) = bvShift bv (- pos)
 
 -- | Unconstrained variant of 'bvExtract' with an explicit 'NatRepr' argument.
 bvExtractWithRepr :: NatRepr w'
                   -> Int
                   -> BitVector w
                   -> BitVector w'
-bvExtractWithRepr repr pos bvec = BV repr (truncBits width xShf)
-  where (BV _ xShf) = bvShift bvec (- pos)
+bvExtractWithRepr repr pos bv = BV repr (truncBits width xShf)
+  where (BV _ xShf) = bvShift bv (- pos)
         width = natValue repr
 
 -- | Zero-extend a vector to one of greater length. If given an input of greater
@@ -240,13 +255,13 @@ bvZextWithRepr repr (BV _ x) = BV repr (truncBits width x)
 bvSext :: forall w w' . KnownNat w'
        => BitVector w
        -> BitVector w'
-bvSext bvec = bitVector (bvIntegerS bvec)
+bvSext bv = bitVector (bvIntegerS bv)
 
 -- | Unconstrained variant of 'bvSext' with an explicit 'NatRepr' argument.
 bvSextWithRepr :: NatRepr w'
                -> BitVector w
                -> BitVector w'
-bvSextWithRepr repr bvec = BV repr (truncBits width (bvIntegerS bvec))
+bvSextWithRepr repr bv = BV repr (truncBits width (bvIntegerS bv))
   where width = natValue repr
 
 -- | Fully multiply two bit vectors as unsigned integers, returning a bit vector
@@ -257,9 +272,9 @@ bvMulFU (BV wRepr x) (BV wRepr' y) = BV (wRepr `addNat` wRepr') (x*y)
 -- | Fully multiply two bit vectors as signed integers, returning a bit vector whose
 -- length is equal to the sum of the inputs.
 bvMulFS :: BitVector w -> BitVector w' -> BitVector (w+w')
-bvMulFS bvec1@(BV wRepr _) bvec2@(BV wRepr' _) = BV prodRepr (truncBits width (x'*y'))
-  where x' = bvIntegerS bvec1
-        y' = bvIntegerS bvec2
+bvMulFS bv1@(BV wRepr _) bv2@(BV wRepr' _) = BV prodRepr (truncBits width (x'*y'))
+  where x' = bvIntegerS bv1
+        y' = bvIntegerS bv2
         prodRepr = wRepr `addNat` wRepr'
         width = natValue prodRepr
 
