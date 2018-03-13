@@ -123,12 +123,15 @@ pos :: Int -> Int
 pos x | x < 0 = 0
 pos x = x
 
+-- | Left shift.
 bvShiftL :: BitVector w -> Int -> BitVector w
 bvShiftL bv shf = bvShift bv (pos shf)
 
+-- | Right arithmetic shift.
 bvShiftRA :: BitVector w -> Int -> BitVector w
 bvShiftRA bv shf = bvShift bv (- (pos shf))
 
+-- | Right logical shift.
 bvShiftRL :: BitVector w -> Int -> BitVector w
 bvShiftRL bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` pos shf))
   where width = natValue wRepr
