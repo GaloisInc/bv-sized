@@ -52,7 +52,8 @@ import Data.Bits
 import Data.Parameterized.Classes
 import Data.Parameterized.NatRepr
 import GHC.TypeLits
-import Test.QuickCheck (Arbitrary(..), sized)
+import System.Random
+import Test.QuickCheck (Arbitrary(..), choose)
 import Text.Printf
 import Unsafe.Coerce (unsafeCoerce)
 ----------------------------------------
@@ -349,8 +350,15 @@ instance KnownNat w => Bounded (BitVector w) where
   maxBound = bitVector (-1)
 
 instance KnownNat w => Arbitrary (BitVector w) where
-  arbitrary = sized arbBV
-    where arbBV i = return $ bitVector (fromIntegral i)
+  arbitrary = choose (minBound, maxBound)
+
+instance KnownNat w => Random (BitVector w) where
+  randomR (bvLo, bvHi) gen =
+    let (x, gen') = randomR (bvIntegerU bvLo, bvIntegerU bvHi) gen
+    in (bitVector x, gen')
+  random gen =
+    let (x, gen') = random gen
+    in (bitVector x, gen')
 
 ----------------------------------------
 -- UTILITIES
