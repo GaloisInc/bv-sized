@@ -52,6 +52,7 @@ import Data.Bits
 import Data.Parameterized.Classes
 import Data.Parameterized.NatRepr
 import GHC.TypeLits
+import Test.QuickCheck (Arbitrary(..), sized)
 import Text.Printf
 import Unsafe.Coerce (unsafeCoerce)
 ----------------------------------------
@@ -346,6 +347,10 @@ instance KnownNat w => Enum (BitVector w) where
 instance KnownNat w => Bounded (BitVector w) where
   minBound = bitVector 0
   maxBound = bitVector (-1)
+
+instance KnownNat w => Arbitrary (BitVector w) where
+  arbitrary = sized arbBV
+    where arbBV i = return $ bitVector (fromIntegral i)
 
 ----------------------------------------
 -- UTILITIES
