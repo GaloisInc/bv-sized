@@ -12,3 +12,7 @@
 ## 0.1.1.1 *March 2018*
   * added BitLayout
 
+## 0.2 *March 2018*
+  * bv -> bitVector, so this is very much a breaking change
+  * bvShiftL, bvShiftRL, bvShiftRA
+  * bvLTU, bvLTS
