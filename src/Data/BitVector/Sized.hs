@@ -20,13 +20,13 @@ operations that assume a 2's complement representation.
 module Data.BitVector.Sized
   ( -- * BitVector type
     BitVector(..)
-  , bv
+  , bitVector
     -- * Bitwise operations (width-preserving)
     -- | These are alternative versions of some of the 'Bits' functions where we do
     -- not need to know the width at compile time. They are all width-preserving.
   , bvAnd, bvOr, bvXor
   , bvComplement
-  , bvShift, bvRotate
+  , bvShift, bvShiftL, bvShiftRA, bvShiftRL,  bvRotate
   , bvWidth
   , bvTestBit
   , bvPopCount
@@ -35,6 +35,7 @@ module Data.BitVector.Sized
   , bvAdd, bvMul
   , bvAbs, bvNegate
   , bvSignum
+  , bvLTS, bvLTU
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
   , bvConcat, (<:>)
@@ -51,6 +52,8 @@ import Data.Bits
 import Data.Parameterized.Classes
 import Data.Parameterized.NatRepr
 import GHC.TypeLits
+import System.Random
+import Test.QuickCheck (Arbitrary(..), choose)
 import Text.Printf
 import Unsafe.Coerce (unsafeCoerce)
 ----------------------------------------
@@ -65,17 +68,17 @@ data BitVector (w :: Nat) :: * where
 -- bit representation), whether positive or negative is silently truncated to fit
 -- into the number of bits demanded by the return type.
 --
--- >>> bv 0xA :: BitVector 4
+-- >>> bitVector 0xA :: BitVector 4
 -- 0xa<4>
--- >>> bv 0xA :: BitVector 3
+-- >>> 0xA :: BitVector 4
+-- >>> 0xA :: BitVector 3
 -- 0x2<3>
--- >>> bv (-1) :: BitVector 8
+-- >>> (-1) :: BitVector 8
 -- 0xff<8>
--- >>> bv (-1) :: BitVector 32
+-- >>> (-1) :: BitVector 32
 -- 0xffffffff<32>
-
-bv :: KnownNat w => Integer -> BitVector w
-bv x = BV wRepr (truncBits width (fromIntegral x))
+bitVector :: KnownNat w => Integer -> BitVector w
+bitVector x = BV wRepr (truncBits width (fromIntegral x))
   where wRepr = knownNat
         width = natValue wRepr
 
@@ -88,10 +91,10 @@ bvIntegerU (BV _ x) = x
 
 -- | Signed interpretation of a bit vector as an Integer.
 bvIntegerS :: BitVector w -> Integer
-bvIntegerS bvec = case bvTestBit bvec (width - 1) of
-  True  -> bvIntegerU bvec - (1 `shiftL` width)
-  False -> bvIntegerU bvec
-  where width = bvWidth bvec
+bvIntegerS bv = case bvTestBit bv (width - 1) of
+  True  -> bvIntegerU bv - (1 `shiftL` width)
+  False -> bvIntegerU bv
+  where width = bvWidth bv
 
 ----------------------------------------
 -- BitVector w operations (fixed width)
@@ -115,16 +118,34 @@ bvComplement (BV wRepr x) = BV wRepr (truncBits width (complement x))
 
 -- | Bitwise shift.
 bvShift :: BitVector w -> Int -> BitVector w
-bvShift bvec@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` shf))
+bvShift bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` shf))
   where width = natValue wRepr
-        x     = bvIntegerS bvec -- arithmetic right shift when negative
+        x     = bvIntegerS bv -- arithmetic right shift when negative
+
+toPos :: Int -> Int
+toPos x | x < 0 = 0
+toPos x = x
+
+-- | Left shift.
+bvShiftL :: BitVector w -> Int -> BitVector w
+bvShiftL bv shf = bvShift bv (toPos shf)
+
+-- | Right arithmetic shift.
+bvShiftRA :: BitVector w -> Int -> BitVector w
+bvShiftRA bv shf = bvShift bv (- (toPos shf))
+
+-- | Right logical shift.
+bvShiftRL :: BitVector w -> Int -> BitVector w
+bvShiftRL bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` toPos shf))
+  where width = natValue wRepr
+        x     = bvIntegerU bv
 
 -- | Bitwise rotate.
 bvRotate :: BitVector w -> Int -> BitVector w
-bvRotate bvec rot' = leftChunk `bvOr` rightChunk
-  where rot = rot' `mod` (bvWidth bvec)
-        leftChunk = bvShift bvec rot
-        rightChunk = bvShift bvec (rot - bvWidth bvec)
+bvRotate bv rot' = leftChunk `bvOr` rightChunk
+  where rot = rot' `mod` (bvWidth bv)
+        leftChunk = bvShift bv rot
+        rightChunk = bvShift bv (rot - bvWidth bv)
 
 -- | Get the width of a 'BitVector'.
 bvWidth :: BitVector w -> Int
@@ -158,9 +179,9 @@ bvMul (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x * y))
 
 -- | Bitwise absolute value.
 bvAbs :: BitVector w -> BitVector w
-bvAbs bvec@(BV wRepr _) = BV wRepr abs_x
+bvAbs bv@(BV wRepr _) = BV wRepr abs_x
   where width = natValue wRepr
-        x     = bvIntegerS bvec
+        x     = bvIntegerS bv
         abs_x = truncBits width (abs x) -- this is necessary
 
 -- | Bitwise negation.
@@ -170,15 +191,23 @@ bvNegate (BV wRepr x) = BV wRepr (truncBits width (-x))
 
 -- | Get the sign bit as a 'BitVector'.
 bvSignum :: BitVector w -> BitVector w
-bvSignum bvec@(BV wRepr _) = (bvShift bvec (1 - width)) `bvAnd` (BV wRepr 0x1)
+bvSignum bv@(BV wRepr _) = (bvShift bv (1 - width)) `bvAnd` (BV wRepr 0x1)
   where width = fromIntegral (natValue wRepr)
+
+-- | Signed less than.
+bvLTS :: BitVector w -> BitVector w -> Bool
+bvLTS bv1 bv2 = bvIntegerS bv1 < bvIntegerS bv2
+
+-- | Unsigned less than.
+bvLTU :: BitVector w -> BitVector w -> Bool
+bvLTU bv1 bv2 = bvIntegerU bv1 < bvIntegerU bv2
 
 ----------------------------------------
 -- Width-changing operations
 
 -- | Concatenate two bit vectors.
 --
--- >>> (bv 0xAA :: BitVector 8) `bvConcat` (bv 0xBCDEF0 :: BitVector 24)
+-- >>> (0xAA :: BitVector 8 `bvConcat` 0xBCDEF0 :: BitVector 24)
 -- 0xaabcdef0<32>
 -- >>> :type it
 -- it :: BitVector 32
@@ -200,7 +229,7 @@ infixl 6 <:>
 -- given explicitly as an argument of type 'Int', and the length of the slice is
 -- inferred from a type-level context.
 --
--- >>> bvExtract 12 (bv 0xAABCDEF0 :: BitVector 32) :: BitVector 8
+-- >>> bvExtract 12 (0xAABCDEF0 :: BitVector 32) :: BitVector 8
 -- 0xcd<8>
 --
 -- Note that 'bvExtract' does not do any bounds checking whatsoever; if you try and
@@ -209,16 +238,16 @@ bvExtract :: forall w w' . (KnownNat w')
           => Int
           -> BitVector w
           -> BitVector w'
-bvExtract pos bvec = bv xShf
-  where (BV _ xShf) = bvShift bvec (- pos)
+bvExtract pos bv = bitVector xShf
+  where (BV _ xShf) = bvShift bv (- pos)
 
 -- | Unconstrained variant of 'bvExtract' with an explicit 'NatRepr' argument.
 bvExtractWithRepr :: NatRepr w'
                   -> Int
                   -> BitVector w
                   -> BitVector w'
-bvExtractWithRepr repr pos bvec = BV repr (truncBits width xShf)
-  where (BV _ xShf) = bvShift bvec (- pos)
+bvExtractWithRepr repr pos bv = BV repr (truncBits width xShf)
+  where (BV _ xShf) = bvShift bv (- pos)
         width = natValue repr
 
 -- | Zero-extend a vector to one of greater length. If given an input of greater
@@ -226,7 +255,7 @@ bvExtractWithRepr repr pos bvec = BV repr (truncBits width xShf)
 bvZext :: forall w w' . KnownNat w'
        => BitVector w
        -> BitVector w'
-bvZext (BV _ x) = bv x
+bvZext (BV _ x) = bitVector x
 
 -- | Unconstrained variant of 'bvZext' with an explicit 'NatRepr' argument.
 bvZextWithRepr :: NatRepr w'
@@ -240,13 +269,13 @@ bvZextWithRepr repr (BV _ x) = BV repr (truncBits width x)
 bvSext :: forall w w' . KnownNat w'
        => BitVector w
        -> BitVector w'
-bvSext bvec = bv (bvIntegerS bvec)
+bvSext bv = bitVector (bvIntegerS bv)
 
 -- | Unconstrained variant of 'bvSext' with an explicit 'NatRepr' argument.
 bvSextWithRepr :: NatRepr w'
                -> BitVector w
                -> BitVector w'
-bvSextWithRepr repr bvec = BV repr (truncBits width (bvIntegerS bvec))
+bvSextWithRepr repr bv = BV repr (truncBits width (bvIntegerS bv))
   where width = natValue repr
 
 -- | Fully multiply two bit vectors as unsigned integers, returning a bit vector
@@ -257,9 +286,9 @@ bvMulFU (BV wRepr x) (BV wRepr' y) = BV (wRepr `addNat` wRepr') (x*y)
 -- | Fully multiply two bit vectors as signed integers, returning a bit vector whose
 -- length is equal to the sum of the inputs.
 bvMulFS :: BitVector w -> BitVector w' -> BitVector (w+w')
-bvMulFS bvec1@(BV wRepr _) bvec2@(BV wRepr' _) = BV prodRepr (truncBits width (x'*y'))
-  where x' = bvIntegerS bvec1
-        y' = bvIntegerS bvec2
+bvMulFS bv1@(BV wRepr _) bv2@(BV wRepr' _) = BV prodRepr (truncBits width (x'*y'))
+  where x' = bvIntegerS bv1
+        y' = bvIntegerS bv2
         prodRepr = wRepr `addNat` wRepr'
         width = natValue prodRepr
 
@@ -298,7 +327,7 @@ instance KnownNat w => Bits (BitVector w) where
   bitSizeMaybe = Just . bvWidth
   isSigned     = const False
   testBit      = bvTestBit
-  bit          = bv . bit
+  bit          = bitVector . bit
   popCount     = bvPopCount
 
 instance KnownNat w => FiniteBits (BitVector w) where
@@ -309,16 +338,27 @@ instance KnownNat w => Num (BitVector w) where
   (*)         = bvMul
   abs         = bvAbs
   signum      = bvSignum
-  fromInteger = bv
+  fromInteger = bitVector
   negate      = bvNegate
 
 instance KnownNat w => Enum (BitVector w) where
-  toEnum   = bv . fromIntegral
+  toEnum   = bitVector . fromIntegral
   fromEnum = fromIntegral . bvIntegerU
 
 instance KnownNat w => Bounded (BitVector w) where
-  minBound = bv 0
-  maxBound = bv (-1)
+  minBound = bitVector 0
+  maxBound = bitVector (-1)
+
+instance KnownNat w => Arbitrary (BitVector w) where
+  arbitrary = choose (minBound, maxBound)
+
+instance KnownNat w => Random (BitVector w) where
+  randomR (bvLo, bvHi) gen =
+    let (x, gen') = randomR (bvIntegerU bvLo, bvIntegerU bvHi) gen
+    in (bitVector x, gen')
+  random gen =
+    let (x, gen') = random gen
+    in (bitVector x, gen')
 
 ----------------------------------------
 -- UTILITIES
