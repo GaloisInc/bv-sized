@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 {-|
-Module      : Data.BitVector.Sized.Internal
+Module      : Data.BitVector.Sized
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : BSD3
