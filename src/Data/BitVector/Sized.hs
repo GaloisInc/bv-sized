@@ -71,6 +71,7 @@ data BitVector (w :: Nat) :: * where
 -- >>> bitVector 0xA :: BitVector 4
 -- 0xa<4>
 -- >>> 0xA :: BitVector 4
+-- 0xa<4>
 -- >>> 0xA :: BitVector 3
 -- 0x2<3>
 -- >>> (-1) :: BitVector 8
