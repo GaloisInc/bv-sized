@@ -176,13 +176,13 @@ bvMul :: BitVector w -> BitVector w -> BitVector w
 bvMul (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x * y))
   where width = natValue wRepr
 
--- | Bitwise division (unsigned).
+-- | Bitwise division (unsigned). Rounds to zero.
 bvDivU :: BitVector w -> BitVector w -> BitVector w
-bvDivU (BV wRepr x) (BV _ y) = BV wRepr (x `div` y)
+bvDivU (BV wRepr x) (BV _ y) = BV wRepr (x `quot` y)
 
--- | Bitwise division (signed).
+-- | Bitwise division (signed). Rounds to zero (not negative infinity).
 bvDivS :: BitVector w -> BitVector w -> BitVector w
-bvDivS bv1@(BV wRepr _) bv2 = BV wRepr (truncBits width (x `div` y))
+bvDivS bv1@(BV wRepr _) bv2 = BV wRepr (truncBits width (x `quot` y))
   where x = bvIntegerS bv1
         y = bvIntegerS bv2
         width = natValue wRepr
