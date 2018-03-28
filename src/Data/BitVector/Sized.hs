@@ -33,7 +33,9 @@ module Data.BitVector.Sized
   , bvPopCount
   , bvTruncBits
     -- * Arithmetic operations (width-preserving)
-  , bvAdd, bvMul, bvDivU, bvDivS
+  , bvAdd, bvMul
+  , bvQuotU, bvQuotS
+  , bvRemU, bvRemS
   , bvAbs, bvNegate
   , bvSignum
   , bvLTS, bvLTU
@@ -177,12 +179,24 @@ bvMul (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x * y))
   where width = natValue wRepr
 
 -- | Bitwise division (unsigned). Rounds to zero.
-bvDivU :: BitVector w -> BitVector w -> BitVector w
-bvDivU (BV wRepr x) (BV _ y) = BV wRepr (x `quot` y)
+bvQuotU :: BitVector w -> BitVector w -> BitVector w
+bvQuotU (BV wRepr x) (BV _ y) = BV wRepr (x `quot` y)
 
 -- | Bitwise division (signed). Rounds to zero (not negative infinity).
-bvDivS :: BitVector w -> BitVector w -> BitVector w
-bvDivS bv1@(BV wRepr _) bv2 = BV wRepr (truncBits width (x `quot` y))
+bvQuotS :: BitVector w -> BitVector w -> BitVector w
+bvQuotS bv1@(BV wRepr _) bv2 = BV wRepr (truncBits width (x `quot` y))
+  where x = bvIntegerS bv1
+        y = bvIntegerS bv2
+        width = natValue wRepr
+
+-- | Bitwise remainder after division (unsigned), when rounded to zero.
+bvRemU :: BitVector w -> BitVector w -> BitVector w
+bvRemU (BV wRepr x) (BV _ y) = BV wRepr (x `rem` y)
+
+-- | Bitwise remainder after  division (signed), when rounded to zero (not negative
+-- infinity).
+bvRemS :: BitVector w -> BitVector w -> BitVector w
+bvRemS bv1@(BV wRepr _) bv2 = BV wRepr (truncBits width (x `rem` y))
   where x = bvIntegerS bv1
         y = bvIntegerS bv2
         width = natValue wRepr
@@ -385,7 +399,7 @@ instance KnownNat w => Random (BitVector w) where
 
 prettyHex :: (Integral a, PrintfArg a, Show a) => a -> Integer -> String
 prettyHex width val = printf format val width
-  where numDigits = (width+3) `div` 4
+  where numDigits = (width+3) `quot` 4
         format = "0x%." ++ show numDigits ++ "x<%d>"
 
 instance Pretty (BitVector w) where
