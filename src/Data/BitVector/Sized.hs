@@ -32,7 +32,7 @@ module Data.BitVector.Sized
   , bvPopCount
   , bvTruncBits
     -- * Arithmetic operations (width-preserving)
-  , bvAdd, bvMul
+  , bvAdd, bvMul, bvDivU, bvDivS
   , bvAbs, bvNegate
   , bvSignum
   , bvLTS, bvLTU
@@ -177,6 +177,17 @@ bvAdd (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x + y))
 bvMul :: BitVector w -> BitVector w -> BitVector w
 bvMul (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x * y))
   where width = natValue wRepr
+
+-- | Bitwise division (unsigned).
+bvDivU :: BitVector w -> BitVector w -> BitVector w
+bvDivU (BV wRepr x) (BV _ y) = BV wRepr (x `div` y)
+
+-- | Bitwise division (signed).
+bvDivS :: BitVector w -> BitVector w -> BitVector w
+bvDivS bv1@(BV wRepr _) bv2 = BV wRepr (truncBits width (x `div` y))
+  where x = bvIntegerS bv1
+        y = bvIntegerS bv2
+        width = natValue wRepr
 
 -- | Bitwise absolute value.
 bvAbs :: BitVector w -> BitVector w

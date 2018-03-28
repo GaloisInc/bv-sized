@@ -1,5 +1,5 @@
 name:                bv-sized
-version:             0.2.0
+version:             0.2.1
 category:            Bit Vectors
 synopsis:            a BitVector datatype that is parameterized by the vector width
 description:
