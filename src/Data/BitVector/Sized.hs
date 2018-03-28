@@ -67,21 +67,15 @@ import Unsafe.Coerce (unsafeCoerce)
 data BitVector (w :: Nat) :: * where
   BV :: NatRepr w -> Integer -> BitVector w
 
--- | Construct a bit vector in a context where the width is inferrable from the type
--- context. The 'Integer' input (an unbounded data type, hence with an infinite-width
--- bit representation), whether positive or negative is silently truncated to fit
--- into the number of bits demanded by the return type.
+-- | Construct a bit vector with a particular width, where the width is inferrable
+-- from the type context. The 'Integer' input (an unbounded data type, hence with an
+-- infinite-width bit representation), whether positive or negative is silently
+-- truncated to fit into the number of bits demanded by the return type.
 --
 -- >>> bitVector 0xA :: BitVector 4
--- 0xa<4>
--- >>> 0xA :: BitVector 4
--- 0xa<4>
--- >>> 0xA :: BitVector 3
--- 0x2<3>
--- >>> (-1) :: BitVector 8
--- 0xff<8>
--- >>> (-1) :: BitVector 32
--- 0xffffffff<32>
+-- 0xa
+-- >>> :type it
+-- it :: BitVector 4
 bitVector :: KnownNat w => Integer -> BitVector w
 bitVector x = BV wRepr (truncBits width (fromIntegral x))
   where wRepr = knownNat
@@ -223,8 +217,8 @@ bvLTU bv1 bv2 = bvIntegerU bv1 < bvIntegerU bv2
 
 -- | Concatenate two bit vectors.
 --
--- >>> (0xAA :: BitVector 8 `bvConcat` 0xBCDEF0 :: BitVector 24)
--- 0xaabcdef0<32>
+-- >>> (0xAA :: BitVector 8) `bvConcat` (0xBCDEF0 :: BitVector 24)
+-- 0xaabcdef0
 -- >>> :type it
 -- it :: BitVector 32
 --
@@ -246,7 +240,7 @@ infixl 6 <:>
 -- inferred from a type-level context.
 --
 -- >>> bvExtract 12 (0xAABCDEF0 :: BitVector 32) :: BitVector 8
--- 0xcd<8>
+-- 0xcd
 --
 -- Note that 'bvExtract' does not do any bounds checking whatsoever; if you try and
 -- extract bits that aren't present in the input, you will get 0's.
@@ -389,18 +383,13 @@ instance KnownNat w => Random (BitVector w) where
     let (x, gen') = random gen
     in (bitVector x, gen')
 
-----------------------------------------
--- UTILITIES
-
-----------------------------------------
--- Pretty Printing
-
 prettyHex :: (Integral a, PrintfArg a, Show a) => a -> Integer -> String
 prettyHex width val = printf format val width
   where numDigits = (width+3) `div` 4
         format = "0x%." ++ show numDigits ++ "x<%d>"
 
 instance Pretty (BitVector w) where
+  -- | Pretty print a bit vector (shows its width)
   pPrint (BV wRepr x) = text $ prettyHex (natValue wRepr) x
 
 ----------------------------------------
