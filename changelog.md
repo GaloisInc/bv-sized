@@ -16,3 +16,9 @@
   * bv -> bitVector, so this is very much a breaking change
   * bvShiftL, bvShiftRL, bvShiftRA
   * bvLTU, bvLTS
+
+## 0.2.1 *March 2018*
+  * bvMulFSU
+  * bvDivU, bvDivS
+  * Added Read instance, fixed Show to be compatible. Using prettyclass for
+    pretty printing. (I guess this is semi-breaking, but whatever.)

@@ -22,6 +22,7 @@ library
                      , containers >= 0.5.11 && < 0.6
                      , lens >= 4 && < 5
                      , parameterized-utils
+                     , prettyclass >= 1.0 && < 2.0
                      , random >= 1.1 && < 1.2
                      , QuickCheck >= 2.11 && < 2.12
   hs-source-dirs:      src
@@ -39,5 +40,6 @@ test-suite bv-tests
                      , bv-sized
                      , lens >= 4 && < 5
                      , parameterized-utils
+                     , prettyclass >= 1.0 && < 2.0
                      , random >= 1.1 && < 1.2
                      , QuickCheck >= 2.11 && < 2.12

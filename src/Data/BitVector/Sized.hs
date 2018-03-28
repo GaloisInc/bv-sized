@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators #-}
 
 {-|
@@ -52,10 +53,13 @@ import Data.Bits
 import Data.Parameterized.Classes
 import Data.Parameterized.NatRepr
 import GHC.TypeLits
+import Numeric
 import System.Random
 import Test.QuickCheck (Arbitrary(..), choose)
+import Text.PrettyPrint.HughesPJClass
 import Text.Printf
 import Unsafe.Coerce (unsafeCoerce)
+
 ----------------------------------------
 -- BitVector data type definitions
 
@@ -318,8 +322,11 @@ bvMulFSU bv1@(BV wRepr _) bv2@(BV wRepr' _) = BV prodRepr (truncBits width (x'*y
 -- Class instances
 
 instance Show (BitVector w) where
-  show (BV wRepr val) = prettyHex width val
-    where width = natValue wRepr
+  show (BV _ x) = "0x" ++ showHex x ""
+
+instance KnownNat w => Read (BitVector w) where
+  readsPrec s =
+    (fmap . fmap) (\(a,s') -> (bitVector a, s')) (readsPrec s :: ReadS Integer)
 
 instance ShowF BitVector
 
@@ -388,11 +395,13 @@ instance KnownNat w => Random (BitVector w) where
 ----------------------------------------
 -- Pretty Printing
 
--- | Print an integral value in hex with a leading "0x"
 prettyHex :: (Integral a, PrintfArg a, Show a) => a -> Integer -> String
 prettyHex width val = printf format val width
   where numDigits = (width+3) `div` 4
         format = "0x%." ++ show numDigits ++ "x<%d>"
+
+instance Pretty (BitVector w) where
+  pPrint (BV wRepr x) = text $ prettyHex (natValue wRepr) x
 
 ----------------------------------------
 -- Bits
