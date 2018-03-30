@@ -22,6 +22,7 @@ module Data.BitVector.Sized
   ( -- * BitVector type
     BitVector(..)
   , bitVector
+  , bv0
     -- * Bitwise operations (width-preserving)
     -- | These are alternative versions of some of the 'Bits' functions where we do
     -- not need to know the width at compile time. They are all width-preserving.
@@ -83,6 +84,10 @@ bitVector :: KnownNat w => Integer -> BitVector w
 bitVector x = BV wRepr (truncBits width (fromIntegral x))
   where wRepr = knownNat
         width = natValue wRepr
+
+-- | The zero bitvector with width 0.
+bv0 :: BitVector 0
+bv0 = bitVector 0
 
 ----------------------------------------
 -- BitVector -> Integer functions
