@@ -52,6 +52,7 @@ module Data.BitVector.Sized
   ) where
 
 import Data.Bits
+import Data.Ix
 import Data.Parameterized.Classes
 import Data.Parameterized.NatRepr
 import GHC.TypeLits
@@ -381,6 +382,11 @@ instance KnownNat w => Num (BitVector w) where
 instance KnownNat w => Enum (BitVector w) where
   toEnum   = bitVector . fromIntegral
   fromEnum = fromIntegral . bvIntegerU
+
+instance KnownNat w => Ix (BitVector w) where
+  range (lo, hi) = bitVector <$> [bvIntegerU lo .. bvIntegerU hi]
+  index (lo, hi) bv = index (bvIntegerU lo, bvIntegerU hi) (bvIntegerU bv)
+  inRange (lo, hi) bv = inRange (bvIntegerU lo, bvIntegerU hi) (bvIntegerU bv)
 
 instance KnownNat w => Bounded (BitVector w) where
   minBound = bitVector 0

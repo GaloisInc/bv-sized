@@ -36,7 +36,7 @@ module Data.BitVector.Sized.BitLayout
 
 import Data.BitVector.Sized
 import Data.Foldable
-import Control.Lens
+import Control.Lens (lens, Simple, Lens)
 import Data.Parameterized
 import qualified Data.Sequence as S
 import Data.Sequence (Seq)
