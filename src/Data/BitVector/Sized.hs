@@ -42,7 +42,7 @@ module Data.BitVector.Sized
   , bvLTS, bvLTU
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
-  , bvConcat, (<:>)
+  , bvConcat, (<:>), bvConcatMany, bvConcatManyWithRepr
   , bvExtract, bvExtractWithRepr
   , bvZext, bvZextWithRepr
   , bvSext, bvSextWithRepr
@@ -54,8 +54,7 @@ module Data.BitVector.Sized
 
 import Data.Bits
 import Data.Ix
-import Data.Parameterized.Classes
-import Data.Parameterized.NatRepr
+import Data.Parameterized
 import GHC.TypeLits
 import Numeric
 import System.Random
@@ -252,6 +251,26 @@ bvConcat (BV hiWRepr hi) (BV loWRepr lo) =
 -- | Infix 'bvConcat'.
 (<:>) :: BitVector v -> BitVector w -> BitVector (v+w)
 (<:>) = bvConcat
+
+bvConcatSome :: Some BitVector -> Some BitVector -> Some BitVector
+bvConcatSome (Some bv1) (Some bv2) = Some (bv2 <:> bv1)
+
+-- | Concatenate a list of 'BitVector's into a 'BitVector' of arbitrary width. The ordering is little endian:
+--
+-- >>> bvConcatMany [0xAA :: BitVector 8, 0xBB] :: BitVector 16
+-- 0xbbaa
+-- >>> bvConcatMany [0xAA :: BitVector 8, 0xBB, 0xCC] :: BitVector 16
+-- 0xbbaa
+--
+-- If the sum of the widths of the input 'BitVector's exceeds the output width, we
+-- ignore the tail end of the list.
+bvConcatMany :: KnownNat w' => [BitVector w] -> BitVector w'
+bvConcatMany = bvConcatManyWithRepr knownNat
+
+-- | 'bvConcatMany' with an explicit 'NatRepr'.
+bvConcatManyWithRepr :: NatRepr w' -> [BitVector w] -> BitVector w'
+bvConcatManyWithRepr wRepr bvs =
+  viewSome (bvZextWithRepr wRepr) $ foldl bvConcatSome (Some bv0) (Some <$> bvs)
 
 infixl 6 <:>
 
