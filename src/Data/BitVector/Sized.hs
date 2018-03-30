@@ -50,6 +50,8 @@ module Data.BitVector.Sized
     -- * Conversions to Integer
   , bvIntegerU
   , bvIntegerS
+    -- * Byte decomposition
+  , bvGetBytesU
   ) where
 
 import Data.Bits
@@ -142,7 +144,7 @@ bvShiftRA bv shf = bvShift bv (- (toPos shf))
 
 -- | Right logical shift.
 bvShiftRL :: BitVector w -> Int -> BitVector w
-bvShiftRL bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` toPos shf))
+bvShiftRL bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` (- toPos shf)))
   where width = natValue wRepr
         x     = bvIntegerU bv
 
@@ -350,6 +352,17 @@ bvMulFSU bv1@(BV wRepr _) bv2@(BV wRepr' _) = BV prodRepr (truncBits width (x'*y
         y' = bvIntegerU bv2
         prodRepr = wRepr `addNat` wRepr'
         width = natValue prodRepr
+
+----------------------------------------
+-- Byte decomposition
+
+-- | Given a 'BitVector' of arbitrary length, decompose it into a list of bytes. Uses
+-- an unsigned interpretation of the input vector, so if you ask for more bytes that
+-- the 'BitVector' contains, you get zeros. The result is little-endian, so the first
+-- element of the list will be the least significant byte of the input vector.
+bvGetBytesU :: Int -> BitVector w -> [BitVector 8]
+bvGetBytesU n _ | n <= 0 = []
+bvGetBytesU n bv = bvExtract 0 bv : bvGetBytesU (n-1) (bvShiftRL bv 8)
 
 ----------------------------------------
 -- Class instances
