@@ -22,3 +22,9 @@
   * bvDivU, bvDivS
   * Added Read instance, fixed Show to be compatible. Using prettyclass for
     pretty printing. (I guess this is semi-breaking, but whatever.)
+
+## 0.3.0 *April 2018*
+  * Division now rounds to zero for negative integers, bvDiv -> bvQuot
+  * added Ix instance for BitVector w
+  * added bv0, zero-width vector
+  * bvConcatMany, bvGetBytesU (conversion to/from list of bytes)

@@ -74,13 +74,13 @@ data BitVector (w :: Nat) :: * where
 
 -- | Construct a bit vector with a particular width, where the width is inferrable
 -- from the type context. The 'Integer' input (an unbounded data type, hence with an
--- infinite-width bit representation), whether positive or negative is silently
+-- infinite-width bit representation), whether positive or negative, is silently
 -- truncated to fit into the number of bits demanded by the return type.
 --
 -- >>> bitVector 0xA :: BitVector 4
 -- 0xa
--- >>> :type it
--- it :: BitVector 4
+-- >>> bitVector 0xA :: BitVector 2
+-- 0x2
 bitVector :: KnownNat w => Integer -> BitVector w
 bitVector x = BV wRepr (truncBits width (fromIntegral x))
   where wRepr = knownNat
@@ -124,7 +124,7 @@ bvComplement :: BitVector w -> BitVector w
 bvComplement (BV wRepr x) = BV wRepr (truncBits width (complement x))
   where width = natValue wRepr
 
--- | Bitwise shift.
+-- | Bitwise shift. Uses an arithmetic right shift.
 bvShift :: BitVector w -> Int -> BitVector w
 bvShift bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` shf))
   where width = natValue wRepr
