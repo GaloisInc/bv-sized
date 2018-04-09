@@ -24,6 +24,7 @@
     pretty printing. (I guess this is semi-breaking, but whatever.)
 
 ## 0.3.0 *April 2018*
+  * fixed bug with bvShiftR, it was doing a left shift!
   * Division now rounds to zero for negative integers, bvDiv -> bvQuot
   * added Ix instance for BitVector w
   * added bv0, zero-width vector
