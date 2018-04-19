@@ -1,5 +1,5 @@
 name:                bv-sized
-version:             0.3.0
+version:             0.3.1
 category:            Bit Vectors
 synopsis:            a BitVector datatype that is parameterized by the vector width
 description:
@@ -17,10 +17,12 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     Data.BitVector.Sized
+                     , Data.BitVector.Sized.App
                      , Data.BitVector.Sized.BitLayout
   build-depends:       base >= 4.7 && < 5
                      , containers >= 0.5.11 && < 0.6
                      , lens >= 4 && < 5
+                     , mtl >= 2 && < 3
                      , parameterized-utils
                      , prettyclass >= 1.0 && < 2.0
                      , random >= 1.1 && < 1.2
