@@ -1,7 +1,7 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
 ## 0.4.0 *April 2018*
-  * Added BVApp module for BitVector expression languages and evaluation
+  * Added App module for BitVector expression languages and evaluation
 
 ## 0.3.0 *April 2018*
   * fixed bug with bvShiftR, it was doing a left shift!
