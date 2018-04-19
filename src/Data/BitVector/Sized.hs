@@ -2,7 +2,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators #-}
 
 {-|
@@ -99,9 +98,9 @@ bvIntegerU (BV _ x) = x
 
 -- | Signed interpretation of a bit vector as an Integer.
 bvIntegerS :: BitVector w -> Integer
-bvIntegerS bv = case bvTestBit bv (width - 1) of
-  True  -> bvIntegerU bv - (1 `shiftL` width)
-  False -> bvIntegerU bv
+bvIntegerS bv = if bvTestBit bv (width - 1)
+                then bvIntegerU bv - (1 `shiftL` width)
+                else bvIntegerU bv
   where width = bvWidth bv
 
 ----------------------------------------
@@ -151,7 +150,7 @@ bvShiftRL bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` (- toPos sh
 -- | Bitwise rotate.
 bvRotate :: BitVector w -> Int -> BitVector w
 bvRotate bv rot' = leftChunk `bvOr` rightChunk
-  where rot = rot' `mod` (bvWidth bv)
+  where rot = rot' `mod` bvWidth bv
         leftChunk = bvShift bv rot
         rightChunk = bvShift bv (rot - bvWidth bv)
 
@@ -222,7 +221,7 @@ bvNegate (BV wRepr x) = BV wRepr (truncBits width (-x))
 
 -- | Get the sign bit as a 'BitVector'.
 bvSignum :: BitVector w -> BitVector w
-bvSignum bv@(BV wRepr _) = (bvShift bv (1 - width)) `bvAnd` (BV wRepr 0x1)
+bvSignum bv@(BV wRepr _) = bvShift bv (1 - width) `bvAnd` BV wRepr 0x1
   where width = fromIntegral (natValue wRepr)
 
 -- | Signed less than.
@@ -387,9 +386,9 @@ instance Ord (BitVector w) where
 
 instance TestEquality BitVector where
   testEquality (BV wRepr x) (BV wRepr' y) =
-    case natValue wRepr == natValue wRepr' && x == y of
-      True  -> Just (unsafeCoerce (Refl :: a :~: a))
-      False -> Nothing
+    if natValue wRepr == natValue wRepr' && x == y
+    then Just (unsafeCoerce (Refl :: a :~: a))
+    else Nothing
 
 instance KnownNat w => Bits (BitVector w) where
   (.&.)        = bvAnd

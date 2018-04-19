@@ -64,7 +64,7 @@ data Chunk (w :: Nat) :: * where
 
 -- | Construct a 'Chunk' in a context where the chunk width is known at compile time.
 chunk :: KnownNat w => Int -> Chunk w
-chunk start = Chunk knownNat start
+chunk = Chunk knownNat
 
 deriving instance Show (Chunk w)
 
@@ -176,13 +176,13 @@ chunkFits chk@(Chunk rRepr start) (BitLayout tRepr sRepr chunks) =
   noOverlaps chk (toList chunks)
 
 noOverlaps :: Chunk r -> [Some Chunk] -> Bool
-noOverlaps chk chks = all (chunksDontOverlap (Some chk)) chks
+noOverlaps chk = all (chunksDontOverlap (Some chk))
 
 chunksDontOverlap :: Some Chunk -> Some Chunk -> Bool
 chunksDontOverlap (Some (Chunk chunkRepr1 start1)) (Some (Chunk chunkRepr2 start2)) =
-  case start1 <= start2 of
-    True  -> start1 + chunkWidth1 <= start2
-    False -> start2 + chunkWidth2 <= start1
+  if start1 <= start2
+  then start1 + chunkWidth1 <= start2
+  else start2 + chunkWidth2 <= start1
   where chunkWidth1 = fromIntegral (natValue chunkRepr1)
         chunkWidth2 = fromIntegral (natValue chunkRepr2)
 
@@ -212,7 +212,7 @@ inject :: BitLayout t s -- ^ The layout
        -> BitVector s   -- ^ The smaller vector to be injected
        -> BitVector t
 inject (BitLayout tRepr _ chunks) tVec sVec =
-  (bvOrAtAll tRepr (toList chunks) sVec) `bvOr` tVec
+  bvOrAtAll tRepr (toList chunks) sVec `bvOr` tVec
 
 -- First, extract the appropriate bits as a BitVector t, where the relevant bits
 -- start at the LSB of the vector (so, mask and shiftL). Then, truncate to a
@@ -241,8 +241,7 @@ extractAll sRepr outStart (chk@(Some (Chunk chunkRepr _)) : chunks) tVec =
 extract :: BitLayout t s -- ^ The layout
         -> BitVector t   -- ^ The larger vector to extract from
         -> BitVector s
-extract (BitLayout _ sRepr chunks) tVec =
-  extractAll sRepr 0 (toList chunks) tVec
+extract (BitLayout _ sRepr chunks) = extractAll sRepr 0 (toList chunks)
 
 -- | Lens for bit layout.
 layoutLens :: BitLayout t s -> Simple Lens (BitVector t) (BitVector s)
