@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 
 {-|
@@ -364,7 +365,19 @@ bvGetBytesU n _ | n <= 0 = []
 bvGetBytesU n bv = bvExtract 0 bv : bvGetBytesU (n-1) (bvShiftRL bv 8)
 
 ----------------------------------------
+-- Bits
+
+-- | Mask for a specified number of lower bits.
+lowMask :: (Integral a, Bits b) => a -> b
+lowMask numBits = complement (complement zeroBits `shiftL` fromIntegral numBits)
+
+-- | Truncate to a specified number of lower bits.
+truncBits :: (Integral a, Bits b) => a -> b -> b
+truncBits width b = b .&. lowMask width
+
+----------------------------------------
 -- Class instances
+$(return [])
 
 instance Show (BitVector w) where
   show (BV _ x) = "0x" ++ showHex x ""
@@ -383,6 +396,12 @@ instance EqF BitVector where
 
 instance Ord (BitVector w) where
   (BV _ x) `compare` (BV _ y) = x `compare` y
+
+instance OrdF BitVector where
+  (BV xRepr x) `compareF` (BV yRepr y) =
+    case xRepr `compareF` yRepr of
+      EQF -> fromOrdering (x `compare` y)
+      cmp -> cmp
 
 instance TestEquality BitVector where
   testEquality (BV wRepr x) (BV wRepr' y) =
@@ -447,14 +466,3 @@ prettyHex width val = printf format val width
 instance Pretty (BitVector w) where
   -- | Pretty print a bit vector (shows its width)
   pPrint (BV wRepr x) = text $ prettyHex (natValue wRepr) x
-
-----------------------------------------
--- Bits
-
--- | Mask for a specified number of lower bits.
-lowMask :: (Integral a, Bits b) => a -> b
-lowMask numBits = complement (complement zeroBits `shiftL` fromIntegral numBits)
-
--- | Truncate to a specified number of lower bits.
-truncBits :: (Integral a, Bits b) => a -> b -> b
-truncBits width b = b .&. lowMask width
