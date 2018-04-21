@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -27,17 +28,18 @@ module Data.BitVector.Sized.BitLayout
   , chunk
     -- * BitLayout
   , BitLayout
-  , empty, (<:)
+  , empty, singleChunk, (<:)
   , inject
   , extract
-    -- * Lens
-  , layoutLens
+    -- * Lenses
+  , layoutLens, layoutsLens
   ) where
 
 import Data.BitVector.Sized
 import Data.Foldable
 import Control.Lens (lens, Simple, Lens)
 import Data.Parameterized
+import Data.Parameterized.List
 import qualified Data.Sequence as S
 import Data.Sequence (Seq)
 import GHC.TypeLits
@@ -151,6 +153,10 @@ deriving instance Show (BitLayout t s)
 empty :: KnownNat t => BitLayout t 0
 empty = BitLayout knownNat knownNat S.empty
 
+-- | Construct a 'BitLayout' with one chunk.
+singleChunk :: (KnownNat w, KnownNat w') => Int -> BitLayout w w'
+singleChunk idx = chunk idx <: empty
+
 -- TODO: Should this be in Maybe?
 -- | Add a 'Chunk' to a 'BitLayout'. If the 'Chunk' does not fit, either because the
 -- resulting 'BitLayout' would be too long or because it would overlap with a 'Chunk'
@@ -243,6 +249,33 @@ extract :: BitLayout t s -- ^ The layout
         -> BitVector s
 extract (BitLayout _ sRepr chunks) = extractAll sRepr 0 (toList chunks)
 
--- | Lens for bit layout.
+-- | Lens for a 'BitLayout'.
 layoutLens :: BitLayout t s -> Simple Lens (BitVector t) (BitVector s)
 layoutLens layout = lens (extract layout) (inject layout)
+
+-- This would be easier if we could combine it with izipWith and Pair, but Pair hides
+-- its type parameter!
+ifoldr2 :: forall a b c sh .
+           (forall tp. Index sh tp -> a tp -> b tp -> c -> c)
+        -> c
+        -> List a sh
+        -> List b sh
+        -> c
+ifoldr2 f seed0 = go id seed0
+  where
+    go :: forall sh' .
+          (forall tp . Index sh' tp -> Index sh tp)
+       -> c
+       -> List a sh'
+       -> List b sh'
+       -> c
+    go g c as bs =
+      case (as, bs) of
+        (Nil, Nil) -> c
+        (a :< as', b :< bs') -> f (g IndexHere) a b (go (g . IndexThere) c as' bs')
+
+-- | Lens for a parameterized 'List' of 'BitLayout's.
+layoutsLens :: forall ws . List (BitLayout 32) ws -> Simple Lens (BitVector 32) (List BitVector ws)
+layoutsLens layouts = lens
+  (\bv -> imap (const $ flip extract bv) layouts)
+  (\bv bvFlds -> ifoldr2 (\_ fld layout bv' -> inject layout bv' fld) bv bvFlds layouts)
