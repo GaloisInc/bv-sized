@@ -114,9 +114,9 @@ evalBVAppM eval (ConcatApp e1 e2) = do
   return $ e1Val `bvConcat` e2Val
 evalBVAppM eval (IteApp eTest eT eF) = do
   testVal <- eval eTest
-  tVal <- eval eT
-  fVal <- eval eF
-  return $ if testVal == 1 then tVal else fVal
+  case testVal of
+    1 -> eval eT
+    _ -> eval eF
 
 -- | Evaluate a 'BVApp' given a pure evaluation function for the parameterized type @expr@.
 evalBVApp :: (forall w' . expr w' -> BitVector w') -- ^ expression evaluator
