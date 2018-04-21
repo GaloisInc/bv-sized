@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -30,6 +31,38 @@ module Data.BitVector.Sized.App
   ( BVApp(..)
   , evalBVApp
   , evalBVAppM
+  , BVExpr(..)
+  , litBV
+  -- ** Bitwise
+  , andE
+  , orE
+  , xorE
+  , notE
+  -- ** Arithmetic
+  , addE
+  , subE
+  , muluE
+  , mulsE
+  , mulsuE
+  , divuE
+  , divsE
+  , remuE
+  , remsE
+  , sllE
+  , srlE
+  , sraE
+  -- ** Comparison
+  , eqE
+  , ltuE
+  , ltsE
+  -- ** Width-changing
+  , zextE
+  , sextE
+  , extractE
+  , extractEWithRepr
+  , concatE
+  -- ** Control
+  , iteE
   ) where
 
 import Control.Monad.Identity
@@ -123,3 +156,157 @@ evalBVApp :: (forall w' . expr w' -> BitVector w') -- ^ expression evaluator
           -> BVApp expr w                          -- ^ application
           -> BitVector w
 evalBVApp eval bvApp = runIdentity $ evalBVAppM (return . eval) bvApp
+
+class BVExpr (expr :: Nat -> *) where
+  appExpr :: BVApp expr w -> expr w
+
+-- | Literal bit vector.
+litBV :: BVExpr expr => BitVector w -> expr w
+litBV = appExpr . LitBVApp
+
+-- | Bitwise and.
+andE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr w)
+andE e1 e2 = appExpr (AndApp e1 e2)
+
+-- | Bitwise or.
+orE :: BVExpr expr => expr w
+    -> expr w
+    -> (expr w)
+orE e1 e2 = appExpr (OrApp e1 e2)
+
+-- | Bitwise xor.
+xorE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr w)
+xorE e1 e2 = appExpr (XorApp e1 e2)
+
+-- | Bitwise not.
+notE :: BVExpr expr => expr w -> (expr w)
+notE e = appExpr (NotApp e)
+
+-- | Add two expressions.
+addE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr w)
+addE e1 e2 = appExpr (AddApp e1 e2)
+
+-- | Subtract the second expression from the first.
+subE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr w)
+subE e1 e2 = appExpr (SubApp e1 e2)
+
+-- | Signed multiply two 'BitVectors', doubling the width of the result to hold all
+-- arithmetic overflow bits.
+mulsE :: BVExpr expr => expr w
+      -> expr w
+      -> (expr (w+w))
+mulsE e1 e2 = appExpr (MulSApp e1 e2)
+
+-- | Unsigned multiply two 'BitVectors', doubling the width of the result to hold
+-- all arithmetic overflow bits.
+muluE :: BVExpr expr => expr w
+      -> expr w
+      -> (expr (w+w))
+muluE e1 e2 = appExpr (MulUApp e1 e2)
+
+-- | Multiply two 'BitVectors', treating the first as a signed number and the second
+-- as an unsigned number, doubling the width of the result to hold all arithmetic
+-- overflow bits.
+mulsuE :: BVExpr expr => expr w
+       -> expr w
+       -> (expr (w+w))
+mulsuE e1 e2 = appExpr (MulSUApp e1 e2)
+
+-- | Signed divide two 'BitVectors', rounding to zero.
+divsE :: BVExpr expr => expr w
+      -> expr w
+      -> (expr w)
+divsE e1 e2 = appExpr (DivSApp e1 e2)
+
+-- | Unsigned divide two 'BitVectors', rounding to zero.
+divuE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr w)
+divuE e1 e2 = appExpr (DivUApp e1 e2)
+
+-- | Remainder after signed division of two 'BitVectors', when rounded to zero.
+remsE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr w)
+remsE e1 e2 = appExpr (RemSApp e1 e2)
+
+-- | Remainder after unsigned division of two 'BitVectors', when rounded to zero.
+remuE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr w)
+remuE e1 e2 = appExpr (RemUApp e1 e2)
+
+-- | Left logical shift the first expression by the second.
+sllE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr w)
+sllE e1 e2 = appExpr (SllApp e1 e2)
+
+-- | Left logical shift the first expression by the second.
+srlE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr w)
+srlE e1 e2 = appExpr (SrlApp e1 e2)
+
+-- | Left logical shift the first expression by the second.
+sraE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr w)
+sraE e1 e2 = appExpr (SraApp e1 e2)
+
+-- | Test for equality of two expressions.
+eqE :: BVExpr expr => expr w
+    -> expr w
+    -> (expr 1)
+eqE e1 e2 = appExpr (EqApp e1 e2)
+
+-- | Signed less than
+ltsE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr 1)
+ltsE e1 e2 = appExpr (LtsApp e1 e2)
+
+-- | Unsigned less than
+ltuE :: BVExpr expr => expr w
+     -> expr w
+     -> (expr 1)
+ltuE e1 e2 = appExpr (LtuApp e1 e2)
+
+-- | Zero-extension
+-- zextE :: BVExpr expr => KnownNat w' => expr w -> (expr w')
+zextE :: BVExpr expr => KnownNat w' => expr w -> (expr w')
+zextE e = appExpr (ZExtApp knownNat e)
+
+-- | Sign-extension
+sextE :: BVExpr expr => KnownNat w' => expr w -> (expr w')
+sextE e = appExpr (SExtApp knownNat e)
+
+-- | Extract bits
+extractE :: BVExpr expr => KnownNat w' => Int -> expr w -> (expr w')
+extractE base e = appExpr (ExtractApp knownNat base e)
+
+-- | Extract bits with an explicit width argument
+extractEWithRepr :: BVExpr expr => NatRepr w'
+                 -> Int
+                 -> expr w
+                 -> (expr w')
+extractEWithRepr wRepr base e = appExpr (ExtractApp wRepr base e)
+
+-- | Concatenation
+concatE :: BVExpr expr => expr w -> expr w' -> (expr (w+w'))
+concatE e1 e2 = appExpr (ConcatApp e1 e2)
+
+-- | Conditional branch.
+iteE :: BVExpr expr => expr 1
+     -> expr w
+     -> expr w
+     -> (expr w)
+iteE t e1 e2 = appExpr (IteApp t e1 e2)
