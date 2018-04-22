@@ -37,6 +37,7 @@ module Data.BitVector.Sized.BitLayout
 
 import Data.BitVector.Sized
 import Data.Foldable
+import qualified Data.Functor.Product as P
 import Control.Lens (lens, Simple, Lens)
 import Data.Parameterized
 import Data.Parameterized.List
@@ -253,29 +254,28 @@ extract (BitLayout _ sRepr chunks) = extractAll sRepr 0 (toList chunks)
 layoutLens :: BitLayout t s -> Simple Lens (BitVector t) (BitVector s)
 layoutLens layout = lens (extract layout) (inject layout)
 
--- This would be easier if we could combine it with izipWith and Pair, but Pair hides
--- its type parameter!
-ifoldr2 :: forall a b c sh .
-           (forall tp. Index sh tp -> a tp -> b tp -> c -> c)
-        -> c
-        -> List a sh
-        -> List b sh
-        -> c
-ifoldr2 f seed0 = go id seed0
+-- | Zip up two lists with a zipper function.
+izipWith :: forall a b c sh . (forall tp. Index sh tp -> a tp -> b tp -> c tp)
+         -> List a sh
+         -> List b sh
+         -> List c sh
+izipWith f = go id
   where
     go :: forall sh' .
           (forall tp . Index sh' tp -> Index sh tp)
-       -> c
        -> List a sh'
        -> List b sh'
-       -> c
-    go g c as bs =
+       -> List c sh'
+    go g as bs =
       case (as, bs) of
-        (Nil, Nil) -> c
-        (a :< as', b :< bs') -> f (g IndexHere) a b (go (g . IndexThere) c as' bs')
+        (Nil, Nil) -> Nil
+        (a :< as', b :< bs') ->
+          f (g IndexHere) a b :< go (g . IndexThere) as' bs'
 
 -- | Lens for a parameterized 'List' of 'BitLayout's.
 layoutsLens :: forall ws . List (BitLayout 32) ws -> Simple Lens (BitVector 32) (List BitVector ws)
 layoutsLens layouts = lens
   (\bv -> imap (const $ flip extract bv) layouts)
-  (\bv bvFlds -> ifoldr2 (\_ fld layout bv' -> inject layout bv' fld) bv bvFlds layouts)
+  (\bv bvFlds -> ifoldr (\_ (P.Pair fld layout) bv' -> inject layout bv' fld)
+                 bv
+                 (izipWith (const P.Pair) bvFlds layouts))
