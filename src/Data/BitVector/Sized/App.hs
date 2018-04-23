@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 
 {-|
@@ -68,6 +69,7 @@ module Data.BitVector.Sized.App
 import Control.Monad.Identity
 import Data.BitVector.Sized
 import Data.Parameterized
+import Data.Parameterized.TH.GADT
 import Foreign.Marshal.Utils (fromBool)
 import GHC.TypeLits
 
@@ -112,6 +114,41 @@ data BVApp (expr :: Nat -> *) (w :: Nat) where
 
   -- Other operations
   IteApp :: !(expr 1) -> !(expr w) -> !(expr w) -> BVApp expr w
+
+$(return [])
+
+instance TestEquality expr => TestEquality (BVApp expr) where
+  testEquality = $(structuralTypeEquality [t|BVApp|]
+                   [ (ConType [t|BitVector|] `TypeApp` AnyType, [|testEquality|])
+                   , (ConType [t|NatRepr|] `TypeApp` AnyType, [|testEquality|])
+                   , (AnyType `TypeApp` AnyType, [|testEquality|])
+                   ])
+
+instance TestEquality expr => Eq (BVApp expr w) where
+  (==) = \x y -> isJust (testEquality x y)
+
+instance OrdF expr => OrdF (BVApp expr) where
+  compareF = $(structuralTypeOrd [t|BVApp|]
+                [ (ConType [t|BitVector|] `TypeApp` AnyType, [|compareF|])
+                , (ConType [t|NatRepr|] `TypeApp` AnyType, [|compareF|])
+                , (AnyType `TypeApp` AnyType, [|compareF|])
+                ])
+
+instance OrdF expr => Ord (BVApp expr w) where
+  compare a b =
+    case compareF a b of
+      LTF -> LT
+      EQF -> EQ
+      GTF -> GT
+
+instance FunctorFC BVApp where
+  fmapFC = fmapFCDefault
+
+instance FoldableFC BVApp where
+  foldMapFC = foldMapFCDefault
+
+instance TraversableFC BVApp where
+  traverseFC = $(structuralTraversal [t|BVApp|] [])
 
 -- | Evaluate a 'BVApp' given a monadic evaluation function for the parameterized type @expr@.
 evalBVAppM :: Monad m
