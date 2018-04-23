@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -96,8 +97,8 @@ data BVApp (expr :: Nat -> *) (w :: Nat) where
   MulSApp  :: !(expr w) -> !(expr w) -> BVApp expr (w+w)
   MulUApp  :: !(expr w) -> !(expr w) -> BVApp expr (w+w)
   MulSUApp :: !(expr w) -> !(expr w) -> BVApp expr (w+w)
-  QuotUApp  :: !(expr w) -> !(expr w) -> BVApp expr w
-  QuotSApp  :: !(expr w) -> !(expr w) -> BVApp expr w
+  QuotUApp :: !(expr w) -> !(expr w) -> BVApp expr w
+  QuotSApp :: !(expr w) -> !(expr w) -> BVApp expr w
   RemUApp  :: !(expr w) -> !(expr w) -> BVApp expr w
   RemSApp  :: !(expr w) -> !(expr w) -> BVApp expr w
 
@@ -168,8 +169,8 @@ evalBVAppM eval (SraApp e1 e2) = bvShiftRA <$> eval e1 <*> (fromIntegral . bvInt
 evalBVAppM eval (MulSApp  e1 e2) = bvMulFS  <$> eval e1 <*> eval e2
 evalBVAppM eval (MulUApp  e1 e2) = bvMulFU  <$> eval e1 <*> eval e2
 evalBVAppM eval (MulSUApp e1 e2) = bvMulFSU <$> eval e1 <*> eval e2
-evalBVAppM eval (QuotSApp  e1 e2) = bvQuotS  <$> eval e1 <*> eval e2
-evalBVAppM eval (QuotUApp  e1 e2) = bvQuotU  <$> eval e1 <*> eval e2
+evalBVAppM eval (QuotSApp e1 e2) = bvQuotS  <$> eval e1 <*> eval e2
+evalBVAppM eval (QuotUApp e1 e2) = bvQuotU  <$> eval e1 <*> eval e2
 evalBVAppM eval (RemSApp  e1 e2) = bvRemS   <$> eval e1 <*> eval e2
 evalBVAppM eval (RemUApp  e1 e2) = bvRemU   <$> eval e1 <*> eval e2
 evalBVAppM eval (EqApp  e1 e2) = fromBool <$> ((==)  <$> eval e1 <*> eval e2)
