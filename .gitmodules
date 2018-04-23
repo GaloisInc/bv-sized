@@ -1,0 +1,3 @@
+[submodule "submodules/parameterized-utils"]
+	path = submodules/parameterized-utils
+	url = git@github.com:GaloisInc/parameterized-utils.git

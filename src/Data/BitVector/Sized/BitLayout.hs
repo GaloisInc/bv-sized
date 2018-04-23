@@ -254,24 +254,6 @@ extract (BitLayout _ sRepr chunks) = extractAll sRepr 0 (toList chunks)
 layoutLens :: BitLayout t s -> Simple Lens (BitVector t) (BitVector s)
 layoutLens layout = lens (extract layout) (inject layout)
 
--- | Zip up two lists with a zipper function.
-izipWith :: forall a b c sh . (forall tp. Index sh tp -> a tp -> b tp -> c tp)
-         -> List a sh
-         -> List b sh
-         -> List c sh
-izipWith f = go id
-  where
-    go :: forall sh' .
-          (forall tp . Index sh' tp -> Index sh tp)
-       -> List a sh'
-       -> List b sh'
-       -> List c sh'
-    go g as bs =
-      case (as, bs) of
-        (Nil, Nil) -> Nil
-        (a :< as', b :< bs') ->
-          f (g IndexHere) a b :< go (g . IndexThere) as' bs'
-
 -- | Lens for a parameterized 'List' of 'BitLayout's.
 layoutsLens :: forall ws . List (BitLayout 32) ws -> Simple Lens (BitVector 32) (List BitVector ws)
 layoutsLens layouts = lens
