@@ -44,9 +44,7 @@ module Data.BitVector.Sized.App
   -- ** Arithmetic
   , addE
   , subE
-  , muluE
-  , mulsE
-  , mulsuE
+  , mulE
   , quotuE
   , quotsE
   , remuE
@@ -94,9 +92,7 @@ data BVApp (expr :: Nat -> *) (w :: Nat) where
   -- Arithmetic operations
   AddApp   :: !(expr w) -> !(expr w) -> BVApp expr w
   SubApp   :: !(expr w) -> !(expr w) -> BVApp expr w
-  MulSApp  :: !(expr w) -> !(expr w) -> BVApp expr (w+w)
-  MulUApp  :: !(expr w) -> !(expr w) -> BVApp expr (w+w)
-  MulSUApp :: !(expr w) -> !(expr w) -> BVApp expr (w+w)
+  MulApp   :: !(expr w) -> !(expr w) -> BVApp expr w
   QuotUApp :: !(expr w) -> !(expr w) -> BVApp expr w
   QuotSApp :: !(expr w) -> !(expr w) -> BVApp expr w
   RemUApp  :: !(expr w) -> !(expr w) -> BVApp expr w
@@ -166,9 +162,7 @@ evalBVAppM eval (SubApp e1 e2) = bvAdd <$> eval e1 <*> (bvNegate <$> eval e2)
 evalBVAppM eval (SllApp e1 e2) = bvShiftL  <$> eval e1 <*> (fromIntegral . bvIntegerU <$> eval e2)
 evalBVAppM eval (SrlApp e1 e2) = bvShiftRL <$> eval e1 <*> (fromIntegral . bvIntegerU <$> eval e2)
 evalBVAppM eval (SraApp e1 e2) = bvShiftRA <$> eval e1 <*> (fromIntegral . bvIntegerU <$> eval e2)
-evalBVAppM eval (MulSApp  e1 e2) = bvMulFS  <$> eval e1 <*> eval e2
-evalBVAppM eval (MulUApp  e1 e2) = bvMulFU  <$> eval e1 <*> eval e2
-evalBVAppM eval (MulSUApp e1 e2) = bvMulFSU <$> eval e1 <*> eval e2
+evalBVAppM eval (MulApp e1 e2) = bvMul <$> eval e1 <*> eval e2
 evalBVAppM eval (QuotSApp e1 e2) = bvQuotS  <$> eval e1 <*> eval e2
 evalBVAppM eval (QuotUApp e1 e2) = bvQuotU  <$> eval e1 <*> eval e2
 evalBVAppM eval (RemSApp  e1 e2) = bvRemS   <$> eval e1 <*> eval e2
@@ -229,19 +223,8 @@ subE e1 e2 = appExpr (SubApp e1 e2)
 
 -- | Signed multiply two 'BitVectors', doubling the width of the result to hold all
 -- arithmetic overflow bits.
-mulsE :: BVExpr expr => expr w -> expr w -> expr (w+w)
-mulsE e1 e2 = appExpr (MulSApp e1 e2)
-
--- | Unsigned multiply two 'BitVectors', doubling the width of the result to hold
--- all arithmetic overflow bits.
-muluE :: BVExpr expr => expr w -> expr w -> expr (w+w)
-muluE e1 e2 = appExpr (MulUApp e1 e2)
-
--- | Multiply two 'BitVectors', treating the first as a signed number and the second
--- as an unsigned number, doubling the width of the result to hold all arithmetic
--- overflow bits.
-mulsuE :: BVExpr expr => expr w -> expr w -> expr (w+w)
-mulsuE e1 e2 = appExpr (MulSUApp e1 e2)
+mulE :: BVExpr expr => expr w -> expr w -> expr w
+mulE e1 e2 = appExpr (MulApp e1 e2)
 
 -- | Signed divide two 'BitVectors', rounding to zero.
 quotsE :: BVExpr expr => expr w -> expr w -> expr w

@@ -46,7 +46,6 @@ module Data.BitVector.Sized
   , bvExtract, bvExtractWithRepr
   , bvZext, bvZextWithRepr
   , bvSext, bvSextWithRepr
-  , bvMulFU, bvMulFS, bvMulFSU
     -- * Conversions to Integer
   , bvIntegerU
   , bvIntegerS
@@ -328,30 +327,6 @@ bvSextWithRepr :: NatRepr w'
                -> BitVector w'
 bvSextWithRepr repr bv = BV repr (truncBits width (bvIntegerS bv))
   where width = natValue repr
-
--- | Fully multiply two bit vectors as unsigned integers, returning a bit vector
--- whose length is equal to the sum of the inputs.
-bvMulFU :: BitVector w -> BitVector w' -> BitVector (w+w')
-bvMulFU (BV wRepr x) (BV wRepr' y) = BV (wRepr `addNat` wRepr') (x*y)
-
--- | Fully multiply two bit vectors as signed integers, returning a bit vector whose
--- length is equal to the sum of the inputs.
-bvMulFS :: BitVector w -> BitVector w' -> BitVector (w+w')
-bvMulFS bv1@(BV wRepr _) bv2@(BV wRepr' _) = BV prodRepr (truncBits width (x'*y'))
-  where x' = bvIntegerS bv1
-        y' = bvIntegerS bv2
-        prodRepr = wRepr `addNat` wRepr'
-        width = natValue prodRepr
-
--- | Fully multiply two bit vectors, treating the first as a signed integer and the
--- second as an unsigned integer, returning a bit vector whose length is equal to the
--- sum of the inputs.
-bvMulFSU :: BitVector w -> BitVector w' -> BitVector (w+w')
-bvMulFSU bv1@(BV wRepr _) bv2@(BV wRepr' _) = BV prodRepr (truncBits width (x'*y'))
-  where x' = bvIntegerS bv1
-        y' = bvIntegerU bv2
-        prodRepr = wRepr `addNat` wRepr'
-        width = natValue prodRepr
 
 ----------------------------------------
 -- Byte decomposition
