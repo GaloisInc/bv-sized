@@ -20,7 +20,7 @@ library
                      , Data.BitVector.Sized.App
                      , Data.BitVector.Sized.BitLayout
   build-depends:       base >= 4.7 && < 5
-                     , containers >= 0.5.11 && < 0.6
+                     , containers >= 0.5.10 && < 0.6
                      , lens >= 4 && < 5
                      , mtl >= 2 && < 3
                      , parameterized-utils
