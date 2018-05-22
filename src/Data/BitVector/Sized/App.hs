@@ -116,20 +116,14 @@ $(return [])
 
 instance TestEquality expr => TestEquality (BVApp expr) where
   testEquality = $(structuralTypeEquality [t|BVApp|]
-                   [ (ConType [t|BitVector|] `TypeApp` AnyType, [|testEquality|])
-                   , (ConType [t|NatRepr|] `TypeApp` AnyType, [|testEquality|])
-                   , (AnyType `TypeApp` AnyType, [|testEquality|])
-                   ])
+                   [ (AnyType `TypeApp` AnyType, [|testEquality|]) ])
 
 instance TestEquality expr => Eq (BVApp expr w) where
   (==) = \x y -> isJust (testEquality x y)
 
 instance OrdF expr => OrdF (BVApp expr) where
   compareF = $(structuralTypeOrd [t|BVApp|]
-                [ (ConType [t|BitVector|] `TypeApp` AnyType, [|compareF|])
-                , (ConType [t|NatRepr|] `TypeApp` AnyType, [|compareF|])
-                , (AnyType `TypeApp` AnyType, [|compareF|])
-                ])
+                [ (AnyType `TypeApp` AnyType, [|compareF|]) ])
 
 instance OrdF expr => Ord (BVApp expr w) where
   compare a b =
