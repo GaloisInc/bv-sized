@@ -1,6 +1,8 @@
 bv-sized - A Haskell library for manipulating width-parameterized bitvectors
 ===
 
+copyright (c) Galois Inc. 2018
+
 This library defines a `BitVector` datatype that is parameterized by the vector
 width.
 
@@ -27,3 +29,13 @@ Secondary Requirements
 ===
 
 None.
+
+Current Status
+===
+
+The library is relatively stable and supports all the above requirements.
+
+Other information
+===
+
+* contact: benselfridge@galois.com

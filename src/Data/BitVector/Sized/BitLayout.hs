@@ -10,8 +10,7 @@
 
 {-|
 Module      : Data.BitVector.Sized.BitLayout
-Copyright   : (c) Benjamin Selfridge, 2018
-                  Galois Inc.
+Copyright   : (c) Galois Inc. 2018
 License     : BSD3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
