@@ -11,7 +11,7 @@
 {-|
 Module      : Data.BitVector.Sized.BitLayout
 Copyright   : (c) Galois Inc. 2018
-License     : BSD3
+License     : BSD-3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
