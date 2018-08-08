@@ -1,21 +1,29 @@
-# bv-sized
+bv-sized - A Haskell library for manipulating width-parameterized bitvectors
+===
 
-## Overview
+This library defines a `BitVector` datatype that is parameterized by the vector
+width.
 
-This library defines a `BitVector` datatype that is parameterized by the vector width.
+Requirements
+===
 
-## Additional features
+The following are a list of mandatory and secondary requirements for bv-sized.
 
-### BitLayout
+Mandatory Requirements
+===
 
-We also provides a module called `BitLayout`, which is handy for defining mappings
-from smaller `BitVector`s into larger ones. This module is particularly useful when
-defining encodings in an instruction set.
+- Must support integer arithmetic on bitvectors of arbitrary width, assuming a
+  two's-complement representation.
 
-### App
+- Must support the construction of symbolic expressions involving bitvectors,
+  and evaluating those expressions in such a way that the "pure" bitvector
+  expression language can be embedded in a larger expression language. (See
+  Data.BitVector.Sized.App)
 
-To aid in building expression languages over `BitVector`s, we provide a module called
-App, which supports combining expressions over `BitVector`s using the `BitVector`
-operations and evaluating said expressions. It can be used in a pure context or in
-conjunction with a state monad. This module was inspired by the `App` type in
-[macaw](https://github.com/GaloisInc/macaw), Galois's binary analysis framework.
+- Declarative descriptions of bit encodings within an instruction word for the
+  purposes of ISA definitions and the like. (See Data.BitVector.Sized.BitLayout)
+
+Secondary Requirements
+===
+
+None.
