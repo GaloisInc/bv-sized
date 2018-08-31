@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PolyKinds #-}
@@ -48,6 +49,9 @@ module Data.BitVector.Sized.App
   , quotsE
   , remuE
   , remsE
+  , negateE
+  , absE
+  , signumE
   , sllE
   , srlE
   , sraE
@@ -66,6 +70,7 @@ module Data.BitVector.Sized.App
 
 import Control.Monad.Identity
 import Data.BitVector.Sized
+import Data.Bits
 import Data.Parameterized
 import Data.Parameterized.TH.GADT
 import Foreign.Marshal.Utils (fromBool)
@@ -96,6 +101,9 @@ data BVApp (expr :: Nat -> *) (w :: Nat) where
   QuotSApp :: !(expr w) -> !(expr w) -> BVApp expr w
   RemUApp  :: !(expr w) -> !(expr w) -> BVApp expr w
   RemSApp  :: !(expr w) -> !(expr w) -> BVApp expr w
+  NegateApp :: !(expr w) -> BVApp expr w
+  AbsApp   :: !(expr w) -> BVApp expr w
+  SignumApp :: !(expr w) -> BVApp expr w
 
   -- Comparisons
   EqApp  :: !(expr w) -> !(expr w) -> BVApp expr 1
@@ -119,6 +127,9 @@ instance TestEquality expr => TestEquality (BVApp expr) where
 
 instance TestEquality expr => Eq (BVApp expr w) where
   (==) = \x y -> isJust (testEquality x y)
+
+instance TestEquality expr => EqF (BVApp expr) where
+  eqF = (==)
 
 instance OrdF expr => OrdF (BVApp expr) where
   compareF = $(structuralTypeOrd [t|BVApp|]
@@ -160,6 +171,9 @@ evalBVAppM eval (QuotSApp e1 e2) = bvQuotS  <$> eval e1 <*> eval e2
 evalBVAppM eval (QuotUApp e1 e2) = bvQuotU  <$> eval e1 <*> eval e2
 evalBVAppM eval (RemSApp  e1 e2) = bvRemS   <$> eval e1 <*> eval e2
 evalBVAppM eval (RemUApp  e1 e2) = bvRemU   <$> eval e1 <*> eval e2
+evalBVAppM eval (NegateApp e) = bvNegate <$> eval e
+evalBVAppM eval (AbsApp e) = bvAbs <$> eval e
+evalBVAppM eval (SignumApp e) = bvSignum <$> eval e
 evalBVAppM eval (EqApp  e1 e2) = fromBool <$> ((==)  <$> eval e1 <*> eval e2)
 evalBVAppM eval (LtuApp e1 e2) = fromBool <$> (bvLTU <$> eval e1 <*> eval e2)
 evalBVAppM eval (LtsApp e1 e2) = fromBool <$> (bvLTS <$> eval e1 <*> eval e2)
@@ -185,6 +199,31 @@ evalBVApp eval bvApp = runIdentity $ evalBVAppM (return . eval) bvApp
 -- | Typeclass for embedding 'BVApp' constructors into larger expression types.
 class BVExpr (expr :: Nat -> *) where
   appExpr :: BVApp expr w -> expr w
+
+instance (KnownNat w, BVExpr expr) => Num (BVApp expr w) where
+  app1 + app2 = AddApp (appExpr app1) (appExpr app2)
+  app1 * app2 = MulApp (appExpr app1) (appExpr app2)
+  abs app = AbsApp (appExpr app)
+  signum app = SignumApp (appExpr app)
+  fromInteger x = LitBVApp (fromInteger x)
+  negate app = NegateApp (appExpr app)
+  app1 - app2 = SubApp (appExpr app1) (appExpr app2)
+
+-- TODO: finish
+instance (KnownNat w, BVExpr expr, TestEquality expr) => Bits (BVApp expr w) where
+  app1 .&. app2 = AndApp (appExpr app1) (appExpr app2)
+  app1 .|. app2 = OrApp (appExpr app1) (appExpr app2)
+  app1 `xor` app2 = XorApp (appExpr app1) (appExpr app2)
+  complement app = NotApp (appExpr app)
+  shiftL app x = SllApp (appExpr app) (litBV (bitVector (fromIntegral x)))
+  shiftR app x = SraApp (appExpr app) (litBV (bitVector (fromIntegral x)))
+  rotate = undefined
+  bitSize = undefined
+  bitSizeMaybe = undefined
+  isSigned = undefined
+  testBit = undefined
+  bit = undefined
+  popCount = undefined
 
 -- | Literal bit vector.
 litBV :: BVExpr expr => BitVector w -> expr w
@@ -234,6 +273,15 @@ remsE e1 e2 = appExpr (RemSApp e1 e2)
 -- | Remainder after unsigned division of two 'BitVectors', when rounded to zero.
 remuE :: BVExpr expr => expr w -> expr w -> expr w
 remuE e1 e2 = appExpr (RemUApp e1 e2)
+
+negateE :: BVExpr expr => expr w -> expr w
+negateE e = appExpr (NegateApp e)
+
+absE :: BVExpr expr => expr w -> expr w
+absE e = appExpr (AbsApp e)
+
+signumE :: BVExpr expr => expr w -> expr w
+signumE e = appExpr (SignumApp e)
 
 -- | Left logical shift the first expression by the second.
 sllE :: BVExpr expr => expr w -> expr w -> expr w
