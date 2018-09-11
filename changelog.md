@@ -1,5 +1,12 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## 0.5.1 *August 2018*
+  * fixed github URL
+
+## 0.5.0 *August 2018*
+  * Added a lot of better support for the App module, including a type class for
+    embedding BVApp expressions along with associated smart constructors
+
 ## 0.4.0 *April 2018*
   * Added App module for BitVector expression languages and evaluation
 
