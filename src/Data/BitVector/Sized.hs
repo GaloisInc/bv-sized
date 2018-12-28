@@ -71,7 +71,7 @@ data BitVector (w :: Nat) :: * where
   BV :: NatRepr w -> Integer -> BitVector w
 
 -- | Construct a bit vector with a particular width, where the width is inferrable
--- from the type context. The 'Integer' input (an unbounded data type, hence with an
+-- from the type context. The input (an unbounded data type, hence with an
 -- infinite-width bit representation), whether positive or negative, is silently
 -- truncated to fit into the number of bits demanded by the return type.
 --
@@ -79,14 +79,14 @@ data BitVector (w :: Nat) :: * where
 -- 0xa
 -- >>> bitVector 0xA :: BitVector 2
 -- 0x2
-bitVector :: KnownNat w => Integer -> BitVector w
+bitVector :: (Integral a, KnownNat w) => a -> BitVector w
 bitVector x = BV wRepr (truncBits width (fromIntegral x))
   where wRepr = knownNat
         width = natValue wRepr
 
 -- | The zero bitvector with width 0.
 bv0 :: BitVector 0
-bv0 = bitVector 0
+bv0 = bitVector (0 :: Integer)
 
 ----------------------------------------
 -- BitVector -> Integer functions
@@ -394,7 +394,7 @@ instance KnownNat w => Bits (BitVector w) where
   bitSizeMaybe = Just . bvWidth
   isSigned     = const False
   testBit      = bvTestBit
-  bit          = bitVector . bit
+  bit          = bitVector . (bit :: Int -> Integer)
   popCount     = bvPopCount
 
 instance KnownNat w => FiniteBits (BitVector w) where
@@ -409,7 +409,7 @@ instance KnownNat w => Num (BitVector w) where
   negate      = bvNegate
 
 instance KnownNat w => Enum (BitVector w) where
-  toEnum   = bitVector . fromIntegral
+  toEnum   = bitVector
   fromEnum = fromIntegral . bvIntegerU
 
 instance KnownNat w => Ix (BitVector w) where
@@ -418,8 +418,8 @@ instance KnownNat w => Ix (BitVector w) where
   inRange (lo, hi) bv = inRange (bvIntegerU lo, bvIntegerU hi) (bvIntegerU bv)
 
 instance KnownNat w => Bounded (BitVector w) where
-  minBound = bitVector 0
-  maxBound = bitVector (-1)
+  minBound = bitVector (0 :: Integer)
+  maxBound = bitVector ((-1) :: Integer)
 
 instance KnownNat w => Arbitrary (BitVector w) where
   arbitrary = choose (minBound, maxBound)
@@ -429,7 +429,7 @@ instance KnownNat w => Random (BitVector w) where
     let (x, gen') = randomR (bvIntegerU bvLo, bvIntegerU bvHi) gen
     in (bitVector x, gen')
   random gen =
-    let (x, gen') = random gen
+    let (x :: Integer, gen') = random gen
     in (bitVector x, gen')
 
 prettyHex :: (Integral a, PrintfArg a, Show a) => a -> Integer -> String
