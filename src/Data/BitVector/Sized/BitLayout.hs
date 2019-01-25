@@ -47,8 +47,6 @@ import Data.Sequence (Seq)
 import GHC.TypeLits
 import Text.PrettyPrint.HughesPJClass (Pretty(..), text)
 
-import Debug.Trace
-
 -- | 'Chunk' type, parameterized by chunk width. The internal 'Int' is the
 -- position of the least significant bit of the chunk, and the type-level nat 'w' is
 -- the width of the chunk.
@@ -276,8 +274,7 @@ layoutsLens layouts = lens
 -- source is placed in bit 4 of the target, etc.
 
 bitLayoutAssignmentList :: BitLayout t s -> [Int]
-bitLayoutAssignmentList (BitLayout _ _ someChunks) = trace (show someChunks) $
-  reverse (bitLayoutAssignmentList' (toList someChunks))
+bitLayoutAssignmentList (BitLayout _ _ someChunks) = reverse (bitLayoutAssignmentList' (toList someChunks))
 
 bitLayoutAssignmentList' :: [Some Chunk] -> [Int]
 bitLayoutAssignmentList' [] = []
