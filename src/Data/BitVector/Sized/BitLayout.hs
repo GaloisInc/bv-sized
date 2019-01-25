@@ -32,6 +32,8 @@ module Data.BitVector.Sized.BitLayout
   , extract
     -- * Lenses
   , layoutLens, layoutsLens
+    -- * Utilities
+  , bitLayoutAssignmentList
   ) where
 
 import Data.BitVector.Sized
@@ -44,6 +46,8 @@ import qualified Data.Sequence as S
 import Data.Sequence (Seq)
 import GHC.TypeLits
 import Text.PrettyPrint.HughesPJClass (Pretty(..), text)
+
+import Debug.Trace
 
 -- | 'Chunk' type, parameterized by chunk width. The internal 'Int' is the
 -- position of the least significant bit of the chunk, and the type-level nat 'w' is
@@ -260,3 +264,23 @@ layoutsLens layouts = lens
   (\bv bvFlds -> ifoldr (\_ (P.Pair fld layout) bv' -> inject layout bv' fld)
                  bv
                  (izipWith (const P.Pair) bvFlds layouts))
+
+-- | From a `BitLayout`, get a list representing the position of each bit from the
+-- source to the target. The list
+--
+-- @
+-- [3,4,5,10,11,12,13]
+-- @
+--
+-- means that bit 0 of the source is placed in bit 3 of the target, bit 1 of the
+-- source is placed in bit 4 of the target, etc.
+
+bitLayoutAssignmentList :: BitLayout t s -> [Int]
+bitLayoutAssignmentList (BitLayout _ _ someChunks) = trace (show someChunks) $
+  reverse (bitLayoutAssignmentList' (toList someChunks))
+
+bitLayoutAssignmentList' :: [Some Chunk] -> [Int]
+bitLayoutAssignmentList' [] = []
+bitLayoutAssignmentList' (Some (Chunk wRepr start):rst) =
+  reverse [start..start+w-1] ++ bitLayoutAssignmentList' rst
+  where w = fromIntegral (natValue wRepr)
