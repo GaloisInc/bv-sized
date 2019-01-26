@@ -1,2 +1,4 @@
 .stack-work
 *.yaml
+dist-newstyle
+*.ghc.environment.*
