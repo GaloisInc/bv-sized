@@ -253,7 +253,7 @@ addE e1 e2 = appExpr (AddApp e1 e2)
 subE :: BVExpr expr => expr w -> expr w -> expr w
 subE e1 e2 = appExpr (SubApp e1 e2)
 
--- | Signed multiply two 'BitVectors', doubling the width of the result to hold all
+-- | Signed multiply two 'BitVector's, doubling the width of the result to hold all
 -- arithmetic overflow bits.
 mulE :: BVExpr expr => expr w -> expr w -> expr w
 mulE e1 e2 = appExpr (MulApp e1 e2)

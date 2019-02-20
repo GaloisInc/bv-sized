@@ -19,6 +19,7 @@ library
   exposed-modules:     Data.BitVector.Sized
                      , Data.BitVector.Sized.App
                      , Data.BitVector.Sized.BitLayout
+  other-modules:       Data.BitVector.Sized.Internal
   build-depends:       base >= 4.7 && < 5
                      , containers >= 0.5.10 && < 0.6
                      , lens >= 4 && < 5

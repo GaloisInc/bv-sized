@@ -36,7 +36,7 @@ module Data.BitVector.Sized.BitLayout
   , bitLayoutAssignmentList
   ) where
 
-import Data.BitVector.Sized
+import Data.BitVector.Sized.Internal
 import Data.Foldable
 import qualified Data.Functor.Product as P
 import Control.Lens (lens, Simple, Lens)
@@ -200,7 +200,7 @@ bvOrAt :: Int
        -> BitVector s
        -> BitVector t
        -> BitVector t
-bvOrAt start sVec tVec@(BV tRepr _) =
+bvOrAt start sVec tVec@(BitVector tRepr _) =
   (bvZextWithRepr tRepr sVec `bvShift` start) `bvOr` tVec
 
 -- | Given a list of 'Chunk's, inject each chunk from a source 'BitVector' @s@ into a
