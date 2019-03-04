@@ -243,7 +243,7 @@ extractAll sRepr _ [] _ = BV sRepr 0
 extractAll sRepr outStart (chk@(Some (Chunk chunkRepr _)) : chunks) tVec =
   extractChunk sRepr outStart chk tVec `bvOr`
   extractAll sRepr (outStart + chunkWidth) chunks tVec
-  where chunkWidth = fromInteger (natValue chunkRepr)
+  where chunkWidth = fromInteger (intValue chunkRepr)
 
 -- | Use a 'BitLayout' to extract a smaller vector from a larger one.
 extract :: BitLayout t s -- ^ The layout
