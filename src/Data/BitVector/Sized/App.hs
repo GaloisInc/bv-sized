@@ -60,9 +60,9 @@ module Data.BitVector.Sized.App
   , ltuE
   , ltsE
   -- ** Width-changing
-  , zextE, zextEWithRepr
-  , sextE, sextEWithRepr
-  , extractE, extractEWithRepr
+  , zextE, zextE'
+  , sextE, sextE'
+  , extractE, extractE'
   , concatE
   -- ** Control
   , iteE
@@ -177,9 +177,9 @@ evalBVAppM eval (SignumApp e) = bvSignum <$> eval e
 evalBVAppM eval (EqApp  e1 e2) = fromBool <$> ((==)  <$> eval e1 <*> eval e2)
 evalBVAppM eval (LtuApp e1 e2) = fromBool <$> (bvLTU <$> eval e1 <*> eval e2)
 evalBVAppM eval (LtsApp e1 e2) = fromBool <$> (bvLTS <$> eval e1 <*> eval e2)
-evalBVAppM eval (ZExtApp wRepr e) = bvZextWithRepr wRepr <$> eval e
-evalBVAppM eval (SExtApp wRepr e) = bvSextWithRepr wRepr <$> eval e
-evalBVAppM eval (ExtractApp wRepr base e) = bvExtractWithRepr wRepr base <$> eval e
+evalBVAppM eval (ZExtApp wRepr e) = bvZext' wRepr <$> eval e
+evalBVAppM eval (SExtApp wRepr e) = bvSext' wRepr <$> eval e
+evalBVAppM eval (ExtractApp wRepr base e) = bvExtract' wRepr base <$> eval e
 evalBVAppM eval (ConcatApp e1 e2) = do
   e1Val <- eval e1
   e2Val <- eval e2
@@ -258,19 +258,19 @@ subE e1 e2 = appExpr (SubApp e1 e2)
 mulE :: BVExpr expr => expr w -> expr w -> expr w
 mulE e1 e2 = appExpr (MulApp e1 e2)
 
--- | Signed divide two 'BitVectors', rounding to zero.
+-- | Signed divide two 'BitVector's, rounding to zero.
 quotsE :: BVExpr expr => expr w -> expr w -> expr w
 quotsE e1 e2 = appExpr (QuotSApp e1 e2)
 
--- | Unsigned divide two 'BitVectors', rounding to zero.
+-- | Unsigned divide two 'BitVector's, rounding to zero.
 quotuE :: BVExpr expr => expr w -> expr w -> expr w
 quotuE e1 e2 = appExpr (QuotUApp e1 e2)
 
--- | Remainder after signed division of two 'BitVectors', when rounded to zero.
+-- | Remainder after signed division of two 'BitVector's, when rounded to zero.
 remsE :: BVExpr expr => expr w -> expr w -> expr w
 remsE e1 e2 = appExpr (RemSApp e1 e2)
 
--- | Remainder after unsigned division of two 'BitVectors', when rounded to zero.
+-- | Remainder after unsigned division of two 'BitVector's, when rounded to zero.
 remuE :: BVExpr expr => expr w -> expr w -> expr w
 remuE e1 e2 = appExpr (RemUApp e1 e2)
 
@@ -312,24 +312,24 @@ zextE :: (BVExpr expr, KnownNat w') => expr w -> expr w'
 zextE e = appExpr (ZExtApp knownNat e)
 
 -- | Zero-extension with an explicit width argument
-zextEWithRepr :: BVExpr expr => NatRepr w' -> expr w -> expr w'
-zextEWithRepr repr e = appExpr (ZExtApp repr e)
+zextE' :: BVExpr expr => NatRepr w' -> expr w -> expr w'
+zextE' repr e = appExpr (ZExtApp repr e)
 
 -- | Sign-extension
 sextE :: (BVExpr expr, KnownNat w') => expr w -> expr w'
 sextE e = appExpr (SExtApp knownNat e)
 
 -- | Sign-extension with an explicit width argument
-sextEWithRepr :: BVExpr expr => NatRepr w' -> expr w -> expr w'
-sextEWithRepr repr e = appExpr (SExtApp repr e)
+sextE' :: BVExpr expr => NatRepr w' -> expr w -> expr w'
+sextE' repr e = appExpr (SExtApp repr e)
 
 -- | Extract bits
 extractE :: (BVExpr expr, KnownNat w') => Int -> expr w -> expr w'
 extractE base e = appExpr (ExtractApp knownNat base e)
 
 -- | Extract bits with an explicit width argument
-extractEWithRepr :: BVExpr expr => NatRepr w' -> Int -> expr w -> expr w'
-extractEWithRepr wRepr base e = appExpr (ExtractApp wRepr base e)
+extractE' :: BVExpr expr => NatRepr w' -> Int -> expr w -> expr w'
+extractE' wRepr base e = appExpr (ExtractApp wRepr base e)
 
 -- | Concatenation
 concatE :: BVExpr expr => expr w -> expr w' -> expr (w+w')

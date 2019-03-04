@@ -201,7 +201,7 @@ bvOrAt :: Int
        -> BitVector t
        -> BitVector t
 bvOrAt start sVec tVec@(BitVector tRepr _) =
-  (bvZextWithRepr tRepr sVec `bvShift` start) `bvOr` tVec
+  (bvZext' tRepr sVec `bvShift` start) `bvOr` tVec
 
 -- | Given a list of 'Chunk's, inject each chunk from a source 'BitVector' @s@ into a
 -- target 'BitVector' @t@.
@@ -232,7 +232,7 @@ extractChunk :: NatRepr s     -- ^ width of output
              -> BitVector s
 extractChunk sRepr sStart (Some (Chunk chunkRepr chunkStart)) tVec =
   bvShift extractedChunk sStart
-  where extractedChunk = bvZextWithRepr sRepr (bvExtractWithRepr chunkRepr chunkStart tVec)
+  where extractedChunk = bvZext' sRepr (bvExtract' chunkRepr chunkStart tVec)
 
 extractAll :: NatRepr s       -- ^ determines width of output vector
            -> Int             -- ^ current position in output vector

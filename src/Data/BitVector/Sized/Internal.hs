@@ -38,8 +38,11 @@ import Unsafe.Coerce (unsafeCoerce)
 data BitVector (w :: Nat) :: * where
   BV :: NatRepr w -> Integer -> BitVector w
 
+-- | 'BitVector' can be treated as a constructor for pattern matching, but to build
+-- one you must use the smart constructor `bitVector`.
 pattern BitVector :: NatRepr w -> Integer -> BitVector w
 pattern BitVector wRepr x <- BV wRepr x
+{-# COMPLETE BitVector #-}
 
 -- | Construct a bit vector with a particular width, where the width is inferrable
 -- from the type context. The input (an unbounded data type, hence with an
@@ -51,9 +54,12 @@ pattern BitVector wRepr x <- BV wRepr x
 -- >>> bitVector 0xA :: BitVector 2
 -- 0x2
 bitVector :: (Integral a, KnownNat w) => a -> BitVector w
-bitVector x = BV wRepr (truncBits width (fromIntegral x))
-  where wRepr = knownNat
-        width = natValue wRepr
+bitVector x = bitVector' knownNat x
+
+-- | Like 'bitVector', but with an explict 'NatRepr'.
+bitVector' :: Integral a => NatRepr w -> a -> BitVector w
+bitVector' wRepr x = BV wRepr (truncBits width (fromIntegral x))
+  where width = natValue wRepr
 
 -- | The zero bitvector with width 0.
 bv0 :: BitVector 0
@@ -236,12 +242,12 @@ bvConcatSome (Some bv1) (Some bv2) = Some (bv2 <:> bv1)
 -- If the sum of the widths of the input 'BitVector's exceeds the output width, we
 -- ignore the tail end of the list.
 bvConcatMany :: KnownNat w' => [BitVector w] -> BitVector w'
-bvConcatMany = bvConcatManyWithRepr knownNat
+bvConcatMany = bvConcatMany' knownNat
 
 -- | 'bvConcatMany' with an explicit 'NatRepr'.
-bvConcatManyWithRepr :: NatRepr w' -> [BitVector w] -> BitVector w'
-bvConcatManyWithRepr wRepr bvs =
-  viewSome (bvZextWithRepr wRepr) $ foldl bvConcatSome (Some bv0) (Some <$> bvs)
+bvConcatMany' :: NatRepr w' -> [BitVector w] -> BitVector w'
+bvConcatMany' wRepr bvs =
+  viewSome (bvZext' wRepr) $ foldl bvConcatSome (Some bv0) (Some <$> bvs)
 
 infixl 6 <:>
 
@@ -262,11 +268,11 @@ bvExtract pos bv = bitVector xShf
   where (BV _ xShf) = bvShift bv (- pos)
 
 -- | Unconstrained variant of 'bvExtract' with an explicit 'NatRepr' argument.
-bvExtractWithRepr :: NatRepr w'
+bvExtract' :: NatRepr w'
                   -> Int
                   -> BitVector w
                   -> BitVector w'
-bvExtractWithRepr repr pos bv = BV repr (truncBits width xShf)
+bvExtract' repr pos bv = BV repr (truncBits width xShf)
   where (BV _ xShf) = bvShift bv (- pos)
         width = natValue repr
 
@@ -278,10 +284,10 @@ bvZext :: forall w w' . KnownNat w'
 bvZext (BV _ x) = bitVector x
 
 -- | Unconstrained variant of 'bvZext' with an explicit 'NatRepr' argument.
-bvZextWithRepr :: NatRepr w'
+bvZext' :: NatRepr w'
                -> BitVector w
                -> BitVector w'
-bvZextWithRepr repr (BV _ x) = BV repr (truncBits width x)
+bvZext' repr (BV _ x) = BV repr (truncBits width x)
   where width = natValue repr
 
 -- | Sign-extend a vector to one of greater length. If given an input of greater
@@ -292,10 +298,10 @@ bvSext :: forall w w' . KnownNat w'
 bvSext bv = bitVector (bvIntegerS bv)
 
 -- | Unconstrained variant of 'bvSext' with an explicit 'NatRepr' argument.
-bvSextWithRepr :: NatRepr w'
+bvSext' :: NatRepr w'
                -> BitVector w
                -> BitVector w'
-bvSextWithRepr repr bv = BV repr (truncBits width (bvIntegerS bv))
+bvSext' repr bv = BV repr (truncBits width (bvIntegerS bv))
   where width = natValue repr
 
 ----------------------------------------

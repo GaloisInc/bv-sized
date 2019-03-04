@@ -20,11 +20,11 @@ operations that assume a 2's complement representation.
 module Data.BitVector.Sized
   ( -- * BitVector type
     BitVector, pattern BitVector
-  , bitVector
+  , bitVector, bitVector'
   , bv0
     -- * Bitwise operations (width-preserving)
-    -- | These are alternative versions of some of the 'Bits' functions where we do
-    -- not need to know the width at compile time. They are all width-preserving.
+    -- | These are alternative versions of some of the 'Data.Bits' functions where we
+    -- do not need to know the width at compile time. They are all width-preserving.
   , bvAnd, bvOr, bvXor
   , bvComplement
   , bvShift, bvShiftL, bvShiftRA, bvShiftRL, bvRotate
@@ -41,10 +41,10 @@ module Data.BitVector.Sized
   , bvLTS, bvLTU
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
-  , bvConcat, (<:>), bvConcatMany, bvConcatManyWithRepr
-  , bvExtract, bvExtractWithRepr
-  , bvZext, bvZextWithRepr
-  , bvSext, bvSextWithRepr
+  , bvConcat, (<:>), bvConcatMany, bvConcatMany'
+  , bvExtract, bvExtract'
+  , bvZext, bvZext'
+  , bvSext, bvSext'
     -- * Conversions to Integer
   , bvIntegerU
   , bvIntegerS
