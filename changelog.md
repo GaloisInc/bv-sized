@@ -1,5 +1,12 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## 0.6.0 *March 2019*
+* changed WithRepr functions to '
+* added Num, Bits instances
+* bitVector now takes arbitrary Integral argument
+* add 'bitLayoutAssignmentList' function (see haddocks for details
+* Hid BV constructor, exposed BitVector as pattern
+
 ## 0.5.1 *August 2018*
   * fixed github URL
 
