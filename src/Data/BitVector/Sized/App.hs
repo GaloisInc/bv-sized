@@ -227,6 +227,7 @@ evalBVApp eval bvApp = runIdentity $ evalBVAppM (return . eval) bvApp
 
 -- | Typeclass for embedding 'BVApp' constructors into larger expression types.
 class BVExpr (expr :: Nat -> *) where
+  litBV :: BitVector w -> expr w
   exprWidth :: expr w -> NatRepr w
   appExpr :: BVApp expr w -> expr w
 
