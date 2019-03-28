@@ -411,8 +411,9 @@ instance KnownNat w => Random (BitVector w) where
 
 prettyHex :: (Integral a, PrintfArg a, Show a) => a -> Integer -> String
 prettyHex width val = printf format val width
-  where numDigits = (width+3) `quot` 4
-        format = "0x%." ++ show numDigits ++ "x<%d>"
+  where -- numDigits = (width+3) `quot` 4
+        -- format = "0x%." ++ show numDigits ++ "x<%d>"
+        format = "0x%x<%d>"
 
 instance Pretty (BitVector w) where
   -- | Pretty print a bit vector (shows its width)
