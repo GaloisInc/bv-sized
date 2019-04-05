@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
@@ -33,7 +34,9 @@ module Data.BitVector.Sized.App
   ( BVApp(..)
   , evalBVApp
   , evalBVAppM
+  , symbolicEvalBVAppM
   , bvAppWidth
+  , PureBVExpr(..)
   -- * Smart constructors
   , BVExpr(..)
   -- ** Bitwise
@@ -69,10 +72,12 @@ module Data.BitVector.Sized.App
   ) where
 
 import Control.Monad.Identity
-import Data.BitVector.Sized
--- import Data.Bits
+import Data.BitVector.Sized.Internal
 import Data.Parameterized
 import Data.Parameterized.TH.GADT
+import Data.SBV.Internals (SBV(..), SVal(..))
+import qualified Data.SBV.Internals as SBV
+import qualified Data.SBV.Dynamic as SBV
 import Foreign.Marshal.Utils (fromBool)
 import GHC.TypeLits
 
@@ -181,6 +186,43 @@ instance FoldableFC BVApp where
 instance TraversableFC BVApp where
   traverseFC = $(structuralTraversal [t|BVApp|] [])
 
+liftSVal1 :: (SVal -> SVal) -> SBV a -> SBV b
+liftSVal1 f sbv = SBV (f (unSBV sbv))
+
+liftSVal2 :: (SVal -> SVal -> SVal) -> SBV a -> SBV b -> SBV c
+liftSVal2 op sbv1 sbv2 = SBV (unSBV sbv1 `op` unSBV sbv2)
+
+type SBitVector w = SBV (BitVector w)
+
+bvKind :: NatRepr w -> SBV.Kind
+bvKind wRepr = SBV.KBounded False (fromIntegral $ intValue wRepr)
+
+symbolicEvalBVAppM :: Monad m
+                   => (forall w' . expr w' -> m (SBitVector w'))
+                   -> BVApp expr w
+                   -> m (SBitVector w)
+symbolicEvalBVAppM eval (AndApp _ e1 e2) = liftSVal2 SBV.svAnd <$> eval e1 <*> eval e2
+symbolicEvalBVAppM eval (OrApp  _ e1 e2) = liftSVal2 SBV.svOr <$> eval e1 <*> eval e2
+symbolicEvalBVAppM eval (XorApp _ e1 e2) = liftSVal2 SBV.svXOr <$> eval e1 <*> eval e2
+symbolicEvalBVAppM eval (NotApp _ e)     = liftSVal1 SBV.svNot <$> eval e
+symbolicEvalBVAppM eval (AddApp _ e1 e2) = liftSVal2 SBV.svPlus <$> eval e1 <*> eval e2
+symbolicEvalBVAppM eval (SubApp _ e1 e2) = liftSVal2 SBV.svMinus <$> eval e1 <*> eval e2
+symbolicEvalBVAppM eval (SllApp _ e1 e2) = liftSVal2 SBV.svShiftLeft <$> eval e1 <*> eval e2
+symbolicEvalBVAppM eval (SrlApp _ e1 e2) = liftSVal2 SBV.svShiftRight <$> eval e1 <*> eval e2
+symbolicEvalBVAppM eval (MulApp _ e1 e2) = liftSVal2 SBV.svTimes <$> eval e1 <*> eval e2
+symbolicEvalBVAppM eval (QuotUApp _ e1 e2) = liftSVal2 SBV.svQuot <$> eval e1 <*> eval e2
+symbolicEvalBVAppM eval (NegateApp wRepr e) = do
+  eVal <- eval e
+  let z = SBV.svInteger (bvKind wRepr) 0
+  return $ liftSVal1 (SBV.svMinus z) eVal
+symbolicEvalBVAppM eval (ConcatApp _ e1 e2) = liftSVal2 SBV.svJoin <$> eval e1 <*> eval e2
+-- TODO: all signed operations need special handling
+-- use svInteger?
+symbolicEvalBVAppM _eval (SraApp _ _ _) = undefined
+symbolicEvalBVAppM _eval (QuotSApp _ _ _) = undefined
+symbolicEvalBVAppM _eval (RemSApp _ _ _) = undefined
+symbolicEvalBVAppM _ _ = undefined
+
 -- | Evaluate a 'BVApp' given a monadic evaluation function for the parameterized type @expr@.
 evalBVAppM :: Monad m
            => (forall w' . expr w' -> m (BitVector w')) -- ^ expression evaluator
@@ -230,6 +272,16 @@ class BVExpr (expr :: Nat -> *) where
   litBV :: BitVector w -> expr w
   exprWidth :: expr w -> NatRepr w
   appExpr :: BVApp expr w -> expr w
+
+data PureBVExpr (w :: Nat) where
+  PureBVLit :: NatRepr w -> BitVector w -> PureBVExpr w
+  PureBVApp :: NatRepr w -> BVApp PureBVExpr w -> PureBVExpr w
+
+instance BVExpr PureBVExpr where
+  litBV bv@(BitVector wRepr _) = PureBVLit wRepr bv
+  exprWidth (PureBVLit wRepr _) = wRepr
+  exprWidth (PureBVApp wRepr _) = wRepr
+  appExpr bvApp = PureBVApp (bvAppWidth bvApp) bvApp
 
 -- -- TODO: finish
 -- instance (BVExpr expr) => Num (BVApp expr w) where

@@ -1,9 +1,13 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
 {-|
@@ -21,8 +25,11 @@ operations that assume a 2's complement representation.
 module Data.BitVector.Sized.Internal where
 
 import Data.Bits
+import Data.Data
 import Data.Ix
 import Data.Parameterized
+import qualified Data.SBV as SBV
+import qualified Data.SBV.Internals as SBV
 import GHC.TypeLits
 import Numeric
 import System.Random
@@ -37,6 +44,7 @@ import Unsafe.Coerce (unsafeCoerce)
 -- | BitVector datatype, parameterized by width.
 data BitVector (w :: Nat) :: * where
   BV :: NatRepr w -> Integer -> BitVector w
+  deriving (Typeable, Data)
 
 -- | 'BitVector' can be treated as a constructor for pattern matching, but to build
 -- one you must use the smart constructor `bitVector`.
@@ -269,9 +277,9 @@ bvExtract pos bv = bitVector xShf
 
 -- | Unconstrained variant of 'bvExtract' with an explicit 'NatRepr' argument.
 bvExtract' :: NatRepr w'
-                  -> Int
-                  -> BitVector w
-                  -> BitVector w'
+           -> Int
+           -> BitVector w
+           -> BitVector w'
 bvExtract' repr pos bv = BV repr (truncBits width xShf)
   where (BV _ xShf) = bvShift bv (- pos)
         width = natValue repr
@@ -285,8 +293,8 @@ bvZext (BV _ x) = bitVector x
 
 -- | Unconstrained variant of 'bvZext' with an explicit 'NatRepr' argument.
 bvZext' :: NatRepr w'
-               -> BitVector w
-               -> BitVector w'
+        -> BitVector w
+        -> BitVector w'
 bvZext' repr (BV _ x) = BV repr (truncBits width x)
   where width = natValue repr
 
@@ -299,8 +307,8 @@ bvSext bv = bitVector (bvIntegerS bv)
 
 -- | Unconstrained variant of 'bvSext' with an explicit 'NatRepr' argument.
 bvSext' :: NatRepr w'
-               -> BitVector w
-               -> BitVector w'
+        -> BitVector w
+        -> BitVector w'
 bvSext' repr bv = BV repr (truncBits width (bvIntegerS bv))
   where width = natValue repr
 
@@ -336,6 +344,16 @@ instance Show (BitVector w) where
 instance KnownNat w => Read (BitVector w) where
   readsPrec s =
     (fmap . fmap) (\(a,s') -> (bitVector a, s')) (readsPrec s :: ReadS Integer)
+
+instance KnownNat w => SBV.HasKind (BitVector w) where
+  kindOf (BitVector wRepr _) = SBV.KBounded False (fromIntegral $ intValue wRepr)
+
+instance KnownNat w => SBV.SymVal (BitVector w) where
+  mkSymVal = let wRepr = knownRepr :: NatRepr w
+             in SBV.genMkSymVar (SBV.KBounded False (fromIntegral $ intValue wRepr))
+  literal bv@(BitVector _ x) =
+    SBV.SBV (SBV.SVal (SBV.kindOf bv) (Left $ SBV.CV (SBV.kindOf bv) (SBV.CInteger x)))
+  fromCV = fromInteger . SBV.genFromCV
 
 instance ShowF BitVector
 
