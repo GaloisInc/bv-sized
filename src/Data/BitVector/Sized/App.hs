@@ -111,7 +111,7 @@ data BVApp (expr :: Nat -> *) (w :: Nat) where
   -- Width-changing
   ZExtApp    :: NatRepr w' -> !(expr w) -> BVApp expr w'
   SExtApp    :: NatRepr w' -> !(expr w) -> BVApp expr w'
-  ExtractApp :: NatRepr w' -> Int -> !(expr w) -> BVApp expr w'
+  ExtractApp :: NatRepr w' -> NatRepr ix -> !(expr w) -> BVApp expr w'
   ConcatApp  :: !(NatRepr (w+w')) -> !(expr w) -> !(expr w') -> BVApp expr (w+w')
 
   -- Other operations
@@ -208,7 +208,8 @@ evalBVAppM eval (LtuApp e1 e2) = fromBool <$> (bvLTU <$> eval e1 <*> eval e2)
 evalBVAppM eval (LtsApp e1 e2) = fromBool <$> (bvLTS <$> eval e1 <*> eval e2)
 evalBVAppM eval (ZExtApp wRepr e) = bvZext' wRepr <$> eval e
 evalBVAppM eval (SExtApp wRepr e) = bvSext' wRepr <$> eval e
-evalBVAppM eval (ExtractApp wRepr base e) = bvExtract' wRepr base <$> eval e
+evalBVAppM eval (ExtractApp wRepr ixRepr e) =
+  bvExtract' wRepr (fromIntegral $ intValue ixRepr) <$> eval e
 evalBVAppM eval (ConcatApp _ e1 e2) = do
   e1Val <- eval e1
   e2Val <- eval e2
@@ -352,12 +353,12 @@ sextE' :: BVExpr expr => NatRepr w' -> expr w -> expr w'
 sextE' repr e = appExpr (SExtApp repr e)
 
 -- | Extract bits
-extractE :: (BVExpr expr, KnownNat w') => Int -> expr w -> expr w'
-extractE base e = appExpr (ExtractApp knownNat base e)
+extractE :: (BVExpr expr, KnownNat w') => NatRepr ix -> expr w -> expr w'
+extractE ixRepr e = appExpr (ExtractApp knownNat ixRepr e)
 
 -- | Extract bits with an explicit width argument
-extractE' :: BVExpr expr => NatRepr w' -> Int -> expr w -> expr w'
-extractE' wRepr base e = appExpr (ExtractApp wRepr base e)
+extractE' :: BVExpr expr => NatRepr w' -> NatRepr ix -> expr w -> expr w'
+extractE' wRepr ixRepr e = appExpr (ExtractApp wRepr ixRepr e)
 
 -- | Concatenation
 concatE :: BVExpr expr => expr w -> expr w' -> expr (w+w')
