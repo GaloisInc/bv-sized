@@ -24,7 +24,7 @@ library
                      , containers >= 0.5.10 && < 0.7
                      , lens >= 4 && < 5
                      , mtl >= 2 && < 3
-                     , parameterized-utils
+                     , parameterized-utils >= 2.0 && < 3
                      , pretty
                      , random >= 1.1 && < 1.2
                      , QuickCheck >= 2.11 && < 2.12
