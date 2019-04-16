@@ -5,6 +5,7 @@ synopsis:            a BitVector datatype that is parameterized by the vector wi
 description:
   This module defines a width-parameterized 'BitVector' type and various associated
   operations that assume a 2's complement representation.
+extra-source-files:  changelog.md
 homepage:            https://github.com/GaloisInc/bv-sized
 license:             BSD3
 license-file:        LICENSE
