@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -23,6 +24,7 @@ module Data.BitVector.Sized.Internal where
 import Data.Bits
 import Data.Ix
 import Data.Parameterized
+import GHC.Generics
 import GHC.TypeLits
 import Numeric
 import System.Random
@@ -37,6 +39,7 @@ import Unsafe.Coerce (unsafeCoerce)
 -- | BitVector datatype, parameterized by width.
 data BitVector (w :: Nat) :: * where
   BV :: NatRepr w -> Integer -> BitVector w
+  deriving Generic
 
 -- | 'BitVector' can be treated as a constructor for pattern matching, but to build
 -- one you must use the smart constructor `bitVector`.
