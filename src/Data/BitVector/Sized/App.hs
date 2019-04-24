@@ -56,7 +56,7 @@ module Data.BitVector.Sized.App
   , srlE
   , sraE
   -- ** Comparison
-  , eqE
+  , eqE, (.==)
   , ltuE
   , ltsE
   -- ** Width-changing
@@ -70,7 +70,6 @@ module Data.BitVector.Sized.App
 
 import Control.Monad.Identity
 import Data.BitVector.Sized
--- import Data.Bits
 import Data.Parameterized
 import Data.Parameterized.TH.GADT
 import Foreign.Marshal.Utils (fromBool)
@@ -232,32 +231,6 @@ class BVExpr (expr :: Nat -> *) where
   exprWidth :: expr w -> NatRepr w
   appExpr :: BVApp expr w -> expr w
 
--- -- TODO: finish
--- instance (BVExpr expr) => Num (BVApp expr w) where
---   app1 + app2 = AddApp (appExpr app1) (appExpr app2)
---   app1 * app2 = MulApp (appExpr app1) (appExpr app2)
---   abs app = AbsApp (appExpr app)
---   signum app = SignumApp (appExpr app)
---   fromInteger = undefined
---   negate app = NegateApp (appExpr app)
---   app1 - app2 = SubApp (appExpr app1) (appExpr app2)
-
--- -- TODO: finish
--- instance (KnownNat w, BVExpr expr, TestEquality expr) => Bits (BVApp expr w) where
---   app1 .&. app2 = AndApp (appExpr app1) (appExpr app2)
---   app1 .|. app2 = OrApp (appExpr app1) (appExpr app2)
---   app1 `xor` app2 = XorApp (appExpr app1) (appExpr app2)
---   complement app = NotApp (appExpr app)
---   shiftL = undefined
---   shiftR = undefined
---   rotate = undefined
---   bitSize = undefined
---   bitSizeMaybe = undefined
---   isSigned = undefined
---   testBit = undefined
---   bit = undefined
---   popCount = undefined
-
 -- | Bitwise and.
 andE :: BVExpr expr => expr w -> expr w -> expr w
 andE e1 e2 = appExpr (AndApp (exprWidth e1) e1 e2)
@@ -327,6 +300,12 @@ sraE e1 e2 = appExpr (SraApp (exprWidth e1) e1 e2)
 -- | Test for equality of two expressions.
 eqE :: BVExpr expr => expr w -> expr w -> expr 1
 eqE e1 e2 = appExpr (EqApp e1 e2)
+
+-- | Infix 'eqE'.
+(.==) :: BVExpr expr => expr w -> expr w -> expr 1
+(.==) = eqE
+
+infix 4 .==
 
 -- | Signed less than
 ltsE :: BVExpr expr => expr w -> expr w -> expr 1
