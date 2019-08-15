@@ -56,11 +56,11 @@ pattern BitVector wRepr x <- BV wRepr x
 -- 0xa
 -- >>> bitVector 0xA :: BitVector 2
 -- 0x2
-bitVector :: (Integral a, KnownNat w) => a -> BitVector w
+bitVector :: KnownNat w => Integer -> BitVector w
 bitVector x = bitVector' knownNat x
 
 -- | Like 'bitVector', but with an explict 'NatRepr'.
-bitVector' :: Integral a => NatRepr w -> a -> BitVector w
+bitVector' :: NatRepr w -> Integer -> BitVector w
 bitVector' wRepr x = BV wRepr (truncBits width (fromIntegral x))
   where width = natValue wRepr
 
@@ -389,7 +389,7 @@ instance KnownNat w => Num (BitVector w) where
   negate      = bvNegate
 
 instance KnownNat w => Enum (BitVector w) where
-  toEnum   = bitVector
+  toEnum   = bitVector . fromIntegral
   fromEnum = fromIntegral . bvIntegerU
 
 instance KnownNat w => Ix (BitVector w) where
