@@ -19,8 +19,8 @@ operations that assume a 2's complement representation.
 
 module Data.BitVector.Sized
   ( -- * BitVector type
-    BitVector, pattern BitVector
-  , bitVector, bitVector'
+    BV -- , pattern BitVector
+  , bv, bv'
   , bv0
     -- * Bitwise operations (width-preserving)
     -- | These are alternative versions of some of the 'Data.Bits' functions where we
@@ -39,17 +39,17 @@ module Data.BitVector.Sized
   , bvAbs, bvNegate
   , bvSignum
   , bvLTS, bvLTU
-    -- * Variable-width operations
-    -- | These are functions that involve bit vectors of different lengths.
-  , bvConcat, (<:>), bvConcatMany, bvConcatMany'
-  , bvExtract, bvExtract'
-  , bvZext, bvZext'
-  , bvSext, bvSext'
+  --   -- * Variable-width operations
+  --   -- | These are functions that involve bit vectors of different lengths.
+  -- , bvConcat, (<:>), bvConcatMany, bvConcatMany'
+  -- , bvExtract, bvExtract'
+  -- , bvZext, bvZext'
+  -- , bvSext, bvSext'
     -- * Conversions to Integer
   , bvIntegerU
   , bvIntegerS
-    -- * Byte decomposition
-  , bvGetBytesU
+  --   -- * Byte decomposition
+  -- , bvGetBytesU
   ) where
 
 import Data.BitVector.Sized.Internal
