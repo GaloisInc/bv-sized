@@ -22,24 +22,44 @@ operations that assume a 2's complement representation.
 module Data.BitVector.Sized.Internal where
 
 import Data.Bits
-import Data.Ix
+-- import Data.Ix
 import Data.Parameterized
 import GHC.Generics
 import GHC.TypeLits
-import Numeric
-import System.Random
-import Test.QuickCheck (Arbitrary(..), choose)
-import Text.PrettyPrint.HughesPJClass
-import Text.Printf
-import Unsafe.Coerce (unsafeCoerce)
+-- import Numeric
+-- import System.Random
+-- import Test.QuickCheck (Arbitrary(..), choose)
+-- import Text.PrettyPrint.HughesPJClass
+-- import Text.Printf
+-- import Unsafe.Coerce (unsafeCoerce)
 
 ----------------------------------------
 -- BitVector data type definitions
 
 -- | Bitvector datatype, parameterized by width.
 data BV (w :: Nat) :: * where
-  BV :: NatRepr w -> Integer -> BV w
-  deriving Generic
+  BV :: Integer -> BV w
+  -- Q: We provide an Ord instance as an arbitrary ordering so that
+  -- 'BV' can be stored in data structures requiring such.
+  deriving (Generic, Show, Read, Eq, Ord)
+
+instance ShowF BV
+
+instance EqF BV where
+  BV bv `eqF` BV bv' = bv == bv'
+
+-- Q: We cannot implement TestEquality or OrdF.
+-- instance TestEquality BitVector where
+--   testEquality (BV x) (BV y) =
+--     if natValue wRepr == natValue wRepr' && x == y
+--     then Just (unsafeCoerce (Refl :: a :~: a))
+--     else Nothing
+
+-- instance OrdF BV where
+--   BV x `compareF` BV y = fromOrdering (x `compare` y)
+--     -- case xRepr `compareF` yRepr of
+--     --   EQF -> fromOrdering (x `compare` y)
+--     --   cmp -> cmp
 
 -- -- | 'BV' can be treated as a constructor for pattern matching, but to build
 -- -- one you must use `fromInteger`.
@@ -52,160 +72,162 @@ data BV (w :: Nat) :: * where
 -- infinite-width bit representation), whether positive or negative, is silently
 -- truncated to fit into the number of bits demanded by the return type.
 --
--- >>> bv 0xA :: BV 4
+-- >>> mkBV 0xA :: BV 4
 -- 0xa
--- >>> bv 0xA :: BV 2
+-- >>> mkBV 0xA :: BV 2
 -- 0x2
-bv :: KnownNat w => Integer -> BV w
-bv x = bv' knownNat x
+mkBV :: KnownNat w => Integer -> BV w
+mkBV x = mkBV' knownNat x
 
 -- | Like 'bv', but with an explict 'NatRepr'.
-bv' :: NatRepr w -> Integer -> BV w
-bv' wRepr x = BV wRepr (truncBits width (fromIntegral x))
+mkBV' :: NatRepr w -> Integer -> BV w
+mkBV' wRepr x = BV (truncBits width (fromIntegral x))
   where width = natValue wRepr
 
 -- | The zero bitvector with width 0.
 bv0 :: BV 0
-bv0 = bv (0 :: Integer)
+bv0 = mkBV (0 :: Integer)
 
 ----------------------------------------
--- BV -> Integer functions
+-- BitVector -> Integer functions
 
 -- | Unsigned interpretation of a bit vector as a (positive) Integer.
 bvIntegerU :: BV w -> Integer
-bvIntegerU (BV _ x) = x
+bvIntegerU (BV x) = x
 
 -- | Signed interpretation of a bit vector as an Integer.
-bvIntegerS :: BV w -> Integer
-bvIntegerS bv = if bvTestBit bv (width - 1)
+bvIntegerS :: NatRepr w -> BV w -> Integer
+bvIntegerS wRepr bv = if bvTestBit bv (width - 1)
                 then bvIntegerU bv - (1 `shiftL` width)
                 else bvIntegerU bv
-  where width = bvWidth bv
+  where width = fromIntegral (natValue wRepr)
 
 ----------------------------------------
 -- BV w operations (fixed width)
 
 -- | Bitwise and.
 bvAnd :: BV w -> BV w -> BV w
-bvAnd (BV wRepr x) (BV _ y) = BV wRepr (x .&. y)
+bvAnd (BV x) (BV y) = BV (x .&. y)
 
 -- | Bitwise or.
 bvOr :: BV w -> BV w -> BV w
-bvOr (BV wRepr x) (BV _ y) = BV wRepr (x .|. y)
+bvOr (BV x) (BV y) = BV (x .|. y)
 
 -- | Bitwise xor.
 bvXor :: BV w -> BV w -> BV w
-bvXor (BV wRepr x) (BV _ y) = BV wRepr (x `xor` y)
+bvXor (BV x) (BV y) = BV (x `xor` y)
 
 -- | Bitwise complement (flip every bit).
-bvComplement :: BV w -> BV w
-bvComplement (BV wRepr x) = BV wRepr (truncBits width (complement x))
+bvComplement :: NatRepr w -> BV w -> BV w
+bvComplement wRepr (BV x) = BV (truncBits width (complement x))
   where width = natValue wRepr
 
 -- | Bitwise shift. Uses an arithmetic right shift.
-bvShift :: BV w -> Int -> BV w
-bvShift bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` shf))
+bvShift :: NatRepr w -> BV w -> Int -> BV w
+bvShift wRepr bv@(BV _) shf = BV (truncBits width (x `shift` shf))
   where width = natValue wRepr
-        x     = bvIntegerS bv -- arithmetic right shift when negative
+        x     = bvIntegerS wRepr bv -- arithmetic right shift when negative
 
 toPos :: Int -> Int
 toPos x | x < 0 = 0
 toPos x = x
 
 -- | Left shift.
-bvShiftL :: BV w -> Int -> BV w
-bvShiftL bv shf = bvShift bv (toPos shf)
+bvShiftL :: NatRepr w -> BV w -> Int -> BV w
+bvShiftL wRepr bv shf = bvShift wRepr bv (toPos shf)
 
 -- | Right arithmetic shift.
-bvShiftRA :: BV w -> Int -> BV w
-bvShiftRA bv shf = bvShift bv (- (toPos shf))
+bvShiftRA :: NatRepr w -> BV w -> Int -> BV w
+bvShiftRA wRepr bv shf = bvShift wRepr bv (- (toPos shf))
 
 -- | Right logical shift.
-bvShiftRL :: BV w -> Int -> BV w
-bvShiftRL bv@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` (- toPos shf)))
+bvShiftRL :: NatRepr w -> BV w -> Int -> BV w
+bvShiftRL wRepr bv@(BV _) shf = BV (truncBits width (x `shift` (- toPos shf)))
   where width = natValue wRepr
         x     = bvIntegerU bv
 
 -- | Bitwise rotate.
-bvRotate :: BV w -> Int -> BV w
-bvRotate bv rot' = leftChunk `bvOr` rightChunk
-  where rot = rot' `mod` bvWidth bv
-        leftChunk = bvShift bv rot
-        rightChunk = bvShift bv (rot - bvWidth bv)
+bvRotate :: NatRepr w -> BV w -> Int -> BV w
+bvRotate wRepr bv rot' = leftChunk `bvOr` rightChunk
+  where rot = rot' `mod` width
+        leftChunk = bvShift wRepr bv rot
+        rightChunk = bvShift wRepr bv (rot - width)
+        width = fromIntegral (natValue wRepr)
 
--- | Get the width of a 'BV'.
-bvWidth :: BV w -> Int
-bvWidth (BV wRepr _) = fromIntegral (natValue wRepr)
+-- Q: Is there a right way to implement this here?
+-- -- | Get the width of a 'BV'.
+-- bvWidth :: BV w -> Int
+-- bvWidth (BV wRepr _) = fromIntegral (natValue wRepr)
 
 -- | Test if a particular bit is set.
 bvTestBit :: BV w -> Int -> Bool
-bvTestBit (BV _ x) b = testBit x b
+bvTestBit (BV x) b = testBit x b
 
 -- | Get the number of 1 bits in a 'BV'.
 bvPopCount :: BV w -> Int
-bvPopCount (BV _ x) = popCount x
+bvPopCount (BV x) = popCount x
 
 -- | Truncate a bit vector to a particular width given at runtime, while keeping the
 -- type-level width constant.
 bvTruncBits :: BV w -> Int -> BV w
-bvTruncBits (BV wRepr x) b = BV wRepr (truncBits b x)
+bvTruncBits (BV x) b = BV (truncBits b x)
 
 ----------------------------------------
 -- BV w arithmetic operations (fixed width)
 
 -- | Bitwise add.
-bvAdd :: BV w -> BV w -> BV w
-bvAdd (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x + y))
+bvAdd :: NatRepr w -> BV w -> BV w -> BV w
+bvAdd wRepr (BV x) (BV y) = BV (truncBits width (x + y))
   where width = natValue wRepr
 
 -- | Bitwise multiply.
-bvMul :: BV w -> BV w -> BV w
-bvMul (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x * y))
+bvMul :: NatRepr w -> BV w -> BV w -> BV w
+bvMul wRepr (BV x) (BV y) = BV (truncBits width (x * y))
   where width = natValue wRepr
 
 -- | Bitwise division (unsigned). Rounds to zero.
 bvQuotU :: BV w -> BV w -> BV w
-bvQuotU (BV wRepr x) (BV _ y) = BV wRepr (x `quot` y)
+bvQuotU (BV x) (BV y) = BV (x `quot` y)
 
 -- | Bitwise division (signed). Rounds to zero (not negative infinity).
-bvQuotS :: BV w -> BV w -> BV w
-bvQuotS bv1@(BV wRepr _) bv2 = BV wRepr (truncBits width (x `quot` y))
-  where x = bvIntegerS bv1
-        y = bvIntegerS bv2
+bvQuotS :: NatRepr w -> BV w -> BV w -> BV w
+bvQuotS wRepr bv1@(BV _) bv2 = BV (truncBits width (x `quot` y))
+  where x = bvIntegerS wRepr bv1
+        y = bvIntegerS wRepr bv2
         width = natValue wRepr
 
 -- | Bitwise remainder after division (unsigned), when rounded to zero.
 bvRemU :: BV w -> BV w -> BV w
-bvRemU (BV wRepr x) (BV _ y) = BV wRepr (x `rem` y)
+bvRemU (BV x) (BV y) = BV (x `rem` y)
 
 -- | Bitwise remainder after  division (signed), when rounded to zero (not negative
 -- infinity).
-bvRemS :: BV w -> BV w -> BV w
-bvRemS bv1@(BV wRepr _) bv2 = BV wRepr (truncBits width (x `rem` y))
-  where x = bvIntegerS bv1
-        y = bvIntegerS bv2
+bvRemS :: NatRepr w -> BV w -> BV w -> BV w
+bvRemS wRepr bv1@(BV _) bv2 = BV (truncBits width (x `rem` y))
+  where x = bvIntegerS wRepr bv1
+        y = bvIntegerS wRepr bv2
         width = natValue wRepr
 
 -- | Bitwise absolute value.
-bvAbs :: BV w -> BV w
-bvAbs bv@(BV wRepr _) = BV wRepr abs_x
+bvAbs :: NatRepr w -> BV w -> BV w
+bvAbs wRepr bv@(BV _) = BV abs_x
   where width = natValue wRepr
-        x     = bvIntegerS bv
+        x     = bvIntegerS wRepr bv
         abs_x = truncBits width (abs x) -- this is necessary
 
 -- | Bitwise negation.
-bvNegate :: BV w -> BV w
-bvNegate (BV wRepr x) = BV wRepr (truncBits width (-x))
+bvNegate :: NatRepr w -> BV w -> BV w
+bvNegate wRepr (BV x) = BV (truncBits width (-x))
   where width = fromIntegral (natValue wRepr) :: Integer
 
 -- | Get the sign bit as a 'BV'.
-bvSignum :: BV w -> BV w
-bvSignum bv@(BV wRepr _) = bvShift bv (1 - width) `bvAnd` BV wRepr 0x1
+bvSignum :: NatRepr w -> BV w -> BV w
+bvSignum wRepr bv@(BV _) = bvShift wRepr bv (1 - width) `bvAnd` BV 0x1
   where width = fromIntegral (natValue wRepr)
 
 -- | Signed less than.
-bvLTS :: BV w -> BV w -> Bool
-bvLTS bv1 bv2 = bvIntegerS bv1 < bvIntegerS bv2
+bvLTS :: NatRepr w -> BV w -> BV w -> Bool
+bvLTS wRepr bv1 bv2 = bvIntegerS wRepr bv1 < bvIntegerS wRepr bv2
 
 -- | Unsigned less than.
 bvLTU :: BV w -> BV w -> Bool
@@ -331,25 +353,7 @@ truncBits width b = b .&. lowMask width
 
 ----------------------------------------
 -- Class instances
-$(return [])
-
--- instance Show (BitVector w) where
---   show (BV _ x) = "0x" ++ showHex x ""
-
--- instance KnownNat w => Read (BitVector w) where
---   readsPrec s =
---     (fmap . fmap) (\(a,s') -> (bitVector a, s')) (readsPrec s :: ReadS Integer)
-
--- instance ShowF BitVector
-
--- instance Eq (BitVector w) where
---   (BV _ x) == (BV _ y) = x == y
-
--- instance EqF BitVector where
---   (BV _ x) `eqF` (BV _ y) = x == y
-
--- instance Ord (BitVector w) where
---   (BV _ x) `compare` (BV _ y) = x `compare` y
+--- $(return [])
 
 -- instance OrdF BitVector where
 --   (BV xRepr x) `compareF` (BV yRepr y) =

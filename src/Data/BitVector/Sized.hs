@@ -20,7 +20,7 @@ operations that assume a 2's complement representation.
 module Data.BitVector.Sized
   ( -- * BitVector type
     BV -- , pattern BitVector
-  , bv, bv'
+  , mkBV, mkBV'
   , bv0
     -- * Bitwise operations (width-preserving)
     -- | These are alternative versions of some of the 'Data.Bits' functions where we
@@ -28,7 +28,6 @@ module Data.BitVector.Sized
   , bvAnd, bvOr, bvXor
   , bvComplement
   , bvShift, bvShiftL, bvShiftRA, bvShiftRL, bvRotate
-  , bvWidth
   , bvTestBit
   , bvPopCount
   , bvTruncBits
