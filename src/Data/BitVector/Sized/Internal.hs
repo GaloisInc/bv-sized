@@ -114,15 +114,15 @@ toPos x | x < 0 = 0
 toPos x = x
 
 -- | Left shift.
-bvShiftL :: NatRepr w -> BV w -> Int -> BV w
-bvShiftL wRepr (BV x) shf =
+bvShl :: NatRepr w -> BV w -> Int -> BV w
+bvShl wRepr (BV x) shf =
   -- Shift left by amount, then truncate.
   BV (truncBits width (x `shiftL` toPos shf))
   where width = natValue wRepr
 
 -- | Right arithmetic shift.
-bvShiftRA :: NatRepr w -> BV w -> Int -> BV w
-bvShiftRA wRepr bv shf =
+bvAshr :: NatRepr w -> BV w -> Int -> BV w
+bvAshr wRepr bv shf =
   -- Convert to an integer, shift right (arithmetic by default), then
   -- convert back to a natural with the correct width.
   BV (truncBits width (bvIntegerSigned wRepr bv `shiftR` toPos shf))
@@ -130,8 +130,8 @@ bvShiftRA wRepr bv shf =
 
 -- FIXME: test this
 -- | Right logical shift.
-bvShiftRL :: BV w -> Int -> BV w
-bvShiftRL (BV x) shf =
+bvLshr :: BV w -> Int -> BV w
+bvLshr (BV x) shf =
   -- Shift right (logical by default since the value is positive). No
   -- need to truncate bits, since the result is guaranteed to occupy
   -- no more bits than the input.
@@ -185,13 +185,13 @@ bvQuotSigned wRepr bv1@(BV _) bv2 = BV (truncBits width (x `quot` y))
 
 -- | Bitwise remainder after division (unsigned), when rounded to
 -- zero.
-bvRemUnsigned :: BV w -> BV w -> BV w
-bvRemUnsigned (BV x) (BV y) = BV (x `rem` y)
+bvUrem :: BV w -> BV w -> BV w
+bvUrem (BV x) (BV y) = BV (x `rem` y)
 
 -- | Bitwise remainder after division (signed), when rounded to zero
 -- (not negative infinity).
-bvRemSigned :: NatRepr w -> BV w -> BV w -> BV w
-bvRemSigned wRepr bv1@(BV _) bv2 = BV (truncBits width (x `rem` y))
+bvSrem :: NatRepr w -> BV w -> BV w -> BV w
+bvUrem wRepr bv1@(BV _) bv2 = BV (truncBits width (x `rem` y))
   where x = bvIntegerSigned wRepr bv1
         y = bvIntegerSigned wRepr bv2
         width = natValue wRepr
