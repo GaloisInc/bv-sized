@@ -27,11 +27,9 @@ module Data.BitVector.Sized.Signed
 import Data.BitVector.Sized
 
 import Data.Bits
-import Data.Ix
 import Data.Parameterized
 import GHC.Generics
 import GHC.TypeLits
-import Numeric.Natural
 
 -- | Signed bit vector.
 newtype SignedBV w = SignedBV (BV w)
@@ -65,7 +63,7 @@ instance KnownNat w => Bits (SignedBV w) where
   bitSizeMaybe _ = Just (fromIntegral (intValue (knownNat @w)))
   isSigned     = const True
   testBit (SignedBV bv) = bvTestBit bv
-  bit          = SignedBV . mkBV knownNat . (bit :: Int -> Natural)
+  bit          = SignedBV . mkBV knownNat . (bit :: Int -> Integer)
   popCount (SignedBV bv) = bvPopCount bv
 
 instance KnownNat w => FiniteBits (SignedBV w) where
@@ -76,20 +74,20 @@ instance KnownNat w => Num (SignedBV w) where
   (*)         = liftBinary (bvMul knownNat)
   abs         = liftUnary (bvAbs knownNat)
   signum      = liftUnary (bvSignum knownNat)
-  fromInteger = SignedBV . mkBVFromInteger knownNat
+  fromInteger = SignedBV . mkBV knownNat
   negate      = liftUnary (bvNegate knownNat)
 
 instance KnownNat w => Enum (SignedBV w) where
-  toEnum   = SignedBV . mkBVFromInteger knownNat . fromIntegral
-  fromEnum (SignedBV bv) = fromIntegral (bvNatural bv)
+  toEnum   = SignedBV . mkBV knownNat . fromIntegral
+  fromEnum (SignedBV bv) = fromIntegral (bvIntegerUnsigned bv)
 
-instance KnownNat w => Ix (SignedBV w) where
-  range (SignedBV loBV, SignedBV hiBV) =
-    (SignedBV . mkBV knownNat) <$> [bvNatural loBV .. bvNatural hiBV]
-  index (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
-    index (bvNatural loBV, bvNatural hiBV) (bvNatural ixBV)
-  inRange (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
-    inRange (bvNatural loBV, bvNatural hiBV) (bvNatural ixBV)
+-- instance KnownNat w => Ix (SignedBV w) where
+--   range (SignedBV loBV, SignedBV hiBV) =
+--     (SignedBV . mkBV knownNat) <$> [bvNatural loBV .. bvNatural hiBV]
+--   index (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
+--     index (bvNatural loBV, bvNatural hiBV) (bvNatural ixBV)
+--   inRange (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
+--     inRange (bvNatural loBV, bvNatural hiBV) (bvNatural ixBV)
 
 -- instance KnownNat w => Bounded (BitVector w) where
 --   minBound = bitVector (0 :: Integer)

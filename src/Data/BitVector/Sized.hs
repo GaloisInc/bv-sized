@@ -20,7 +20,7 @@ operations that assume a 2's complement representation.
 module Data.BitVector.Sized
   ( -- * 'BV' type
     BV
-  , mkBV, mkBVFromInteger
+  , mkBV
   , bv0
     -- * Bitwise operations (width-preserving)
     -- | These are alternative versions of some of the 'Data.Bits' functions where we
@@ -33,20 +33,20 @@ module Data.BitVector.Sized
   , bvTruncBits
     -- * Arithmetic operations (width-preserving)
   , bvAdd, bvMul
-  , bvQuotU, bvQuotS
-  , bvRemU, bvRemS
+  , bvQuotUnsigned, bvQuotSigned
+  , bvRemUnsigned, bvRemSigned
   , bvAbs, bvNegate
   , bvSignum
-  , bvLTS, bvLTU
+  , bvSlt, bvUlt
   --   -- * Variable-width operations
   --   -- | These are functions that involve bit vectors of different lengths.
   , bvConcat
   , bvExtract
   , bvZext
   , bvSext
-    -- * Conversions to Integer/Natural
-  , bvInteger
-  , bvNatural
+    -- * Conversions to signed/unsigned Integer
+  , bvIntegerSigned
+  , bvIntegerUnsigned
     -- * parameterized-utils re-exports
   , NatRepr
   , knownNat

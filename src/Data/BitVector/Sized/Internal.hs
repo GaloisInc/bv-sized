@@ -25,14 +25,17 @@ import Data.Bits
 import Data.Parameterized
 import GHC.Generics
 import GHC.TypeLits
-import Numeric.Natural
 
 ----------------------------------------
 -- BitVector data type definitions
 
 -- | Bitvector datatype, parameterized by width.
 data BV (w :: Nat) :: * where
-  BV :: Natural -> BV w
+  -- | We store the value as an 'Integer' rather than a 'Natural',
+  -- since many of the operations on bitvectors rely on a two's
+  -- complement representation. However, an invariant on the value is
+  -- that it must always be positive.
+  BV :: Integer -> BV w
   deriving (Generic, Show, Read, Eq, Ord)
 
 instance ShowF BV
@@ -51,14 +54,9 @@ instance EqF BV where
 -- 0xa
 -- >>> mkBV (knownNat @2) 0xA
 -- 0x2
-mkBV :: NatRepr w -> Natural -> BV w
+mkBV :: NatRepr w -> Integer -> BV w
 mkBV wRepr x = BV (truncBits width x)
   where width = natValue wRepr
-
--- | Construct a bit vector from an 'Integer'. The input is silently
--- truncated to the given width.
-mkBVFromInteger :: NatRepr w -> Integer -> BV w
-mkBVFromInteger wRepr x = mkBV wRepr (integerToNatural (natValue wRepr) x)
 
 -- | The zero bitvector with width 0.
 bv0 :: BV 0
@@ -67,17 +65,17 @@ bv0 = mkBV knownNat 0
 ----------------------------------------
 -- BitVector -> Integer functions
 
--- | Unsigned interpretation of a bit vector as a Natural.
-bvNatural :: BV w -> Natural
-bvNatural (BV x) = x
+-- | Unsigned interpretation of a bit vector as a positive Integer.
+bvIntegerUnsigned :: BV w -> Integer
+bvIntegerUnsigned (BV x) = x
 
 -- | Signed interpretation of a bit vector as an Integer.
-bvInteger :: NatRepr w -> BV w -> Integer
-bvInteger wRepr (BV x) =
+bvIntegerSigned :: NatRepr w -> BV w -> Integer
+bvIntegerSigned wRepr (BV x) =
   if testBit x (width - 1)
-  then fromIntegral x - (1 `shiftL` width)
-  else fromIntegral x
-  where width = fromIntegral (natValue wRepr)
+  then x - (1 `shiftL` width)
+  else x
+  where width = fromIntegral (intValue wRepr)
 
 ----------------------------------------
 -- BV w operations (fixed width)
@@ -100,14 +98,16 @@ bvComplement :: NatRepr w -> BV w -> BV w
 bvComplement wRepr (BV x) =
   -- Convert to an integer, flip the bits, truncate to the appropriate
   -- width, and convert back to a natural.
-  BV (integerToNatural width (complement (toInteger x)))
+  BV (truncBits width (complement x))
   where width = natValue wRepr
 
 -- | Bitwise shift. Uses an arithmetic right shift.
 bvShift :: NatRepr w -> BV w -> Int -> BV w
-bvShift wRepr bv shf = BV (integerToNatural width (x `shift` shf))
+bvShift wRepr bv shf = BV (truncBits width (x `shift` shf))
   where width = natValue wRepr
-        x     = bvInteger wRepr bv -- arithmetic right shift when negative
+        -- Convert the value to a signed integer so that we do an
+        -- arithmetic right shift
+        x     = bvIntegerSigned wRepr bv
 
 toPos :: Int -> Int
 toPos x | x < 0 = 0
@@ -125,14 +125,16 @@ bvShiftRA :: NatRepr w -> BV w -> Int -> BV w
 bvShiftRA wRepr bv shf =
   -- Convert to an integer, shift right (arithmetic by default), then
   -- convert back to a natural with the correct width.
-  BV (integerToNatural width (bvInteger wRepr bv `shiftR` toPos shf))
+  BV (truncBits width (bvIntegerSigned wRepr bv `shiftR` toPos shf))
   where width = natValue wRepr
 
 -- FIXME: test this
 -- | Right logical shift.
 bvShiftRL :: BV w -> Int -> BV w
 bvShiftRL (BV x) shf =
-  -- Shift right (logical by default on Naturals). No need to truncate bits.
+  -- Shift right (logical by default since the value is positive). No
+  -- need to truncate bits, since the result is guaranteed to occupy
+  -- no more bits than the input.
   BV (x `shiftR` toPos shf)
 
 -- FIXME: test this
@@ -142,7 +144,7 @@ bvRotate wRepr bv rot' = leftChunk `bvOr` rightChunk
   where rot = rot' `mod` width
         leftChunk = bvShift wRepr bv rot
         rightChunk = bvShift wRepr bv (rot - width)
-        width = fromIntegral (natValue wRepr)
+        width = fromIntegral (intValue wRepr)
 
 -- | Test if a particular bit is set.
 bvTestBit :: BV w -> Int -> Bool
@@ -171,35 +173,35 @@ bvMul wRepr (BV x) (BV y) = BV (truncBits width (x * y))
   where width = natValue wRepr
 
 -- | Bitwise division (unsigned). Rounds to zero.
-bvQuotU :: BV w -> BV w -> BV w
-bvQuotU (BV x) (BV y) = BV (x `quot` y)
+bvQuotUnsigned :: BV w -> BV w -> BV w
+bvQuotUnsigned (BV x) (BV y) = BV (x `quot` y)
 
 -- | Bitwise division (signed). Rounds to zero (not negative infinity).
-bvQuotS :: NatRepr w -> BV w -> BV w -> BV w
-bvQuotS wRepr bv1@(BV _) bv2 = BV (integerToNatural width (x `quot` y))
-  where x = bvInteger wRepr bv1
-        y = bvInteger wRepr bv2
+bvQuotSigned :: NatRepr w -> BV w -> BV w -> BV w
+bvQuotSigned wRepr bv1@(BV _) bv2 = BV (truncBits width (x `quot` y))
+  where x = bvIntegerSigned wRepr bv1
+        y = bvIntegerSigned wRepr bv2
         width = natValue wRepr
 
 -- | Bitwise remainder after division (unsigned), when rounded to
 -- zero.
-bvRemU :: BV w -> BV w -> BV w
-bvRemU (BV x) (BV y) = BV (x `rem` y)
+bvRemUnsigned :: BV w -> BV w -> BV w
+bvRemUnsigned (BV x) (BV y) = BV (x `rem` y)
 
 -- | Bitwise remainder after division (signed), when rounded to zero
 -- (not negative infinity).
-bvRemS :: NatRepr w -> BV w -> BV w -> BV w
-bvRemS wRepr bv1@(BV _) bv2 = BV (integerToNatural width (x `rem` y))
-  where x = bvInteger wRepr bv1
-        y = bvInteger wRepr bv2
+bvRemSigned :: NatRepr w -> BV w -> BV w -> BV w
+bvRemSigned wRepr bv1@(BV _) bv2 = BV (truncBits width (x `rem` y))
+  where x = bvIntegerSigned wRepr bv1
+        y = bvIntegerSigned wRepr bv2
         width = natValue wRepr
 
 -- | Bitwise absolute value.
 bvAbs :: NatRepr w -> BV w -> BV w
 bvAbs wRepr bv@(BV _) = BV abs_x
   where width = natValue wRepr
-        x     = bvInteger wRepr bv
-        abs_x = integerToNatural width (abs x) -- this is necessary
+        x     = bvIntegerSigned wRepr bv
+        abs_x = truncBits width (abs x) -- this is necessary
 
 -- | Bitwise negation.
 bvNegate :: NatRepr w -> BV w -> BV w
@@ -212,12 +214,12 @@ bvSignum wRepr bv@(BV _) = bvShift wRepr bv (1 - width) `bvAnd` BV 0x1
   where width = fromIntegral (natValue wRepr)
 
 -- | Signed less than.
-bvLTS :: NatRepr w -> BV w -> BV w -> Bool
-bvLTS wRepr bv1 bv2 = bvInteger wRepr bv1 < bvInteger wRepr bv2
+bvSlt :: NatRepr w -> BV w -> BV w -> Bool
+bvSlt wRepr bv1 bv2 = bvIntegerSigned wRepr bv1 < bvIntegerSigned wRepr bv2
 
 -- | Unsigned less than.
-bvLTU :: BV w -> BV w -> Bool
-bvLTU bv1 bv2 = bvNatural bv1 < bvNatural bv2
+bvUlt :: BV w -> BV w -> Bool
+bvUlt bv1 bv2 = bvIntegerUnsigned bv1 < bvIntegerUnsigned bv2
 
 ----------------------------------------
 -- Width-changing operations
@@ -268,7 +270,7 @@ bvSext :: NatRepr w
        -> NatRepr w'
        -> BV w
        -> BV w'
-bvSext wRepr wRepr' bv = mkBV wRepr' (integerToNatural width (bvInteger wRepr bv))
+bvSext wRepr wRepr' bv = mkBV wRepr' (truncBits width (bvIntegerSigned wRepr bv))
   where width = natValue wRepr'
 
 ----------------------------------------
@@ -286,11 +288,3 @@ truncBits :: (Integral a, Bits b)
           -- ^ value to truncate
           -> b
 truncBits width b = b .&. lowMask width
-
--- | Convert an Integer to a Natural safely by specifying the bit width.
-integerToNatural :: Integral a
-                 => a
-                 -- ^ width
-                 -> Integer
-                 -> Natural
-integerToNatural width x = fromIntegral (truncBits width x)
