@@ -27,14 +27,14 @@ module Data.BitVector.Sized
     -- do not need to know the width at compile time. They are all width-preserving.
   , bvAnd, bvOr, bvXor
   , bvComplement
-  , bvShift, bvShiftL, bvShiftRA, bvShiftRL, bvRotate
+  , bvShift, bvLshr, bvAshr, bvShl, bvRotate
   , bvTestBit
   , bvPopCount
   , bvTruncBits
     -- * Arithmetic operations (width-preserving)
   , bvAdd, bvMul
-  , bvQuotUnsigned, bvQuotSigned
-  , bvRemUnsigned, bvRemSigned
+  , bvUquot, bvSquot
+  , bvUrem, bvSrem
   , bvAbs, bvNegate
   , bvSignum
   , bvSlt, bvUlt

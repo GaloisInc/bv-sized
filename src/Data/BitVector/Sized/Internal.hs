@@ -176,12 +176,12 @@ bvMul wRepr (BV x) (BV y) = BV (truncBits width (x * y))
   where width = natValue wRepr
 
 -- | Bitwise division (unsigned). Rounds to zero.
-bvQuotUnsigned :: BV w -> BV w -> BV w
-bvQuotUnsigned (BV x) (BV y) = BV (x `quot` y)
+bvUquot :: BV w -> BV w -> BV w
+bvUquot (BV x) (BV y) = BV (x `quot` y)
 
 -- | Bitwise division (signed). Rounds to zero (not negative infinity).
-bvQuotSigned :: NatRepr w -> BV w -> BV w -> BV w
-bvQuotSigned wRepr bv1@(BV _) bv2 = BV (truncBits width (x `quot` y))
+bvSquot :: NatRepr w -> BV w -> BV w -> BV w
+bvSquot wRepr bv1@(BV _) bv2 = BV (truncBits width (x `quot` y))
   where x = bvIntegerSigned wRepr bv1
         y = bvIntegerSigned wRepr bv2
         width = natValue wRepr
@@ -194,7 +194,7 @@ bvUrem (BV x) (BV y) = BV (x `rem` y)
 -- | Bitwise remainder after division (signed), when rounded to zero
 -- (not negative infinity).
 bvSrem :: NatRepr w -> BV w -> BV w -> BV w
-bvUrem wRepr bv1@(BV _) bv2 = BV (truncBits width (x `rem` y))
+bvSrem wRepr bv1@(BV _) bv2 = BV (truncBits width (x `rem` y))
   where x = bvIntegerSigned wRepr bv1
         y = bvIntegerSigned wRepr bv2
         width = natValue wRepr
