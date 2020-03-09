@@ -69,6 +69,9 @@ bv0 = mkBV knownNat 0
 bvIntegerUnsigned :: BV w -> Integer
 bvIntegerUnsigned (BV x) = x
 
+-- FIXME: In this, and other functions, we are converting to 'Int' in
+-- order to use the underlying 'shiftL' function. This could be
+-- problematic if the width is really huge.
 -- | Signed interpretation of a bit vector as an Integer.
 bvIntegerSigned :: NatRepr w -> BV w -> Integer
 bvIntegerSigned wRepr (BV x) =
