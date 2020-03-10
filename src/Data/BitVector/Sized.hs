@@ -35,7 +35,7 @@ module Data.BitVector.Sized
   , bvPopCount
   , bvTruncBits
     -- * Arithmetic operations (width-preserving)
-  , bvAdd, bvMul
+  , bvAdd, bvSub, bvMul
   , bvUquot, bvSquot
   , bvUrem, bvSrem
   , bvAbs, bvNegate
