@@ -81,6 +81,10 @@ mkBV wRepr x = BV (truncBits width x)
 bv0 :: BV 0
 bv0 = BV 0
 
+-- | The 'BitVector' that has a particular bit set, and is 0 everywhere else.
+bvBit :: (0 <= w', w' <= w) => NatRepr w -> NatRepr w' -> BV w
+bvBit w ix = mkBV w (bit (fromIntegral (intValue ix)))
+
 -- | The minimum unsigned value for bitvector with given width (always 0).
 minUnsigned :: NatRepr w -> BV w
 minUnsigned _ = BV 0
