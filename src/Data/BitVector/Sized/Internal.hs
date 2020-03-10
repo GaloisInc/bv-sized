@@ -43,6 +43,9 @@ instance ShowF BV
 instance EqF BV where
   BV bv `eqF` BV bv' = bv == bv'
 
+instance Hashable (BV w) where
+  hashWithSalt salt (BV i) = hashWithSalt salt i
+
 -- | Construct a bit vector with a particular width, where the width
 -- is provided as an explicit `NatRepr` argument. The input (an
 -- unbounded data type, hence with an infinite-width bit
