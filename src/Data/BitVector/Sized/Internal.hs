@@ -18,6 +18,8 @@ Portability : portable
 
 This module defines a width-parameterized 'BV' type and various
 associated operations that assume a 2's complement representation.
+
+All type class instances assume unsigned representations -- for the signed instances, see 'Data.BitVector.Sized.Signed'.
 -}
 
 module Data.BitVector.Sized.Internal where
@@ -70,6 +72,17 @@ instance KnownNat w => Num (BV w) where
   abs = bvAbs knownNat
   signum = bvSignum knownNat
   fromInteger = mkBV knownNat
+
+instance KnownNat w => Real (BV w) where
+  toRational (BV x) = fromIntegral x
+
+instance KnownNat w => Enum (BV w) where
+  fromEnum (BV x) = fromIntegral x
+  toEnum i = mkBV knownNat (fromIntegral i)
+
+instance KnownNat w => Integral (BV w) where
+  bv `quotRem` bv' = (bv `bvUquot` bv', bv `bvUrem` bv')
+  toInteger (BV x) = x
 
 -- | Construct a bit vector with a particular width, where the width
 -- is provided as an explicit `NatRepr` argument. The input (an
