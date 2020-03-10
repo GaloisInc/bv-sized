@@ -22,7 +22,7 @@ associated operations that assume a 2's complement representation.
 module Data.BitVector.Sized.Internal where
 
 import Data.Bits
-import Data.Parameterized
+import Data.Parameterized hiding ( maxUnsigned )
 import GHC.Generics
 import GHC.TypeLits
 
@@ -64,6 +64,26 @@ mkBV wRepr x = BV (truncBits width x)
 -- | The zero bitvector with width 0.
 bv0 :: BV 0
 bv0 = mkBV knownNat 0
+
+-- | The minimum unsigned value for bitvector with given width (always 0).
+minUnsigned :: NatRepr w -> BV w
+minUnsigned _ = BV 0
+
+-- | The maximum unsigned value for bitvector with given width.
+maxUnsigned :: NatRepr w -> BV w
+maxUnsigned w = BV (bit (widthVal w) - 1)
+
+-- | The minimum value for bitvector in two's complement with given width.
+minSigned :: NatRepr w -> BV w
+minSigned w = BV (negate (bit (widthVal w - 1)))
+
+-- | The maximum value for bitvector in two's complement with given width.
+maxSigned :: NatRepr w -> BV w
+maxSigned w = BV (bit (widthVal w - 1) - 1)
+
+toUnsigned :: NatRepr w -> Integer -> BV w
+toUnsigned w i = BV (iMaxUnsigned .&. i)
+  where BV iMaxUnsigned = maxUnsigned w
 
 ----------------------------------------
 -- BitVector -> Integer functions

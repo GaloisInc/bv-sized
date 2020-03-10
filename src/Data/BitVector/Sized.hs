@@ -22,6 +22,9 @@ module Data.BitVector.Sized
     BV
   , mkBV
   , bv0
+  , minUnsigned, maxUnsigned
+  , minSigned, maxSigned
+  , toUnsigned -- , toSigned
     -- * Bitwise operations (width-preserving)
     -- | These are alternative versions of some of the 'Data.Bits' functions where we
     -- do not need to know the width at compile time. They are all width-preserving.
