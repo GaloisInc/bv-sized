@@ -5,6 +5,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
 {-|
@@ -46,6 +47,21 @@ instance EqF BV where
 instance Hashable (BV w) where
   hashWithSalt salt (BV i) = hashWithSalt salt i
 
+instance KnownNat w => Bits (BV w) where
+  (.&.) = bvAnd
+  (.|.) = bvOr
+  xor = bvXor
+  complement = bvComplement knownNat
+  shift = bvShift knownNat
+  rotate = bvRotate knownNat
+  zeroBits = BV 0
+  bitSizeMaybe _ = Just (fromIntegral (intValue (knownNat @w)))
+  bitSize _ = fromIntegral (intValue (knownNat @w))
+  isSigned = const False
+  testBit = bvTestBit
+  bit n = mkBV knownNat (bit n)
+  popCount = bvPopCount
+
 -- | Construct a bit vector with a particular width, where the width
 -- is provided as an explicit `NatRepr` argument. The input (an
 -- unbounded data type, hence with an infinite-width bit
@@ -63,7 +79,7 @@ mkBV wRepr x = BV (truncBits width x)
 
 -- | The zero bitvector with width 0.
 bv0 :: BV 0
-bv0 = mkBV knownNat 0
+bv0 = BV 0
 
 ----------------------------------------
 -- BitVector -> Integer functions
@@ -276,7 +292,7 @@ bvSext :: NatRepr w
        -> NatRepr w'
        -> BV w
        -> BV w'
-bvSext wRepr wRepr' bv = mkBV wRepr' (truncBits width (bvIntegerSigned wRepr bv))
+bvSext wRepr wRepr' bv = BV (truncBits width (bvIntegerSigned wRepr bv))
   where width = natValue wRepr'
 
 ----------------------------------------
