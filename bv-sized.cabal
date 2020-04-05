@@ -28,7 +28,7 @@ library
                      , parameterized-utils >= 2.0 && < 3
                      , pretty
                      , random >= 1.1 && < 1.2
-                     , QuickCheck >= 2.11 && < 2.14
+                     , QuickCheck >= 2.11
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
