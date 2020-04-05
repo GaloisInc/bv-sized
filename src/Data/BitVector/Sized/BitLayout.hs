@@ -39,7 +39,7 @@ module Data.BitVector.Sized.BitLayout
 import Data.BitVector.Sized.Internal
 import Data.Foldable
 import qualified Data.Functor.Product as P
-import Control.Lens (lens, Simple, Lens)
+import Control.Lens (lens, Lens')
 import Data.Parameterized
 import Data.Parameterized.List
 import qualified Data.Sequence as S
@@ -252,11 +252,11 @@ extract :: BitLayout t s -- ^ The layout
 extract (BitLayout _ sRepr chunks) = extractAll sRepr 0 (toList chunks)
 
 -- | Lens for a 'BitLayout'.
-layoutLens :: BitLayout t s -> Simple Lens (BitVector t) (BitVector s)
+layoutLens :: BitLayout t s -> Lens' (BitVector t) (BitVector s)
 layoutLens layout = lens (extract layout) (inject layout)
 
 -- | Lens for a parameterized 'List' of 'BitLayout's.
-layoutsLens :: forall ws . List (BitLayout 32) ws -> Simple Lens (BitVector 32) (List BitVector ws)
+layoutsLens :: forall ws . List (BitLayout 32) ws -> Lens' (BitVector 32) (List BitVector ws)
 layoutsLens layouts = lens
   (\bv -> imap (const $ flip extract bv) layouts)
   (\bv bvFlds -> ifoldr (\_ (P.Pair fld layout) bv' -> inject layout bv' fld)
