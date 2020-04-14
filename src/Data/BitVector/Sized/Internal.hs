@@ -28,7 +28,6 @@ import GHC.Generics
 import GHC.TypeLits
 import Numeric
 import System.Random
-import Test.QuickCheck (Arbitrary(..), choose)
 import Text.PrettyPrint.HughesPJClass
 import Text.Printf
 import Unsafe.Coerce (unsafeCoerce)
@@ -400,9 +399,6 @@ instance KnownNat w => Ix (BitVector w) where
 instance KnownNat w => Bounded (BitVector w) where
   minBound = bitVector (0 :: Integer)
   maxBound = bitVector ((-1) :: Integer)
-
-instance KnownNat w => Arbitrary (BitVector w) where
-  arbitrary = choose (minBound, maxBound)
 
 instance KnownNat w => Random (BitVector w) where
   randomR (bvLo, bvHi) gen =
