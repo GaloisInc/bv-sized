@@ -53,6 +53,7 @@ module Data.BitVector.Sized
   , bvIntegerSigned
   , bvIntegerUnsigned
     -- * parameterized-utils re-exports
+  , Nat
   , NatRepr
   , knownNat
   --   -- * Byte decomposition
@@ -62,3 +63,4 @@ module Data.BitVector.Sized
 import Data.BitVector.Sized.Internal
 
 import Data.Parameterized.NatRepr (knownNat, NatRepr)
+import GHC.TypeLits (Nat)
