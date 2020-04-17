@@ -18,6 +18,8 @@ Portability : portable
 
 This module defines a width-parameterized 'BV' type and various
 associated operations that assume a 2's complement representation.
+
+All type class instances assume unsigned representations -- for the signed instances, see 'Data.BitVector.Sized.Signed'.
 -}
 
 module Data.BitVector.Sized.Internal where
@@ -61,6 +63,26 @@ instance KnownNat w => Bits (BV w) where
   testBit = bvTestBit
   bit n = mkBV knownNat (bit n)
   popCount = bvPopCount
+
+instance KnownNat w => Num (BV w) where
+  (+) = bvAdd knownNat
+  (-) = bvSub knownNat
+  (*) = bvMul knownNat
+  negate = bvNegate knownNat
+  abs = bvAbs knownNat
+  signum = bvSignum knownNat
+  fromInteger = mkBV knownNat
+
+instance KnownNat w => Real (BV w) where
+  toRational (BV x) = fromIntegral x
+
+instance KnownNat w => Enum (BV w) where
+  fromEnum (BV x) = fromIntegral x
+  toEnum i = mkBV knownNat (fromIntegral i)
+
+instance KnownNat w => Integral (BV w) where
+  bv `quotRem` bv' = (bv `bvUquot` bv', bv `bvUrem` bv')
+  toInteger (BV x) = x
 
 -- | Construct a bit vector with a particular width, where the width
 -- is provided as an explicit `NatRepr` argument. The input (an
@@ -211,6 +233,10 @@ bvTruncBits (BV x) b = BV (truncBits b x)
 -- | Bitwise add.
 bvAdd :: NatRepr w -> BV w -> BV w -> BV w
 bvAdd wRepr (BV x) (BV y) = BV (truncBits width (x + y))
+  where width = natValue wRepr
+
+bvSub :: NatRepr w -> BV w -> BV w -> BV w
+bvSub wRepr (BV x) (BV y) = BV (truncBits width (x - y))
   where width = natValue wRepr
 
 -- | Bitwise multiply.
