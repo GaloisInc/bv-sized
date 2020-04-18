@@ -36,8 +36,8 @@ module Data.BitVector.Sized
   , bvTruncBits
     -- * Arithmetic operations (width-preserving)
   , bvAdd, bvSub, bvMul
-  , bvUquot, bvSquot
-  , bvUrem, bvSrem
+  , bvUquot, bvSquot, bvSdiv
+  , bvUrem, bvSrem, bvSmod
   , bvAbs, bvNegate
   , bvSignum
   , bvSlt, bvUlt
@@ -53,8 +53,6 @@ module Data.BitVector.Sized
     -- * parameterized-utils re-exports
   , NatRepr
   , knownNat
-  --   -- * Byte decomposition
-  -- , bvGetBytesU
   ) where
 
 import Data.BitVector.Sized.Internal

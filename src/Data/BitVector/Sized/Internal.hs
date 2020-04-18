@@ -122,7 +122,6 @@ bvOr (BV x) (BV y) = BV (x .|. y)
 bvXor :: BV w -> BV w -> BV w
 bvXor (BV x) (BV y) = BV (x `xor` y)
 
--- FIXME: test this implementation.
 -- | Bitwise complement (flip every bit).
 bvComplement :: NatRepr w -> BV w -> BV w
 bvComplement wRepr (BV x) =
@@ -143,22 +142,21 @@ toPos :: Int -> Int
 toPos x | x < 0 = 0
 toPos x = x
 
--- | Left shift.
+-- | Left shift by positive 'Int'.
 bvShl :: NatRepr w -> BV w -> Int -> BV w
 bvShl wRepr (BV x) shf =
   -- Shift left by amount, then truncate.
   BV (truncBits width (x `shiftL` toPos shf))
   where width = natValue wRepr
 
--- | Right arithmetic shift.
+-- | Right arithmetic shift by positive 'Int'.
 bvAshr :: NatRepr w -> BV w -> Int -> BV w
 bvAshr wRepr bv shf =
   -- Convert to an integer, shift right (arithmetic by default), then
-  -- convert back to a natural with the correct width.
+  -- convert back to a bitvector with the correct width.
   BV (truncBits width (bvIntegerSigned wRepr bv `shiftR` toPos shf))
   where width = natValue wRepr
 
--- FIXME: test this
 -- | Right logical shift.
 bvLshr :: BV w -> Int -> BV w
 bvLshr (BV x) shf =
@@ -167,7 +165,6 @@ bvLshr (BV x) shf =
   -- no more bits than the input.
   BV (x `shiftR` toPos shf)
 
--- FIXME: test this
 -- | Bitwise rotate.
 bvRotate :: NatRepr w -> BV w -> Int -> BV w
 bvRotate wRepr bv rot' = leftChunk `bvOr` rightChunk
@@ -197,6 +194,7 @@ bvAdd :: NatRepr w -> BV w -> BV w -> BV w
 bvAdd wRepr (BV x) (BV y) = BV (truncBits width (x + y))
   where width = natValue wRepr
 
+-- | Bitwise subtract.
 bvSub :: NatRepr w -> BV w -> BV w -> BV w
 bvSub wRepr (BV x) (BV y) = BV (truncBits width (x - y))
   where width = natValue wRepr
@@ -210,9 +208,16 @@ bvMul wRepr (BV x) (BV y) = BV (truncBits width (x * y))
 bvUquot :: BV w -> BV w -> BV w
 bvUquot (BV x) (BV y) = BV (x `quot` y)
 
--- | Bitwise division (signed). Rounds to zero (not negative infinity).
+-- | Bitwise division (signed). Rounds to zero.
 bvSquot :: NatRepr w -> BV w -> BV w -> BV w
-bvSquot wRepr bv1@(BV _) bv2 = BV (truncBits width (x `quot` y))
+bvSquot wRepr bv1 bv2 = BV (truncBits width (x `quot` y))
+  where x = bvIntegerSigned wRepr bv1
+        y = bvIntegerSigned wRepr bv2
+        width = natValue wRepr
+
+-- | Bitwise division (signed). Rounds to negative infinity.
+bvSdiv :: NatRepr w -> BV w -> BV w -> BV w
+bvSdiv wRepr bv1 bv2 = BV (truncBits width (x `div` y))
   where x = bvIntegerSigned wRepr bv1
         y = bvIntegerSigned wRepr bv2
         width = natValue wRepr
@@ -222,10 +227,17 @@ bvSquot wRepr bv1@(BV _) bv2 = BV (truncBits width (x `quot` y))
 bvUrem :: BV w -> BV w -> BV w
 bvUrem (BV x) (BV y) = BV (x `rem` y)
 
--- | Bitwise remainder after division (signed), when rounded to zero
--- (not negative infinity).
+-- | Bitwise remainder after division (signed), when rounded to zero.
 bvSrem :: NatRepr w -> BV w -> BV w -> BV w
-bvSrem wRepr bv1@(BV _) bv2 = BV (truncBits width (x `rem` y))
+bvSrem wRepr bv1 bv2 = BV (truncBits width (x `rem` y))
+  where x = bvIntegerSigned wRepr bv1
+        y = bvIntegerSigned wRepr bv2
+        width = natValue wRepr
+
+-- | Bitwise remainder after division (signed), when rounded to
+-- negative infinity.
+bvSmod :: NatRepr w -> BV w -> BV w -> BV w
+bvSmod wRepr bv1 bv2 = BV (truncBits width (x `mod` y))
   where x = bvIntegerSigned wRepr bv1
         y = bvIntegerSigned wRepr bv2
         width = natValue wRepr
