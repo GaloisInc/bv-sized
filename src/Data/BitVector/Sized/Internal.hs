@@ -18,8 +18,6 @@ Portability : portable
 
 This module defines a width-parameterized 'BV' type and various
 associated operations that assume a 2's complement representation.
-
-All type class instances assume unsigned representations -- for the signed instances, see 'Data.BitVector.Sized.Signed'.
 -}
 
 module Data.BitVector.Sized.Internal where

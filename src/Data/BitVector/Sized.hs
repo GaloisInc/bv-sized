@@ -28,8 +28,6 @@ module Data.BitVector.Sized
   , minSigned, maxSigned
   , toUnsigned -- , toSigned
     -- * Bitwise operations (width-preserving)
-    -- | These are alternative versions of some of the 'Data.Bits' functions where we
-    -- do not need to know the width at compile time. They are all width-preserving.
   , bvAnd, bvOr, bvXor
   , bvComplement
   , bvShift, bvLshr, bvAshr, bvShl, bvRotate
@@ -43,8 +41,8 @@ module Data.BitVector.Sized
   , bvAbs, bvNegate
   , bvSignum
   , bvSlt, bvUlt
-  --   -- * Variable-width operations
-  --   -- | These are functions that involve bit vectors of different lengths.
+    -- * Variable-width operations
+    -- | These are functions that involve bit vectors of different lengths.
   , bvConcat
   , bvExtract
   , bvZext
