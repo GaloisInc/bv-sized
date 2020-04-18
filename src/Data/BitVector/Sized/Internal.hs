@@ -83,15 +83,11 @@ bvMaxUnsigned w = BV (bit (widthVal w) - 1)
 
 -- | The minimum value for bitvector in two's complement with given width.
 bvMinSigned :: NatRepr w -> BV w
-bvMinSigned w = BV (negate (bit (widthVal w - 1)))
+bvMinSigned w = BV (bit (widthVal w - 1))
 
 -- | The maximum value for bitvector in two's complement with given width.
 bvMaxSigned :: NatRepr w -> BV w
 bvMaxSigned w = BV (bit (widthVal w - 1) - 1)
-
-toUnsigned :: NatRepr w -> Integer -> BV w
-toUnsigned w i = BV (iMaxUnsigned .&. i)
-  where BV iMaxUnsigned = bvMaxUnsigned w
 
 ----------------------------------------
 -- BitVector -> Integer functions
