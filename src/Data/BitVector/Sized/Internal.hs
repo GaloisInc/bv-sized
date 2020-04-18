@@ -18,6 +18,7 @@ Portability : portable
 
 This module defines a width-parameterized 'BV' type and various
 associated operations that assume a 2's complement representation.
+
 -}
 
 module Data.BitVector.Sized.Internal where
@@ -47,6 +48,8 @@ instance EqF BV where
 instance Hashable (BV w) where
   hashWithSalt salt (BV i) = hashWithSalt salt i
 
+----------------------------------------
+-- BitVector construction
 -- | Construct a bit vector with a particular width, where the width
 -- is provided as an explicit `NatRepr` argument. The input (an
 -- unbounded data type, hence with an infinite-width bit
@@ -71,24 +74,24 @@ bvBit :: (0 <= w', w' <= w) => NatRepr w -> NatRepr w' -> BV w
 bvBit w ix = mkBV w (bit (fromIntegral (intValue ix)))
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
-minUnsigned :: NatRepr w -> BV w
-minUnsigned _ = BV 0
+bvMinUnsigned :: NatRepr w -> BV w
+bvMinUnsigned _ = BV 0
 
 -- | The maximum unsigned value for bitvector with given width.
-maxUnsigned :: NatRepr w -> BV w
-maxUnsigned w = BV (bit (widthVal w) - 1)
+bvMaxUnsigned :: NatRepr w -> BV w
+bvMaxUnsigned w = BV (bit (widthVal w) - 1)
 
 -- | The minimum value for bitvector in two's complement with given width.
-minSigned :: NatRepr w -> BV w
-minSigned w = BV (negate (bit (widthVal w - 1)))
+bvMinSigned :: NatRepr w -> BV w
+bvMinSigned w = BV (negate (bit (widthVal w - 1)))
 
 -- | The maximum value for bitvector in two's complement with given width.
-maxSigned :: NatRepr w -> BV w
-maxSigned w = BV (bit (widthVal w - 1) - 1)
+bvMaxSigned :: NatRepr w -> BV w
+bvMaxSigned w = BV (bit (widthVal w - 1) - 1)
 
 toUnsigned :: NatRepr w -> Integer -> BV w
 toUnsigned w i = BV (iMaxUnsigned .&. i)
-  where BV iMaxUnsigned = maxUnsigned w
+  where BV iMaxUnsigned = bvMaxUnsigned w
 
 ----------------------------------------
 -- BitVector -> Integer functions

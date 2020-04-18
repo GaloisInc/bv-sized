@@ -22,10 +22,11 @@ All type class instances assume unsigned representations -- for the signed insta
 module Data.BitVector.Sized
   ( -- * 'BV' type
     BV
+    -- * Functions that create bitvectors
   , mkBV
-  , bv0
-  , minUnsigned, maxUnsigned
-  , minSigned, maxSigned
+  , bv0, bvBit
+  , bvMinUnsigned, bvMaxUnsigned
+  , bvMinSigned, bvMaxSigned
   , toUnsigned -- , toSigned
     -- * Bitwise operations (width-preserving)
   , bvAnd, bvOr, bvXor
