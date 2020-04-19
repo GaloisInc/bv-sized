@@ -25,10 +25,10 @@ module Data.BitVector.Sized.Unsigned
   ) where
 
 import Data.BitVector.Sized.Internal
+import Data.Parameterized.WidthRepr
 
 import Data.Bits
 import Data.Ix
-import Data.Parameterized
 import GHC.Generics
 import GHC.TypeLits
 
@@ -57,42 +57,41 @@ instance KnownNat w => Bits (UnsignedBV w) where
   (.&.)        = liftBinary bvAnd
   (.|.)        = liftBinary bvOr
   xor          = liftBinary bvXor
-  complement   = liftUnary (bvComplement knownNat)
-  shiftL       = liftBinaryInt (bvShl knownNat)
+  complement   = liftUnary (bvComplement knownWidth)
+  shiftL       = liftBinaryInt (bvShl knownWidth)
   shiftR       = liftBinaryInt bvLshr
-  rotateL      = liftBinaryInt (bvRotateL knownNat)
-  rotateR      = liftBinaryInt (bvRotateR knownNat)
-  bitSize _    = fromIntegral (intValue (knownNat @w))
-  bitSizeMaybe _ = Just (fromIntegral (intValue (knownNat @w)))
+  rotateL      = liftBinaryInt (bvRotateL knownWidth)
+  rotateR      = liftBinaryInt (bvRotateR knownWidth)
+  bitSize _    = widthInt (knownWidth @w)
+  bitSizeMaybe _ = Just (widthInt (knownWidth @w))
   isSigned     = const False
   testBit (UnsignedBV bv) = bvTestBit bv
-  bit          = UnsignedBV . mkBV knownNat . (bit :: Int -> Integer)
+  bit          = UnsignedBV . mkBV knownWidth . (bit :: Int -> Integer)
   popCount (UnsignedBV bv) = bvPopCount bv
 
 instance KnownNat w => FiniteBits (UnsignedBV w) where
-  finiteBitSize _ = fromIntegral (intValue (knownNat @w))
+  finiteBitSize _ = widthInt (knownWidth @w)
 
 instance KnownNat w => Num (UnsignedBV w) where
-  (+)         = liftBinary (bvAdd knownNat)
-  (*)         = liftBinary (bvMul knownNat)
-  abs         = liftUnary (bvAbs knownNat)
+  (+)         = liftBinary (bvAdd knownWidth)
+  (*)         = liftBinary (bvMul knownWidth)
+  abs         = liftUnary (bvAbs knownWidth)
   signum      = const $ UnsignedBV (BV 0)
-  fromInteger = UnsignedBV . mkBV knownNat
+  fromInteger = UnsignedBV . mkBV knownWidth
   -- in this case, negate just means "additive inverse"
-  negate      = liftUnary (bvNegate knownNat)
+  negate      = liftUnary (bvNegate knownWidth)
 
-checkInt :: NatRepr w -> Int -> Int
-checkInt w i | 0 <= i && i <= hi = i
+checkInt :: WidthRepr w -> Int -> Int
+checkInt w i | 0 <= i && i <= fromIntegral (widthMask w) = i
              | otherwise = error "bad argument"
-  where hi = bit (widthVal w) - 1
 
 instance KnownNat w => Enum (UnsignedBV w) where
-  toEnum   = UnsignedBV . mkBV knownNat . fromIntegral . checkInt (knownNat @w)
+  toEnum   = UnsignedBV . mkBV knownWidth . fromIntegral . checkInt (knownWidth @w)
   fromEnum (UnsignedBV bv) = fromIntegral (bvIntegerUnsigned bv)
 
 instance KnownNat w => Ix (UnsignedBV w) where
   range (UnsignedBV loBV, UnsignedBV hiBV) =
-    (UnsignedBV . mkBV knownNat) <$>
+    (UnsignedBV . mkBV knownWidth) <$>
     [bvIntegerUnsigned loBV .. bvIntegerUnsigned hiBV]
   index (UnsignedBV loBV, UnsignedBV hiBV) (UnsignedBV ixBV) =
     index ( bvIntegerUnsigned loBV
@@ -104,5 +103,5 @@ instance KnownNat w => Ix (UnsignedBV w) where
     (bvIntegerUnsigned ixBV)
 
 instance KnownNat w => Bounded (UnsignedBV w) where
-  minBound = UnsignedBV (bvMinUnsigned knownNat)
-  maxBound = UnsignedBV (bvMaxUnsigned knownNat)
+  minBound = UnsignedBV bvMinUnsigned
+  maxBound = UnsignedBV (bvMaxUnsigned knownWidth)

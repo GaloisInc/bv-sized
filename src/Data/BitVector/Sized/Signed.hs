@@ -26,10 +26,10 @@ module Data.BitVector.Sized.Signed
   ) where
 
 import Data.BitVector.Sized
+import Data.Parameterized.WidthRepr
 
 import Data.Bits
 import Data.Ix
-import Data.Parameterized
 import GHC.Generics
 import GHC.TypeLits
 
@@ -40,7 +40,7 @@ newtype SignedBV w = SignedBV (BV w)
 instance KnownNat w => Ord (SignedBV w) where
   SignedBV bv1 `compare` SignedBV bv2 =
     if | bv1 == bv2             -> EQ
-       | bvSlt knownNat bv1 bv2 -> LT
+       | bvSlt knownWidth bv1 bv2 -> LT
        | otherwise              -> GT
 
 liftUnary :: (BV w -> BV w)
@@ -64,52 +64,52 @@ instance KnownNat w => Bits (SignedBV w) where
   (.&.)        = liftBinary bvAnd
   (.|.)        = liftBinary bvOr
   xor          = liftBinary bvXor
-  complement   = liftUnary (bvComplement knownNat)
-  shiftL       = liftBinaryInt (bvShl knownNat)
-  shiftR       = liftBinaryInt (bvAshr knownNat)
-  rotateL      = liftBinaryInt (bvRotateL knownNat)
-  rotateR      = liftBinaryInt (bvRotateR knownNat)
-  bitSize _    = fromIntegral (intValue (knownNat @w))
-  bitSizeMaybe _ = Just (fromIntegral (intValue (knownNat @w)))
+  complement   = liftUnary (bvComplement knownWidth)
+  shiftL       = liftBinaryInt (bvShl knownWidth)
+  shiftR       = liftBinaryInt (bvAshr knownWidth)
+  rotateL      = liftBinaryInt (bvRotateL knownWidth)
+  rotateR      = liftBinaryInt (bvRotateR knownWidth)
+  bitSize _    = widthInt (knownWidth @w)
+  bitSizeMaybe _ = Just (widthInt (knownWidth @w))
   isSigned     = const True
   testBit (SignedBV bv) = bvTestBit bv
-  bit          = SignedBV . mkBV knownNat . (bit :: Int -> Integer)
+  bit          = SignedBV . mkBV knownWidth . (bit :: Int -> Integer)
   popCount (SignedBV bv) = bvPopCount bv
 
 instance KnownNat w => FiniteBits (SignedBV w) where
-  finiteBitSize _ = fromIntegral (intValue (knownNat @w))
+  finiteBitSize _ = widthInt (knownWidth @w)
 
 instance KnownNat w => Num (SignedBV w) where
-  (+)         = liftBinary (bvAdd knownNat)
-  (*)         = liftBinary (bvMul knownNat)
-  abs         = liftUnary (bvAbs knownNat)
-  signum      = liftUnary (bvSignBit knownNat)
-  fromInteger = SignedBV . mkBV knownNat
-  negate      = liftUnary (bvNegate knownNat)
+  (+)         = liftBinary (bvAdd knownWidth)
+  (*)         = liftBinary (bvMul knownWidth)
+  abs         = liftUnary (bvAbs knownWidth)
+  signum      = liftUnary (bvSignBit knownWidth)
+  fromInteger = SignedBV . mkBV knownWidth
+  negate      = liftUnary (bvNegate knownWidth)
 
-checkInt :: NatRepr w -> Int -> Int
+checkInt :: WidthRepr w -> Int -> Int
 checkInt w i | lo <= i && i <= hi = i
              | otherwise = error "bad argument"
-  where lo = negate (bit (widthVal w - 1))
-        hi = bit (widthVal w - 1) - 1
+  where lo = negate (bit (widthInt w - 1))
+        hi = bit (widthInt w - 1) - 1
 
 instance KnownNat w => Enum (SignedBV w) where
-  toEnum = SignedBV . mkBV knownNat . fromIntegral . checkInt (knownNat @w)
-  fromEnum (SignedBV bv) = fromIntegral (bvIntegerSigned (knownNat @w) bv)
+  toEnum = SignedBV . mkBV knownWidth . fromIntegral . checkInt (knownWidth @w)
+  fromEnum (SignedBV bv) = fromIntegral (bvIntegerSigned (knownWidth @w) bv)
 
 instance KnownNat w => Ix (SignedBV w) where
   range (SignedBV loBV, SignedBV hiBV) =
-    (SignedBV . mkBV knownNat) <$>
-    [bvIntegerSigned knownNat loBV .. bvIntegerSigned knownNat hiBV]
+    (SignedBV . mkBV knownWidth) <$>
+    [bvIntegerSigned knownWidth loBV .. bvIntegerSigned knownWidth hiBV]
   index (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
-    index ( bvIntegerSigned knownNat loBV
-          , bvIntegerSigned knownNat hiBV)
-    (bvIntegerSigned knownNat ixBV)
+    index ( bvIntegerSigned knownWidth loBV
+          , bvIntegerSigned knownWidth hiBV)
+    (bvIntegerSigned knownWidth ixBV)
   inRange (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
-    inRange ( bvIntegerSigned knownNat loBV
-            , bvIntegerSigned knownNat hiBV)
-    (bvIntegerSigned knownNat ixBV)
+    inRange ( bvIntegerSigned knownWidth loBV
+            , bvIntegerSigned knownWidth hiBV)
+    (bvIntegerSigned knownWidth ixBV)
 
 instance KnownNat w => Bounded (SignedBV w) where
-  minBound = SignedBV (bvMinSigned knownNat)
-  maxBound = SignedBV (bvMaxSigned knownNat)
+  minBound = SignedBV (bvMinSigned knownWidth)
+  maxBound = SignedBV (bvMaxSigned knownWidth)

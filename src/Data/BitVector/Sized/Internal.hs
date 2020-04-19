@@ -24,7 +24,8 @@ associated operations that assume a 2's complement representation.
 module Data.BitVector.Sized.Internal where
 
 import Data.Bits
-import Data.Parameterized hiding ( maxUnsigned )
+import Data.Parameterized
+import Data.Parameterized.WidthRepr
 import GHC.Generics
 import GHC.TypeLits
 
@@ -64,33 +65,34 @@ instance HashableF BV where
 -- 0xa
 -- >>> mkBV (knownNat @2) 0xA
 -- 0x2
-mkBV :: NatRepr w -> Integer -> BV w
-mkBV wRepr x = BV (truncBits width x)
-  where width = natValue wRepr
+mkBV :: WidthRepr w -> Integer -> BV w
+mkBV w x = BV (x .&. widthMask w)
 
 -- | The zero bitvector with width 0.
 bv0 :: BV 0
 bv0 = BV 0
 
 -- | The 'BitVector' that has a particular bit set, and is 0 everywhere else.
-bvBit :: (0 <= w', w' <= w) => NatRepr w -> NatRepr w' -> BV w
-bvBit w ix = mkBV w (bit (widthVal ix))
+bvBit :: (0 <= w', w' <= w) => WidthRepr w -> WidthRepr w' -> BV w
+bvBit w ix = mkBV w (bit (widthInt ix))
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
-bvMinUnsigned :: NatRepr w -> BV w
-bvMinUnsigned _ = BV 0
+bvMinUnsigned :: BV w
+bvMinUnsigned = BV 0
 
 -- | The maximum unsigned value for bitvector with given width.
-bvMaxUnsigned :: NatRepr w -> BV w
-bvMaxUnsigned w = BV (bit (widthVal w) - 1)
+bvMaxUnsigned :: WidthRepr w -> BV w
+bvMaxUnsigned w = BV (widthMask w)
 
+-- FIXME: Should we pack the minimum signed and maximum signed values
+-- into the 'WidthRepr'?
 -- | The minimum value for bitvector in two's complement with given width.
-bvMinSigned :: NatRepr w -> BV w
-bvMinSigned w = BV (bit (widthVal w - 1))
+bvMinSigned :: WidthRepr w -> BV w
+bvMinSigned w = BV (bit (widthInt w - 1))
 
 -- | The maximum value for bitvector in two's complement with given width.
-bvMaxSigned :: NatRepr w -> BV w
-bvMaxSigned w = BV (bit (widthVal w - 1) - 1)
+bvMaxSigned :: WidthRepr w -> BV w
+bvMaxSigned w = BV (bit (widthInt w - 1) - 1)
 
 ----------------------------------------
 -- BitVector -> Integer functions
@@ -103,12 +105,12 @@ bvIntegerUnsigned (BV x) = x
 -- order to use the underlying 'shiftL' function. This could be
 -- problematic if the width is really huge.
 -- | Signed interpretation of a bit vector as an Integer.
-bvIntegerSigned :: NatRepr w -> BV w -> Integer
-bvIntegerSigned wRepr (BV x) =
+bvIntegerSigned :: WidthRepr w -> BV w -> Integer
+bvIntegerSigned w (BV x) =
   if testBit x (width - 1)
   then x - (1 `shiftL` width)
   else x
-  where width = widthVal wRepr
+  where width = widthInt w
 
 ----------------------------------------
 -- BV w operations (fixed width)
@@ -126,55 +128,40 @@ bvXor :: BV w -> BV w -> BV w
 bvXor (BV x) (BV y) = BV (x `xor` y)
 
 -- | Bitwise complement (flip every bit).
-bvComplement :: NatRepr w -> BV w -> BV w
-bvComplement wRepr (BV x) =
-  -- Convert to an integer, flip the bits, truncate to the appropriate
-  -- width, and convert back to a natural.
-  BV (truncBits width (complement x))
-  where width = natValue wRepr
-
-toPos :: Int -> Int
-toPos x | x < 0 = 0
-toPos x = x
+bvComplement :: WidthRepr w -> BV w -> BV w
+bvComplement w (BV x) = mkBV w (complement x)
 
 -- | Left shift by positive 'Int'.
-bvShl :: NatRepr w -> BV w -> Int -> BV w
-bvShl wRepr (BV x) shf =
-  -- Shift left by amount, then truncate.
-  BV (truncBits width (x `shiftL` toPos shf))
-  where width = natValue wRepr
+bvShl :: WidthRepr w -> BV w -> Int -> BV w
+bvShl w (BV x) shf = mkBV w (x `shiftL` shf)
 
 -- | Right arithmetic shift by positive 'Int'.
-bvAshr :: NatRepr w -> BV w -> Int -> BV w
-bvAshr wRepr bv shf =
-  -- Convert to an integer, shift right (arithmetic by default), then
-  -- convert back to a bitvector with the correct width.
-  BV (truncBits width (bvIntegerSigned wRepr bv `shiftR` toPos shf))
-  where width = natValue wRepr
+bvAshr :: WidthRepr w -> BV w -> Int -> BV w
+bvAshr w bv shf = mkBV w (bvIntegerSigned w bv `shiftR` shf)
 
 -- | Right logical shift.
 bvLshr :: BV w -> Int -> BV w
-bvLshr (BV x) shf =
+bvLshr (BV x) shf = 
   -- Shift right (logical by default since the value is positive). No
   -- need to truncate bits, since the result is guaranteed to occupy
   -- no more bits than the input.
-  BV (x `shiftR` toPos shf)
+  BV (x `shiftR` shf)
 
 -- | Bitwise rotate left.
-bvRotateL :: NatRepr w -> BV w -> Int -> BV w
-bvRotateL wRepr bv rot' = leftChunk `bvOr` rightChunk
+bvRotateL :: WidthRepr w -> BV w -> Int -> BV w
+bvRotateL w bv rot' = leftChunk `bvOr` rightChunk
   where rot = rot' `mod` width
-        leftChunk = bvShl wRepr bv rot
+        leftChunk = bvShl w bv rot
         rightChunk = bvLshr bv (width - rot)
-        width = widthVal wRepr
+        width = widthInt w
 
 -- | Bitwise rotate right.
-bvRotateR :: NatRepr w -> BV w -> Int -> BV w
-bvRotateR wRepr bv rot' = leftChunk `bvOr` rightChunk
+bvRotateR :: WidthRepr w -> BV w -> Int -> BV w
+bvRotateR w bv rot' = leftChunk `bvOr` rightChunk
   where rot = rot' `mod` width
         rightChunk = bvLshr bv rot
-        leftChunk = bvShl wRepr bv (width - rot)
-        width = widthVal wRepr
+        leftChunk = bvShl w bv (width - rot)
+        width = widthInt w
 
 -- | Test if a particular bit is set.
 bvTestBit :: BV w -> Int -> Bool
@@ -187,43 +174,38 @@ bvPopCount (BV x) = popCount x
 -- | Truncate a bit vector to a particular width given at runtime,
 -- while keeping the type-level width constant.
 bvTruncBits :: BV w -> Int -> BV w
-bvTruncBits (BV x) b = BV (truncBits b x)
+bvTruncBits (BV x) b = BV (x .&. (bit b - 1))
 
 ----------------------------------------
 -- BV w arithmetic operations (fixed width)
 
 -- | Bitwise add.
-bvAdd :: NatRepr w -> BV w -> BV w -> BV w
-bvAdd wRepr (BV x) (BV y) = BV (truncBits width (x + y))
-  where width = natValue wRepr
+bvAdd :: WidthRepr w -> BV w -> BV w -> BV w
+bvAdd w (BV x) (BV y) = mkBV w (x+y)
 
 -- | Bitwise subtract.
-bvSub :: NatRepr w -> BV w -> BV w -> BV w
-bvSub wRepr (BV x) (BV y) = BV (truncBits width (x - y))
-  where width = natValue wRepr
+bvSub :: WidthRepr w -> BV w -> BV w -> BV w
+bvSub w (BV x) (BV y) = mkBV w (x-y)
 
 -- | Bitwise multiply.
-bvMul :: NatRepr w -> BV w -> BV w -> BV w
-bvMul wRepr (BV x) (BV y) = BV (truncBits width (x * y))
-  where width = natValue wRepr
+bvMul :: WidthRepr w -> BV w -> BV w -> BV w
+bvMul w (BV x) (BV y) = mkBV w (x*y)
 
 -- | Bitwise division (unsigned). Rounds to zero.
 bvUquot :: BV w -> BV w -> BV w
 bvUquot (BV x) (BV y) = BV (x `quot` y)
 
 -- | Bitwise division (signed). Rounds to zero.
-bvSquot :: NatRepr w -> BV w -> BV w -> BV w
-bvSquot wRepr bv1 bv2 = BV (truncBits width (x `quot` y))
-  where x = bvIntegerSigned wRepr bv1
-        y = bvIntegerSigned wRepr bv2
-        width = natValue wRepr
+bvSquot :: WidthRepr w -> BV w -> BV w -> BV w
+bvSquot w bv1 bv2 = mkBV w (x `quot` y)
+  where x = bvIntegerSigned w bv1
+        y = bvIntegerSigned w bv2
 
 -- | Bitwise division (signed). Rounds to negative infinity.
-bvSdiv :: NatRepr w -> BV w -> BV w -> BV w
-bvSdiv wRepr bv1 bv2 = BV (truncBits width (x `div` y))
-  where x = bvIntegerSigned wRepr bv1
-        y = bvIntegerSigned wRepr bv2
-        width = natValue wRepr
+bvSdiv :: WidthRepr w -> BV w -> BV w -> BV w
+bvSdiv w bv1 bv2 = mkBV w (x `div` y)
+  where x = bvIntegerSigned w bv1
+        y = bvIntegerSigned w bv2
 
 -- | Bitwise remainder after division (unsigned), when rounded to
 -- zero.
@@ -231,44 +213,37 @@ bvUrem :: BV w -> BV w -> BV w
 bvUrem (BV x) (BV y) = BV (x `rem` y)
 
 -- | Bitwise remainder after division (signed), when rounded to zero.
-bvSrem :: NatRepr w -> BV w -> BV w -> BV w
-bvSrem wRepr bv1 bv2 = BV (truncBits width (x `rem` y))
-  where x = bvIntegerSigned wRepr bv1
-        y = bvIntegerSigned wRepr bv2
-        width = natValue wRepr
+bvSrem :: WidthRepr w -> BV w -> BV w -> BV w
+bvSrem w bv1 bv2 = mkBV w (x `rem` y)
+  where x = bvIntegerSigned w bv1
+        y = bvIntegerSigned w bv2
 
 -- | Bitwise remainder after division (signed), when rounded to
 -- negative infinity.
-bvSmod :: NatRepr w -> BV w -> BV w -> BV w
-bvSmod wRepr bv1 bv2 = BV (truncBits width (x `mod` y))
-  where x = bvIntegerSigned wRepr bv1
-        y = bvIntegerSigned wRepr bv2
-        width = natValue wRepr
+bvSmod :: WidthRepr w -> BV w -> BV w -> BV w
+bvSmod w bv1 bv2 = mkBV w (x `mod` y)
+  where x = bvIntegerSigned w bv1
+        y = bvIntegerSigned w bv2
 
 -- | Bitwise absolute value.
-bvAbs :: NatRepr w -> BV w -> BV w
-bvAbs wRepr bv@(BV _) = BV abs_x
-  where width = natValue wRepr
-        x     = bvIntegerSigned wRepr bv
-        abs_x = truncBits width (abs x) -- this is necessary
+bvAbs :: WidthRepr w -> BV w -> BV w
+bvAbs w bv = mkBV w (abs (bvIntegerSigned w bv))
 
 -- | Bitwise negation.
-bvNegate :: NatRepr w -> BV w -> BV w
-bvNegate wRepr (BV x) = BV (truncBits width (-x))
-  where width = fromIntegral (natValue wRepr) :: Integer
+bvNegate :: WidthRepr w -> BV w -> BV w
+bvNegate w (BV x) = mkBV w (-x)
 
 -- | Get the sign bit as a 'BV'.
-bvSignBit :: NatRepr w -> BV w -> BV w
-bvSignBit wRepr bv@(BV _) = bvLshr bv (width - 1) `bvAnd` BV 0x1
-  where width = fromIntegral (natValue wRepr)
+bvSignBit :: WidthRepr w -> BV w -> BV w
+bvSignBit w bv@(BV _) = bvLshr bv (widthInt w - 1) `bvAnd` BV 1
 
 -- | Signed less than.
-bvSlt :: NatRepr w -> BV w -> BV w -> Bool
-bvSlt wRepr bv1 bv2 = bvIntegerSigned wRepr bv1 < bvIntegerSigned wRepr bv2
+bvSlt :: WidthRepr w -> BV w -> BV w -> Bool
+bvSlt w bv1 bv2 = bvIntegerSigned w bv1 < bvIntegerSigned w bv2
 
 -- | Signed less than or equal.
-bvSle :: NatRepr w -> BV w -> BV w -> Bool
-bvSle wRepr bv1 bv2 = bv1 == bv2 || bvSlt wRepr bv1 bv2
+bvSle :: WidthRepr w -> BV w -> BV w -> Bool
+bvSle w bv1 bv2 = bv1 == bv2 || bvSlt w bv1 bv2
 
 -- | Unsigned less than.
 bvUlt :: BV w -> BV w -> Bool
@@ -290,10 +265,9 @@ bvUle bv1 bv2 = bv1 == bv2 || bvUlt bv1 bv2
 --
 -- Note that the first argument gets placed in the higher-order
 -- bits. The above example should be illustrative enough.
-bvConcat :: NatRepr w -> BV v -> BV w -> BV (v+w)
-bvConcat loWRepr (BV hi) (BV lo) =
-  BV ((hi `shiftL` loWidth) .|. lo)
-  where loWidth = fromIntegral (natValue loWRepr)
+bvConcat :: WidthRepr w -> BV v -> BV w -> BV (v+w)
+bvConcat loW (BV hi) (BV lo) =
+  BV ((hi `shiftL` widthInt loW) .|. lo)
 
 -- | Slice out a smaller bit vector from a larger one. The lowest
 -- significant bit is given explicitly as an argument of type 'Int',
@@ -305,29 +279,27 @@ bvConcat loWRepr (BV hi) (BV lo) =
 -- Note that 'bvExtract' does not do any bounds checking whatsoever;
 -- if you try and extract bits that aren't present in the input, you
 -- will get 0's.
-bvExtract :: NatRepr w'
+bvExtract :: WidthRepr w'
           -> Int
           -> BV w
           -> BV w'
-bvExtract wRepr' pos bv = mkBV wRepr' xShf
+bvExtract w' pos bv = mkBV w' xShf
   where (BV xShf) = bvLshr bv pos
 
 -- | Zero-extend a vector to one of greater length. If given an input of greater
 -- length than the output type, this performs a truncation.
-bvZext :: NatRepr w'
+bvZext :: WidthRepr w'
        -> BV w
        -> BV w'
-bvZext wRepr' (BV x) = BV (truncBits width x)
-  where width = natValue wRepr'
+bvZext w' (BV x) = mkBV w' x
 
 -- | Sign-extend a vector to one of greater length. If given an input of greater
 -- length than the output type, this performs a truncation.
-bvSext :: NatRepr w
-       -> NatRepr w'
+bvSext :: WidthRepr w
+       -> WidthRepr w'
        -> BV w
        -> BV w'
-bvSext wRepr wRepr' bv = BV (truncBits width (bvIntegerSigned wRepr bv))
-  where width = natValue wRepr'
+bvSext w w' bv = mkBV w' (bvIntegerSigned w bv)
 
 ----------------------------------------
 -- Bits
