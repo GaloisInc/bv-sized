@@ -266,9 +266,17 @@ bvSignBit wRepr bv@(BV _) = bvLshr bv (width - 1) `bvAnd` BV 0x1
 bvSlt :: NatRepr w -> BV w -> BV w -> Bool
 bvSlt wRepr bv1 bv2 = bvIntegerSigned wRepr bv1 < bvIntegerSigned wRepr bv2
 
+-- | Signed less than or equal.
+bvSle :: NatRepr w -> BV w -> BV w -> Bool
+bvSle wRepr bv1 bv2 = bv1 == bv2 || bvSlt wRepr bv1 bv2
+
 -- | Unsigned less than.
 bvUlt :: BV w -> BV w -> Bool
 bvUlt bv1 bv2 = bvIntegerUnsigned bv1 < bvIntegerUnsigned bv2
+
+-- | Unsigned less than or equal.
+bvUle :: BV w -> BV w -> Bool
+bvUle bv1 bv2 = bv1 == bv2 || bvUlt bv1 bv2
 
 ----------------------------------------
 -- Width-changing operations
