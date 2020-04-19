@@ -30,7 +30,7 @@ module Data.BitVector.Sized
     -- * Bitwise operations (width-preserving)
   , bvAnd, bvOr, bvXor
   , bvComplement
-  , bvShift, bvLshr, bvAshr, bvShl, bvRotate
+  , bvLshr, bvAshr, bvShl, bvRotateL, bvRotateR
   , bvTestBit
   , bvPopCount
   , bvTruncBits
@@ -39,7 +39,7 @@ module Data.BitVector.Sized
   , bvUquot, bvSquot, bvSdiv
   , bvUrem, bvSrem, bvSmod
   , bvAbs, bvNegate
-  , bvSignum
+  , bvSignBit
   , bvSlt, bvUlt
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.

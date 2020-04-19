@@ -48,6 +48,9 @@ instance EqF BV where
 instance Hashable (BV w) where
   hashWithSalt salt (BV i) = hashWithSalt salt i
 
+instance HashableF BV where
+  hashWithSaltF salt (BV i) = hashWithSalt salt i
+
 ----------------------------------------
 -- BitVector construction
 -- | Construct a bit vector with a particular width, where the width
@@ -71,7 +74,7 @@ bv0 = BV 0
 
 -- | The 'BitVector' that has a particular bit set, and is 0 everywhere else.
 bvBit :: (0 <= w', w' <= w) => NatRepr w -> NatRepr w' -> BV w
-bvBit w ix = mkBV w (bit (fromIntegral (intValue ix)))
+bvBit w ix = mkBV w (bit (widthVal ix))
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
 bvMinUnsigned :: NatRepr w -> BV w
@@ -105,7 +108,7 @@ bvIntegerSigned wRepr (BV x) =
   if testBit x (width - 1)
   then x - (1 `shiftL` width)
   else x
-  where width = fromIntegral (intValue wRepr)
+  where width = widthVal wRepr
 
 ----------------------------------------
 -- BV w operations (fixed width)
@@ -129,14 +132,6 @@ bvComplement wRepr (BV x) =
   -- width, and convert back to a natural.
   BV (truncBits width (complement x))
   where width = natValue wRepr
-
--- | Bitwise shift. Uses an arithmetic right shift.
-bvShift :: NatRepr w -> BV w -> Int -> BV w
-bvShift wRepr bv shf = BV (truncBits width (x `shift` shf))
-  where width = natValue wRepr
-        -- Convert the value to a signed integer so that we do an
-        -- arithmetic right shift
-        x     = bvIntegerSigned wRepr bv
 
 toPos :: Int -> Int
 toPos x | x < 0 = 0
@@ -165,13 +160,21 @@ bvLshr (BV x) shf =
   -- no more bits than the input.
   BV (x `shiftR` toPos shf)
 
--- | Bitwise rotate.
-bvRotate :: NatRepr w -> BV w -> Int -> BV w
-bvRotate wRepr bv rot' = leftChunk `bvOr` rightChunk
+-- | Bitwise rotate left.
+bvRotateL :: NatRepr w -> BV w -> Int -> BV w
+bvRotateL wRepr bv rot' = leftChunk `bvOr` rightChunk
   where rot = rot' `mod` width
-        leftChunk = bvShift wRepr bv rot
-        rightChunk = bvShift wRepr bv (rot - width)
-        width = fromIntegral (intValue wRepr)
+        leftChunk = bvShl wRepr bv rot
+        rightChunk = bvLshr bv (width - rot)
+        width = widthVal wRepr
+
+-- | Bitwise rotate right.
+bvRotateR :: NatRepr w -> BV w -> Int -> BV w
+bvRotateR wRepr bv rot' = leftChunk `bvOr` rightChunk
+  where rot = rot' `mod` width
+        rightChunk = bvLshr bv rot
+        leftChunk = bvShl wRepr bv (width - rot)
+        width = widthVal wRepr
 
 -- | Test if a particular bit is set.
 bvTestBit :: BV w -> Int -> Bool
@@ -255,8 +258,8 @@ bvNegate wRepr (BV x) = BV (truncBits width (-x))
   where width = fromIntegral (natValue wRepr) :: Integer
 
 -- | Get the sign bit as a 'BV'.
-bvSignum :: NatRepr w -> BV w -> BV w
-bvSignum wRepr bv@(BV _) = bvShift wRepr bv (1 - width) `bvAnd` BV 0x1
+bvSignBit :: NatRepr w -> BV w -> BV w
+bvSignBit wRepr bv@(BV _) = bvLshr bv (width - 1) `bvAnd` BV 0x1
   where width = fromIntegral (natValue wRepr)
 
 -- | Signed less than.
@@ -294,13 +297,12 @@ bvConcat loWRepr (BV hi) (BV lo) =
 -- Note that 'bvExtract' does not do any bounds checking whatsoever;
 -- if you try and extract bits that aren't present in the input, you
 -- will get 0's.
-bvExtract :: NatRepr w
-          -> NatRepr w'
+bvExtract :: NatRepr w'
           -> Int
           -> BV w
           -> BV w'
-bvExtract wRepr wRepr' pos bv = mkBV wRepr' xShf
-  where (BV xShf) = bvShift wRepr bv (- pos)
+bvExtract wRepr' pos bv = mkBV wRepr' xShf
+  where (BV xShf) = bvLshr bv pos
 
 -- | Zero-extend a vector to one of greater length. If given an input of greater
 -- length than the output type, this performs a truncation.

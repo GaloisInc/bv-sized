@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -21,19 +22,26 @@ instances not provided by 'BV'.
 -}
 
 module Data.BitVector.Sized.Signed
-  ( SignedBV
+  ( SignedBV(..)
   ) where
 
 import Data.BitVector.Sized
 
 import Data.Bits
+import Data.Ix
 import Data.Parameterized
 import GHC.Generics
 import GHC.TypeLits
 
 -- | Signed bit vector.
 newtype SignedBV w = SignedBV (BV w)
-  deriving (Generic, Show, Read, Eq, Ord)
+  deriving (Generic, Show, Read, Eq)
+
+instance KnownNat w => Ord (SignedBV w) where
+  SignedBV bv1 `compare` SignedBV bv2 =
+    if | bv1 == bv2             -> EQ
+       | bvSlt knownNat bv1 bv2 -> LT
+       | otherwise              -> GT
 
 liftUnary :: (BV w -> BV w)
           -> SignedBV w
@@ -50,15 +58,17 @@ liftBinaryInt :: (BV w -> Int -> BV w)
               -> SignedBV w
               -> Int
               -> SignedBV w
-liftBinaryInt op (SignedBV bv) i = SignedBV (op bv i)
+liftBinaryInt op (SignedBV bv) i = SignedBV (op bv i)  
 
 instance KnownNat w => Bits (SignedBV w) where
   (.&.)        = liftBinary bvAnd
   (.|.)        = liftBinary bvOr
   xor          = liftBinary bvXor
   complement   = liftUnary (bvComplement knownNat)
-  shift        = liftBinaryInt (bvShift knownNat)
-  rotate       = liftBinaryInt (bvRotate knownNat)
+  shiftL       = liftBinaryInt (bvShl knownNat)
+  shiftR       = liftBinaryInt (bvAshr knownNat)
+  rotateL      = liftBinaryInt (bvRotateL knownNat)
+  rotateR      = liftBinaryInt (bvRotateR knownNat)
   bitSize _    = fromIntegral (intValue (knownNat @w))
   bitSizeMaybe _ = Just (fromIntegral (intValue (knownNat @w)))
   isSigned     = const True
@@ -73,43 +83,33 @@ instance KnownNat w => Num (SignedBV w) where
   (+)         = liftBinary (bvAdd knownNat)
   (*)         = liftBinary (bvMul knownNat)
   abs         = liftUnary (bvAbs knownNat)
-  signum      = liftUnary (bvSignum knownNat)
+  signum      = liftUnary (bvSignBit knownNat)
   fromInteger = SignedBV . mkBV knownNat
   negate      = liftUnary (bvNegate knownNat)
 
+checkInt :: NatRepr w -> Int -> Int
+checkInt w i | lo <= i && i <= hi = i
+             | otherwise = error "bad argument"
+  where lo = negate (bit (widthVal w - 1))
+        hi = bit (widthVal w - 1) - 1
+
 instance KnownNat w => Enum (SignedBV w) where
-  toEnum   = SignedBV . mkBV knownNat . fromIntegral
-  fromEnum (SignedBV bv) = fromIntegral (bvIntegerUnsigned bv)
+  toEnum = SignedBV . mkBV knownNat . fromIntegral . checkInt (knownNat @w)
+  fromEnum (SignedBV bv) = fromIntegral (bvIntegerSigned (knownNat @w) bv)
 
--- instance KnownNat w => Ix (SignedBV w) where
---   range (SignedBV loBV, SignedBV hiBV) =
---     (SignedBV . mkBV knownNat) <$> [bvNatural loBV .. bvNatural hiBV]
---   index (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
---     index (bvNatural loBV, bvNatural hiBV) (bvNatural ixBV)
---   inRange (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
---     inRange (bvNatural loBV, bvNatural hiBV) (bvNatural ixBV)
+instance KnownNat w => Ix (SignedBV w) where
+  range (SignedBV loBV, SignedBV hiBV) =
+    (SignedBV . mkBV knownNat) <$>
+    [bvIntegerSigned knownNat loBV .. bvIntegerSigned knownNat hiBV]
+  index (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
+    index ( bvIntegerSigned knownNat loBV
+          , bvIntegerSigned knownNat hiBV)
+    (bvIntegerSigned knownNat ixBV)
+  inRange (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
+    inRange ( bvIntegerSigned knownNat loBV
+            , bvIntegerSigned knownNat hiBV)
+    (bvIntegerSigned knownNat ixBV)
 
--- instance KnownNat w => Bounded (BitVector w) where
---   minBound = bitVector (0 :: Integer)
---   maxBound = bitVector ((-1) :: Integer)
-
--- instance KnownNat w => Arbitrary (BitVector w) where
---   arbitrary = choose (minBound, maxBound)
-
--- instance KnownNat w => Random (BitVector w) where
---   randomR (bvLo, bvHi) gen =
---     let (x, gen') = randomR (bvNatural bvLo, bvNatural bvHi) gen
---     in (bitVector x, gen')
---   random gen =
---     let (x :: Integer, gen') = random gen
---     in (bitVector x, gen')
-
--- prettyHex :: (Integral a, PrintfArg a, Show a) => a -> Integer -> String
--- prettyHex width val = printf format val width
---   where -- numDigits = (width+3) `quot` 4
---         -- format = "0x%." ++ show numDigits ++ "x<%d>"
---         format = "0x%x<%d>"
-
--- instance Pretty (BitVector w) where
---   -- | Pretty print a bit vector (shows its width)
---   pPrint (BV wRepr x) = text $ prettyHex (natValue wRepr) x
+instance KnownNat w => Bounded (SignedBV w) where
+  minBound = SignedBV (bvMinSigned knownNat)
+  maxBound = SignedBV (bvMaxSigned knownNat)
