@@ -24,7 +24,7 @@ module Data.BitVector.Sized
     BV
     -- * Functions that create bitvectors
   , mkBV
-  , bv0, bvBit
+  , bv0, bvBit, bvBit'
   , bvMinUnsigned, bvMaxUnsigned
   , bvMinSigned, bvMaxSigned
     -- * Bitwise operations (width-preserving)

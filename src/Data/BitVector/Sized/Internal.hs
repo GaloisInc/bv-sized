@@ -72,9 +72,16 @@ mkBV w x = BV (x .&. widthMask w)
 bv0 :: BV 0
 bv0 = BV 0
 
--- | The 'BitVector' that has a particular bit set, and is 0 everywhere else.
-bvBit :: (0 <= w', w' <= w) => WidthRepr w -> WidthRepr w' -> BV w
-bvBit w ix = mkBV w (bit (widthInt ix))
+-- | The 'BitVector' that has a particular bit set, and is 0
+-- everywhere else.
+bvBit :: (0 <= w', w' <= w) => WidthRepr w' -> BV w
+bvBit ix = BV (bit (widthInt ix))
+
+-- | Like 'bvBit', but without the requirement that the index bit
+-- refers to an actual bit in the input 'BV'. If it is out of range,
+-- just silently return 0.
+bvBit' :: WidthRepr w -> Int -> BV w
+bvBit' w ix = mkBV w (bit ix)
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
 bvMinUnsigned :: BV w
