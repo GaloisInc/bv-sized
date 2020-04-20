@@ -260,6 +260,14 @@ bvUlt bv1 bv2 = bvIntegerUnsigned bv1 < bvIntegerUnsigned bv2
 bvUle :: BV w -> BV w -> Bool
 bvUle bv1 bv2 = bv1 == bv2 || bvUlt bv1 bv2
 
+-- | Unsigned minimum of two bitvectors.
+bvUmin :: BV w -> BV w -> BV w
+bvUmin (BV x) (BV y) = if x < y then BV x else BV y
+
+-- | Unsigned maximum of two bitvectors.
+bvUmax :: BV w -> BV w -> BV w
+bvUmax (BV x) (BV y) = if x < y then BV y else BV x
+
 ----------------------------------------
 -- Width-changing operations
 

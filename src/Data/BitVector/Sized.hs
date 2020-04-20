@@ -41,6 +41,7 @@ module Data.BitVector.Sized
   , bvAbs, bvNegate
   , bvSignBit
   , bvSlt, bvSle, bvUlt, bvUle
+  , bvUmin, bvUmax
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
   , bvConcat
