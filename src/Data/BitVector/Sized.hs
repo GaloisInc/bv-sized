@@ -27,6 +27,7 @@ module Data.BitVector.Sized
   , bv0, bvBit, bvBit'
   , bvMinUnsigned, bvMaxUnsigned
   , bvMinSigned, bvMaxSigned
+  , bvUnsignedClamp, bvSignedClamp
     -- * Bitwise operations (width-preserving)
   , bvAnd, bvOr, bvXor
   , bvComplement

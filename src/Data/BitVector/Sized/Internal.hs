@@ -98,6 +98,12 @@ bvMinSigned w = BV (minSigned w)
 bvMaxSigned :: 1 <= w => NatRepr w -> BV w
 bvMaxSigned w = BV (maxSigned w)
 
+bvUnsignedClamp :: NatRepr w -> Integer -> BV w
+bvUnsignedClamp w x = BV (unsignedClamp w x)
+
+bvSignedClamp :: 1 <= w => NatRepr w -> Integer -> BV w
+bvSignedClamp w x = BV (signedClamp w x)
+
 ----------------------------------------
 -- BitVector -> Integer functions
 
