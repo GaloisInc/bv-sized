@@ -67,8 +67,8 @@ instance HashableF BV where
 mkBV :: NatRepr w -> Integer -> BV w
 mkBV w x = BV (toUnsigned w x)
 
--- | The zero bitvector with width 0.
-bv0 :: BV 0
+-- | The zero bitvector of any width.
+bv0 :: BV w
 bv0 = BV 0
 
 -- | The 'BitVector' that has a particular bit set, and is 0
