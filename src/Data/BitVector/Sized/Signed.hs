@@ -33,6 +33,7 @@ import Data.Bits (Bits(..), FiniteBits(..))
 import Data.Ix
 import GHC.Generics
 import GHC.TypeLits
+import Numeric.Natural
 
 -- | Signed bit vector.
 newtype SignedBV w = SignedBV (BV w)
@@ -55,11 +56,11 @@ liftBinary :: (BV w -> BV w -> BV w)
            -> SignedBV w
 liftBinary op (SignedBV bv1) (SignedBV bv2) = SignedBV (op bv1 bv2)
 
-liftBinaryInt :: (BV w -> Int -> BV w)
+liftBinaryInt :: (BV w -> Natural -> BV w)
               -> SignedBV w
               -> Int
               -> SignedBV w
-liftBinaryInt op (SignedBV bv) i = SignedBV (op bv i)  
+liftBinaryInt op (SignedBV bv) i = SignedBV (op bv (fromIntegral i))
 
 instance KnownNat w => Bits (SignedBV w) where
   (.&.)        = liftBinary BV.and
@@ -73,14 +74,14 @@ instance KnownNat w => Bits (SignedBV w) where
   bitSize _    = widthVal (knownNat @w)
   bitSizeMaybe _ = Just (widthVal (knownNat @w))
   isSigned     = const True
-  testBit (SignedBV bv) = BV.testBit bv
+  testBit (SignedBV bv) = BV.testBit bv . fromIntegral
   bit          = SignedBV . BV.bit' knownNat
-  popCount (SignedBV bv) = BV.popCount bv
+  popCount (SignedBV bv) = fromInteger (BV.popCount bv)
 
 instance KnownNat w => FiniteBits (SignedBV w) where
   finiteBitSize _ = widthVal (knownNat @w)
 
-instance KnownNat w => Num (SignedBV w) where
+instance (KnownNat w, 1 <= w) => Num (SignedBV w) where
   (+)         = liftBinary (BV.add knownNat)
   (*)         = liftBinary (BV.mul knownNat)
   abs         = liftUnary (BV.abs knownNat)

@@ -30,6 +30,7 @@ import qualified Prelude as Prelude
 import Data.Parameterized (NatRepr)
 import GHC.Generics
 import GHC.TypeLits
+import Numeric.Natural
 import Prelude hiding (abs, or, and)
 
 ----------------------------------------
@@ -145,50 +146,50 @@ xor (BV x) (BV y) = BV (x `B.xor` y)
 complement :: NatRepr w -> BV w -> BV w
 complement w (BV x) = mkBV w (B.complement x)
 
--- | Left shift by positive 'Int'.
-shl :: NatRepr w -> BV w -> Int -> BV w
-shl w (BV x) shf = mkBV w (x `B.shiftL` shf)
+-- | Left shift by positive 'Natural'.
+shl :: NatRepr w -> BV w -> Natural -> BV w
+shl w (BV x) shf = mkBV w (x `B.shiftL` fromIntegral shf)
 
--- | Right arithmetic shift by positive 'Int'.
-ashr :: NatRepr w -> BV w -> Int -> BV w
-ashr w bv shf = mkBV w (asSigned w bv `B.shiftR` shf)
+-- | Right arithmetic shift by positive 'Natural'.
+ashr :: NatRepr w -> BV w -> Natural -> BV w
+ashr w bv shf = mkBV w (asSigned w bv `B.shiftR` fromIntegral shf)
 
 -- | Right logical shift.
-lshr :: BV w -> Int -> BV w
+lshr :: BV w -> Natural -> BV w
 lshr (BV x) shf = 
   -- Shift right (logical by default since the value is positive). No
   -- need to truncate bits, since the result is guaranteed to occupy
   -- no more bits than the input.
-  BV (x `B.shiftR` shf)
+  BV (x `B.shiftR` fromIntegral shf)
 
 -- | Bitwise rotate left.
-rotateL :: NatRepr w -> BV w -> Int -> BV w
+rotateL :: NatRepr w -> BV w -> Natural -> BV w
 rotateL w bv rot' = leftChunk `or` rightChunk
   where rot = rot' `mod` width
         leftChunk = shl w bv rot
         rightChunk = lshr bv (width - rot)
-        width = P.widthVal w
+        width = P.natValue w
 
 -- | Bitwise rotate right.
-rotateR :: NatRepr w -> BV w -> Int -> BV w
+rotateR :: NatRepr w -> BV w -> Natural -> BV w
 rotateR w bv rot' = leftChunk `or` rightChunk
   where rot = rot' `mod` width
         rightChunk = lshr bv rot
         leftChunk = shl w bv (width - rot)
-        width = P.widthVal w
+        width = P.natValue w
 
 -- | Test if a particular bit is set.
-testBit :: BV w -> Int -> Bool
-testBit (BV x) b = B.testBit x b
+testBit :: BV w -> Natural -> Bool
+testBit (BV x) b = B.testBit x (fromIntegral b)
 
 -- | Get the number of 1 bits in a 'BV'.
-popCount :: BV w -> Int
-popCount (BV x) = B.popCount x
+popCount :: BV w -> Integer
+popCount (BV x) = toInteger (B.popCount x)
 
 -- | Truncate a bit vector to a particular width given at runtime,
 -- while keeping the type-level width constant.
-truncBits :: BV w -> Int -> BV w
-truncBits (BV x) b = BV (x B..&. (B.bit b - 1))
+truncBits :: BV w -> Natural -> BV w
+truncBits (BV x) b = BV (x B..&. (B.bit (fromIntegral b) - 1))
 
 ----------------------------------------
 -- BV w arithmetic operations (fixed width)
@@ -248,8 +249,8 @@ negate :: NatRepr w -> BV w -> BV w
 negate w (BV x) = mkBV w (-x)
 
 -- | Get the sign bit as a 'BV'.
-signBit :: NatRepr w -> BV w -> BV w
-signBit w bv@(BV _) = lshr bv (P.widthVal w - 1) `and` BV 1
+signBit :: 1 <= w => NatRepr w -> BV w -> BV w
+signBit w bv@(BV _) = lshr bv (P.natValue w - 1) `and` BV 1
 
 -- | Signed less than.
 slt :: NatRepr w -> BV w -> BV w -> Bool
@@ -302,7 +303,7 @@ concat loW (BV hi) (BV lo) =
 -- if you try and extract bits that aren't present in the input, you
 -- will get 0's.
 extract :: NatRepr w'
-        -> Int
+        -> Natural
         -> BV w
         -> BV w'
 extract w' pos bv = mkBV w' xShf
