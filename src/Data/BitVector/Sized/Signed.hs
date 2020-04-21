@@ -25,10 +25,11 @@ module Data.BitVector.Sized.Signed
   ( SignedBV(..)
   ) where
 
-import Data.BitVector.Sized
+import           Data.BitVector.Sized (BV, mkBV)
+import qualified Data.BitVector.Sized as BV
 import Data.Parameterized.NatRepr
 
-import Data.Bits
+import Data.Bits (Bits(..), FiniteBits(..))
 import Data.Ix
 import GHC.Generics
 import GHC.TypeLits
@@ -39,9 +40,9 @@ newtype SignedBV w = SignedBV (BV w)
 
 instance KnownNat w => Ord (SignedBV w) where
   SignedBV bv1 `compare` SignedBV bv2 =
-    if | bv1 == bv2             -> EQ
-       | bvSlt knownNat bv1 bv2 -> LT
-       | otherwise              -> GT
+    if | bv1 == bv2              -> EQ
+       | BV.slt knownNat bv1 bv2 -> LT
+       | otherwise               -> GT
 
 liftUnary :: (BV w -> BV w)
           -> SignedBV w
@@ -61,31 +62,31 @@ liftBinaryInt :: (BV w -> Int -> BV w)
 liftBinaryInt op (SignedBV bv) i = SignedBV (op bv i)  
 
 instance KnownNat w => Bits (SignedBV w) where
-  (.&.)        = liftBinary bvAnd
-  (.|.)        = liftBinary bvOr
-  xor          = liftBinary bvXor
-  complement   = liftUnary (bvComplement knownNat)
-  shiftL       = liftBinaryInt (bvShl knownNat)
-  shiftR       = liftBinaryInt (bvAshr knownNat)
-  rotateL      = liftBinaryInt (bvRotateL knownNat)
-  rotateR      = liftBinaryInt (bvRotateR knownNat)
+  (.&.)        = liftBinary BV.and
+  (.|.)        = liftBinary BV.or
+  xor          = liftBinary BV.xor
+  complement   = liftUnary (BV.complement knownNat)
+  shiftL       = liftBinaryInt (BV.shl knownNat)
+  shiftR       = liftBinaryInt (BV.ashr knownNat)
+  rotateL      = liftBinaryInt (BV.rotateL knownNat)
+  rotateR      = liftBinaryInt (BV.rotateR knownNat)
   bitSize _    = widthVal (knownNat @w)
   bitSizeMaybe _ = Just (widthVal (knownNat @w))
   isSigned     = const True
-  testBit (SignedBV bv) = bvTestBit bv
-  bit          = SignedBV . mkBV knownNat . (bit :: Int -> Integer)
-  popCount (SignedBV bv) = bvPopCount bv
+  testBit (SignedBV bv) = BV.testBit bv
+  bit          = SignedBV . BV.bit' knownNat
+  popCount (SignedBV bv) = BV.popCount bv
 
 instance KnownNat w => FiniteBits (SignedBV w) where
   finiteBitSize _ = widthVal (knownNat @w)
 
 instance KnownNat w => Num (SignedBV w) where
-  (+)         = liftBinary (bvAdd knownNat)
-  (*)         = liftBinary (bvMul knownNat)
-  abs         = liftUnary (bvAbs knownNat)
-  signum      = liftUnary (bvSignBit knownNat)
+  (+)         = liftBinary (BV.add knownNat)
+  (*)         = liftBinary (BV.mul knownNat)
+  abs         = liftUnary (BV.abs knownNat)
+  signum      = liftUnary (BV.signBit knownNat)
   fromInteger = SignedBV . mkBV knownNat
-  negate      = liftUnary (bvNegate knownNat)
+  negate      = liftUnary (BV.negate knownNat)
 
 checkInt :: NatRepr w -> Int -> Int
 checkInt w i | lo <= i && i <= hi = i
@@ -95,21 +96,21 @@ checkInt w i | lo <= i && i <= hi = i
 
 instance KnownNat w => Enum (SignedBV w) where
   toEnum = SignedBV . mkBV knownNat . fromIntegral . checkInt (knownNat @w)
-  fromEnum (SignedBV bv) = fromIntegral (bvIntegerSigned (knownNat @w) bv)
+  fromEnum (SignedBV bv) = fromIntegral (BV.asSigned (knownNat @w) bv)
 
 instance KnownNat w => Ix (SignedBV w) where
   range (SignedBV loBV, SignedBV hiBV) =
     (SignedBV . mkBV knownNat) <$>
-    [bvIntegerSigned knownNat loBV .. bvIntegerSigned knownNat hiBV]
+    [BV.asSigned knownNat loBV .. BV.asSigned knownNat hiBV]
   index (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
-    index ( bvIntegerSigned knownNat loBV
-          , bvIntegerSigned knownNat hiBV)
-    (bvIntegerSigned knownNat ixBV)
+    index ( BV.asSigned knownNat loBV
+          , BV.asSigned knownNat hiBV)
+    (BV.asSigned knownNat ixBV)
   inRange (SignedBV loBV, SignedBV hiBV) (SignedBV ixBV) =
-    inRange ( bvIntegerSigned knownNat loBV
-            , bvIntegerSigned knownNat hiBV)
-    (bvIntegerSigned knownNat ixBV)
+    inRange ( BV.asSigned knownNat loBV
+            , BV.asSigned knownNat hiBV)
+    (BV.asSigned knownNat ixBV)
 
 instance (KnownNat w, 1 <= w) => Bounded (SignedBV w) where
-  minBound = SignedBV (bvMinSigned knownNat)
-  maxBound = SignedBV (bvMaxSigned knownNat)
+  minBound = SignedBV (BV.minSigned knownNat)
+  maxBound = SignedBV (BV.maxSigned knownNat)

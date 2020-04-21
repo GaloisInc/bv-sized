@@ -24,34 +24,34 @@ module Data.BitVector.Sized
     BV
     -- * Functions that create bitvectors
   , mkBV
-  , bv0, bvBit, bvBit'
-  , bvMinUnsigned, bvMaxUnsigned
-  , bvMinSigned, bvMaxSigned
-  , bvUnsignedClamp, bvSignedClamp
+  , zero, bit, bit'
+  , minUnsigned, maxUnsigned
+  , minSigned, maxSigned
+  , unsignedClamp, signedClamp
     -- * Bitwise operations (width-preserving)
-  , bvAnd, bvOr, bvXor
-  , bvComplement
-  , bvLshr, bvAshr, bvShl, bvRotateL, bvRotateR
-  , bvTestBit
-  , bvPopCount
-  , bvTruncBits
+  , and, or, xor
+  , complement
+  , lshr, ashr, shl, rotateL, rotateR
+  , testBit
+  , popCount
+  , truncBits
     -- * Arithmetic operations (width-preserving)
-  , bvAdd, bvSub, bvMul
-  , bvUquot, bvSquot, bvSdiv
-  , bvUrem, bvSrem, bvSmod
-  , bvAbs, bvNegate
-  , bvSignBit
-  , bvSlt, bvSle, bvUlt, bvUle
-  , bvUmin, bvUmax
+  , add, sub, mul
+  , uquot, squot, sdiv
+  , urem, srem, smod
+  , abs, negate
+  , signBit
+  , slt, sle, ult, ule
+  , umin, umax
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
-  , bvConcat
-  , bvExtract
-  , bvZext
-  , bvSext
+  , concat
+  , extract
+  , zext
+  , sext
     -- * Conversions to signed/unsigned Integer
-  , bvIntegerSigned
-  , bvIntegerUnsigned
+  , asSigned
+  , asUnsigned
     -- * parameterized-utils re-exports
   , NatRepr
   , knownNat
@@ -60,3 +60,4 @@ module Data.BitVector.Sized
 import Data.BitVector.Sized.Internal
 
 import Data.Parameterized.NatRepr (knownNat, NatRepr)
+import Prelude ()
