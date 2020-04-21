@@ -26,10 +26,10 @@ module Data.BitVector.Sized.Signed
   ) where
 
 import Data.BitVector.Sized
+import Data.Parameterized.NatRepr
 
 import Data.Bits
 import Data.Ix
-import Data.Parameterized
 import GHC.Generics
 import GHC.TypeLits
 
@@ -69,15 +69,15 @@ instance KnownNat w => Bits (SignedBV w) where
   shiftR       = liftBinaryInt (bvAshr knownNat)
   rotateL      = liftBinaryInt (bvRotateL knownNat)
   rotateR      = liftBinaryInt (bvRotateR knownNat)
-  bitSize _    = fromIntegral (intValue (knownNat @w))
-  bitSizeMaybe _ = Just (fromIntegral (intValue (knownNat @w)))
+  bitSize _    = widthVal (knownNat @w)
+  bitSizeMaybe _ = Just (widthVal (knownNat @w))
   isSigned     = const True
   testBit (SignedBV bv) = bvTestBit bv
   bit          = SignedBV . mkBV knownNat . (bit :: Int -> Integer)
   popCount (SignedBV bv) = bvPopCount bv
 
 instance KnownNat w => FiniteBits (SignedBV w) where
-  finiteBitSize _ = fromIntegral (intValue (knownNat @w))
+  finiteBitSize _ = widthVal (knownNat @w)
 
 instance KnownNat w => Num (SignedBV w) where
   (+)         = liftBinary (bvAdd knownNat)
@@ -110,6 +110,6 @@ instance KnownNat w => Ix (SignedBV w) where
             , bvIntegerSigned knownNat hiBV)
     (bvIntegerSigned knownNat ixBV)
 
-instance KnownNat w => Bounded (SignedBV w) where
+instance (KnownNat w, 1 <= w) => Bounded (SignedBV w) where
   minBound = SignedBV (bvMinSigned knownNat)
   maxBound = SignedBV (bvMaxSigned knownNat)

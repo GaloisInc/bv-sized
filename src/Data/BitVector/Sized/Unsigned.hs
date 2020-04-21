@@ -25,10 +25,10 @@ module Data.BitVector.Sized.Unsigned
   ) where
 
 import Data.BitVector.Sized.Internal
+import Data.Parameterized.NatRepr
 
 import Data.Bits
 import Data.Ix
-import Data.Parameterized
 import GHC.Generics
 import GHC.TypeLits
 
@@ -62,15 +62,15 @@ instance KnownNat w => Bits (UnsignedBV w) where
   shiftR       = liftBinaryInt bvLshr
   rotateL      = liftBinaryInt (bvRotateL knownNat)
   rotateR      = liftBinaryInt (bvRotateR knownNat)
-  bitSize _    = fromIntegral (intValue (knownNat @w))
-  bitSizeMaybe _ = Just (fromIntegral (intValue (knownNat @w)))
+  bitSize _    = widthVal (knownNat @w)
+  bitSizeMaybe _ = Just (widthVal (knownNat @w))
   isSigned     = const False
   testBit (UnsignedBV bv) = bvTestBit bv
   bit          = UnsignedBV . mkBV knownNat . (bit :: Int -> Integer)
   popCount (UnsignedBV bv) = bvPopCount bv
 
 instance KnownNat w => FiniteBits (UnsignedBV w) where
-  finiteBitSize _ = fromIntegral (intValue (knownNat @w))
+  finiteBitSize _ = widthVal (knownNat @w)
 
 instance KnownNat w => Num (UnsignedBV w) where
   (+)         = liftBinary (bvAdd knownNat)
@@ -82,9 +82,8 @@ instance KnownNat w => Num (UnsignedBV w) where
   negate      = liftUnary (bvNegate knownNat)
 
 checkInt :: NatRepr w -> Int -> Int
-checkInt w i | 0 <= i && i <= hi = i
+checkInt w i | 0 <= i && i <= fromIntegral (maxUnsigned w) = i
              | otherwise = error "bad argument"
-  where hi = bit (widthVal w) - 1
 
 instance KnownNat w => Enum (UnsignedBV w) where
   toEnum   = UnsignedBV . mkBV knownNat . fromIntegral . checkInt (knownNat @w)
@@ -104,5 +103,5 @@ instance KnownNat w => Ix (UnsignedBV w) where
     (bvIntegerUnsigned ixBV)
 
 instance KnownNat w => Bounded (UnsignedBV w) where
-  minBound = UnsignedBV (bvMinUnsigned knownNat)
+  minBound = UnsignedBV bvMinUnsigned
   maxBound = UnsignedBV (bvMaxUnsigned knownNat)
