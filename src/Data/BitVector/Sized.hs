@@ -28,10 +28,11 @@ module Data.BitVector.Sized
     BV
     -- * Functions that create bitvectors
   , mkBV, mkBVUnsafeSigned, mkBVUnsafeUnsigned
-  , zero, bit, bit'
+  , unsignedClamp, signedClamp
+  , zero, one, width
+  , bit, bit'
   , minUnsigned, maxUnsigned
   , minSigned, maxSigned
-  , unsignedClamp, signedClamp
     -- * Bitwise operations (width-preserving)
   , and, or, xor
   , complement

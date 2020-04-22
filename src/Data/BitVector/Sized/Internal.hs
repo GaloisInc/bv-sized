@@ -127,6 +127,14 @@ mkBVUnsafeUnsigned w x = BV (checkIntegerUnsigned w x)
 zero :: BV w
 zero = BV 0
 
+-- | The bitvector with value 1, of any positive width.
+one :: 1 <= w => BV w
+one = BV 1
+
+-- | The bitvector whose value is its own width, of any width.
+width :: NatRepr w -> BV w
+width w = BV (P.intValue w)
+
 -- | The 'BV' that has a particular bit set, and is 0 everywhere else.
 bit :: (0 <= ix, ix+1 <= w)
     => NatRepr w
@@ -232,10 +240,10 @@ asUnsigned (BV x) = x
 -- | Signed interpretation of a bitvector as an Integer.
 asSigned :: NatRepr w -> BV w -> Integer
 asSigned w (BV x) =
-  if B.testBit x (width - 1)
-  then x - (1 `B.shiftL` width)
+  if B.testBit x (wInt - 1)
+  then x - (1 `B.shiftL` wInt)
   else x
-  where width = naturalToInt (P.natValue w)
+  where wInt = naturalToInt (P.natValue w)
 
 ----------------------------------------
 -- BV w operations (fixed width)
@@ -275,18 +283,18 @@ lshr (BV x) shf =
 -- | Bitwise rotate left.
 rotateL :: NatRepr w -> BV w -> Natural -> BV w
 rotateL w bv rot' = leftChunk `or` rightChunk
-  where rot = rot' `mod` width
+  where rot = rot' `mod` wNatural
         leftChunk = shl w bv rot
-        rightChunk = lshr bv (width - rot)
-        width = P.natValue w
+        rightChunk = lshr bv (wNatural - rot)
+        wNatural = P.natValue w
 
 -- | Bitwise rotate right.
 rotateR :: NatRepr w -> BV w -> Natural -> BV w
 rotateR w bv rot' = leftChunk `or` rightChunk
-  where rot = rot' `mod` width
+  where rot = rot' `mod` wNatural
         rightChunk = lshr bv rot
-        leftChunk = shl w bv (width - rot)
-        width = P.natValue w
+        leftChunk = shl w bv (wNatural - rot)
+        wNatural = P.natValue w
 
 -- | Test if a particular bit is set.
 testBit :: BV w -> Natural -> Bool
