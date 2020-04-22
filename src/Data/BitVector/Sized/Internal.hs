@@ -38,7 +38,7 @@ import Prelude hiding (abs, or, and)
 naturalToInt :: Natural -> Int
 naturalToInt i = if i > fromIntegral (maxBound :: Int)
   then panic "Data.BitVector.Sized.Internal.naturalToInt"
-       ["input too large"]
+       ["input out of bounds"]
   else fromIntegral i
 
 -- | Panic if a signed 'Integer' does not fit in the required number
@@ -50,8 +50,8 @@ integerToUnsigned :: 1 <= w => NatRepr w
                   -> Integer
 integerToUnsigned w i = if i < P.minSigned w || i > P.maxSigned w
   then panic "Data.BitVector.Sized.Internal.checkIntegerSigned"
-       ["input too large"]
-  else if i < 0 then i + P.maxSigned w else i
+       ["input out of bounds"]
+  else if i < 0 then i + P.maxUnsigned w + 1 else i
 
 -- | Panic if an unsigned 'Integer' does not fit in the required
 -- number of bits, otherwise return input.
@@ -61,7 +61,7 @@ checkIntegerUnsigned :: NatRepr w
                      -> Integer
 checkIntegerUnsigned w i = if i < 0 || i > P.maxUnsigned w
   then panic "Data.BitVector.Sized.Internal.checkIntegerUnsigned"
-       ["input too large"]
+       ["input out of bounds"]
   else i
 
 ----------------------------------------
