@@ -18,7 +18,6 @@ Portability : portable
 
 This module defines a width-parameterized 'BV' type and various
 associated operations that assume a 2's complement representation.
-
 -}
 
 module Data.BitVector.Sized.Internal where
@@ -57,18 +56,17 @@ instance P.HashableF BV where
   hashWithSaltF salt (BV i) = P.hashWithSalt salt i
 
 ----------------------------------------
--- BitVector construction
--- | Construct a bit vector with a particular width, where the width
--- is provided as an explicit `NatRepr` argument. The input (an
--- unbounded data type, hence with an infinite-width bit
--- representation), whether positive or negative, is silently
--- truncated to fit into the number of bits demanded by the return
--- type.
+-- BV construction
+-- | Construct a bitvector with a particular width, where the width is
+-- provided as an explicit `NatRepr` argument. The input (an unbounded
+-- data type, hence with an infinite-width bit representation),
+-- whether positive or negative, is silently truncated to fit into the
+-- number of bits demanded by the return type.
 --
--- >>> mkBV (knownNat @4) 0xA
--- 0xa
--- >>> mkBV (knownNat @2) 0xA
--- 0x2
+-- >>> mkBV (knownNat @4) 10
+-- BV 10
+-- >>> mkBV (knownNat @2) 10
+-- BV 2
 mkBV :: NatRepr w -> Integer -> BV w
 mkBV w x = BV (P.toUnsigned w x)
 
@@ -76,16 +74,15 @@ mkBV w x = BV (P.toUnsigned w x)
 zero :: BV w
 zero = BV 0
 
--- | The 'BitVector' that has a particular bit set, and is 0
--- everywhere else.
-bit :: (0 <= w', w' <= w) => NatRepr w' -> BV w
-bit ix = BV (B.bit (P.widthVal ix))
+-- | The 'BV' that has a particular bit set, and is 0 everywhere else.
+bit :: (0 <= w', w'+1 <= w) => NatRepr w' -> BV w
+bit ix = BV (B.bit (toInt (P.natValue ix)))
 
--- | Like 'bvBit', but without the requirement that the index bit
--- refers to an actual bit in the input 'BV'. If it is out of range,
--- just silently return 0.
-bit' :: NatRepr w -> Int -> BV w
-bit' w ix = mkBV w (B.bit ix)
+-- | Like 'bit', but without the requirement that the index bit refers
+-- to an actual bit in the input 'BV'. If it is out of range, just
+-- silently return 0.
+bit' :: NatRepr w -> Natural -> BV w
+bit' w ix = mkBV w (B.bit (toInt ix))
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
 minUnsigned :: BV w
@@ -103,23 +100,27 @@ minSigned w = BV (P.minSigned w)
 maxSigned :: 1 <= w => NatRepr w -> BV w
 maxSigned w = BV (P.maxSigned w)
 
+-- | @unsignedClamp w i@ rounds @i@ to the nearest value between @0@
+-- and @2^w - 1@ (inclusive).
 unsignedClamp :: NatRepr w -> Integer -> BV w
 unsignedClamp w x = BV (P.unsignedClamp w x)
 
+-- | @signedClamp w i@ rounds @i@ to the nearest value between
+-- @-2^(w-1)@ and @2^(w-1) - 1@ (inclusive).
 signedClamp :: 1 <= w => NatRepr w -> Integer -> BV w
 signedClamp w x = BV (P.signedClamp w x)
 
 ----------------------------------------
 -- BitVector -> Integer functions
 
--- | Unsigned interpretation of a bit vector as a positive Integer.
+-- | Unsigned interpretation of a bitvector as a positive Integer.
 asUnsigned :: BV w -> Integer
 asUnsigned (BV x) = x
 
 -- FIXME: In this, and other functions, we are converting to 'Int' in
 -- order to use the underlying 'shiftL' function. This could be
 -- problematic if the width is really huge.
--- | Signed interpretation of a bit vector as an Integer.
+-- | Signed interpretation of a bitvector as an Integer.
 asSigned :: NatRepr w -> BV w -> Integer
 asSigned w (BV x) =
   if B.testBit x (width - 1)
@@ -145,13 +146,6 @@ xor (BV x) (BV y) = BV (x `B.xor` y)
 -- | Bitwise complement (flip every bit).
 complement :: NatRepr w -> BV w -> BV w
 complement w (BV x) = mkBV w (B.complement x)
-
--- | Convert an 'Integer' to an 'Int', and panic if the input takes up
--- too many bits.
-toInt :: Natural -> Int
-toInt i = if i > fromIntegral (maxBound :: Int)
-          then error "PANIC: toInt called with large Natural"
-          else fromIntegral i
 
 -- | Left shift by positive 'Natural'.
 shl :: NatRepr w -> BV w -> Natural -> BV w
@@ -193,7 +187,7 @@ testBit (BV x) b = B.testBit x (toInt b)
 popCount :: BV w -> Integer
 popCount (BV x) = toInteger (B.popCount x)
 
--- | Truncate a bit vector to a particular width given at runtime,
+-- | Truncate a bitvector to a particular width given at runtime,
 -- while keeping the type-level width constant.
 truncBits :: BV w -> Natural -> BV w
 truncBits (BV x) b = BV (x B..&. (B.bit (toInt b) - 1))
@@ -286,16 +280,20 @@ umax (BV x) (BV y) = if x < y then BV y else BV x
 ----------------------------------------
 -- Width-changing operations
 
--- | Concatenate two bit vectors.
+-- | Concatenate two bitvectors. The first argument gets placed in the
+-- higher order bits.
 --
--- >>> (0xAA :: BV 8) `bvConcat` (0xBCDEF0 :: BV 24)
--- 0xaabcdef0
+-- >>> concat knownNat (mkBV (knownNat @3) 0b001) (mkBV (knownNat @2) 0b10)
+-- BV 6
 -- >>> :type it
--- it :: BV 32
---
--- Note that the first argument gets placed in the higher-order
--- bits. The above example should be illustrative enough.
-concat :: NatRepr w -> BV v -> BV w -> BV (v+w)
+-- it :: BV 5
+concat :: NatRepr w
+       -- ^ Width of lower-order bits (for shifting purposes)
+       -> BV v
+       -- ^ Higher-order bits
+       -> BV w
+       -- ^ Lower-order bits
+       -> BV (v+w)
 concat loW (BV hi) (BV lo) =
   BV ((hi `B.shiftL` P.widthVal loW) B..|. lo)
 
