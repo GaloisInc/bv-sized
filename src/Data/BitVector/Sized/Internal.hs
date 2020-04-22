@@ -146,13 +146,20 @@ xor (BV x) (BV y) = BV (x `B.xor` y)
 complement :: NatRepr w -> BV w -> BV w
 complement w (BV x) = mkBV w (B.complement x)
 
+-- | Convert an 'Integer' to an 'Int', and panic if the input takes up
+-- too many bits.
+toInt :: Natural -> Int
+toInt i = if i > fromIntegral (maxBound :: Int)
+          then error "PANIC: toInt called with large Natural"
+          else fromIntegral i
+
 -- | Left shift by positive 'Natural'.
 shl :: NatRepr w -> BV w -> Natural -> BV w
-shl w (BV x) shf = mkBV w (x `B.shiftL` fromIntegral shf)
+shl w (BV x) shf = mkBV w (x `B.shiftL` toInt shf)
 
 -- | Right arithmetic shift by positive 'Natural'.
 ashr :: NatRepr w -> BV w -> Natural -> BV w
-ashr w bv shf = mkBV w (asSigned w bv `B.shiftR` fromIntegral shf)
+ashr w bv shf = mkBV w (asSigned w bv `B.shiftR` toInt shf)
 
 -- | Right logical shift.
 lshr :: BV w -> Natural -> BV w
@@ -160,7 +167,7 @@ lshr (BV x) shf =
   -- Shift right (logical by default since the value is positive). No
   -- need to truncate bits, since the result is guaranteed to occupy
   -- no more bits than the input.
-  BV (x `B.shiftR` fromIntegral shf)
+  BV (x `B.shiftR` toInt shf)
 
 -- | Bitwise rotate left.
 rotateL :: NatRepr w -> BV w -> Natural -> BV w
@@ -180,7 +187,7 @@ rotateR w bv rot' = leftChunk `or` rightChunk
 
 -- | Test if a particular bit is set.
 testBit :: BV w -> Natural -> Bool
-testBit (BV x) b = B.testBit x (fromIntegral b)
+testBit (BV x) b = B.testBit x (toInt b)
 
 -- | Get the number of 1 bits in a 'BV'.
 popCount :: BV w -> Integer
@@ -189,7 +196,7 @@ popCount (BV x) = toInteger (B.popCount x)
 -- | Truncate a bit vector to a particular width given at runtime,
 -- while keeping the type-level width constant.
 truncBits :: BV w -> Natural -> BV w
-truncBits (BV x) b = BV (x B..&. (B.bit (fromIntegral b) - 1))
+truncBits (BV x) b = BV (x B..&. (B.bit (toInt b) - 1))
 
 ----------------------------------------
 -- BV w arithmetic operations (fixed width)
