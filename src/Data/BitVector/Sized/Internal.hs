@@ -181,6 +181,12 @@ succUnsigned w (BV x) =
   then Nothing
   else Just (BV (x+1))
 
+succSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
+succSigned w (BV x) =
+  if x == P.maxSigned w
+  then Nothing
+  else Just (BV (x+1))
+
 ----------------------------------------
 -- BitVector -> Integer functions
 
