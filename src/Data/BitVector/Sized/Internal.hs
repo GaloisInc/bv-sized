@@ -116,7 +116,7 @@ mkBVUnsafeSigned w x = BV (integerToUnsigned w x)
 
 -- | Like 'mkBV', but panics if unsigned input integer cannot be
 -- represented in @w@ bits.
-mkBVUnsafeUnsigned :: 1 <= w => NatRepr w
+mkBVUnsafeUnsigned :: NatRepr w
                  -- ^ Desired width of bitvector
                  -> Integer
                  -- ^ Integer value
