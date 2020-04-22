@@ -13,8 +13,14 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-This module defines a width-parameterized 'BitVector' type and various associated
-operations.
+This module defines a width-parameterized 'BitVector' type and various
+associated operations. A @BV w@ is a newtype around an 'Integer', so
+operations that require the width take an explicit @NatRepr w@
+argument. We omit all typeclass instances that require compile-time
+knowledge of bitvector width, or force a signed or unsigned
+intepretation. Those instances can be recovered via the use of
+'Data.BitVector.Sized.Signed.SignedBV' or
+'Data.BitVector.Sized.Unsigned.UnsignedBV'.
 -}
 
 module Data.BitVector.Sized
@@ -41,6 +47,7 @@ module Data.BitVector.Sized
   , signBit
   , slt, sle, ult, ule
   , umin, umax
+  , smin, smax
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
   , concat

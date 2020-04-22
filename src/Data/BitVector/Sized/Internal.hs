@@ -9,15 +9,14 @@
 {-# LANGUAGE TypeOperators #-}
 
 {-|
-Module      : Data.BitVector.Sized
+Module      : Data.BitVector.Sized.Internal
 Copyright   : (c) Galois Inc. 2018
 License     : BSD-3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-This module defines a width-parameterized 'BV' type and various
-associated operations that assume a 2's complement representation.
+Internal hidden module containing all definitions for the 'BV' type.
 -}
 
 module Data.BitVector.Sized.Internal where
@@ -65,8 +64,7 @@ instance P.HashableF BV where
 ----------------------------------------
 -- BV construction
 -- | Construct a bitvector with a particular width, where the width is
--- provided as an explicit `NatRepr` argument. The input (an unbounded
--- data type, hence with an infinite-width bit representation),
+-- provided as an explicit `NatRepr` argument. The input 'Integer',
 -- whether positive or negative, is silently truncated to fit into the
 -- number of bits demanded by the return type.
 --
@@ -74,7 +72,11 @@ instance P.HashableF BV where
 -- BV 10
 -- >>> mkBV (knownNat @2) 10
 -- BV 2
-mkBV :: NatRepr w -> Integer -> BV w
+mkBV :: NatRepr w
+     -- ^ Desired width of bitvector
+     -> Integer
+     -- ^ Integer value to truncate to bitvector width
+     -> BV w
 mkBV w x = BV (P.toUnsigned w x)
 
 -- | The zero bitvector of any width.
@@ -283,6 +285,14 @@ umin (BV x) (BV y) = if x < y then BV x else BV y
 -- | Unsigned maximum of two bitvectors.
 umax :: BV w -> BV w -> BV w
 umax (BV x) (BV y) = if x < y then BV y else BV x
+
+-- | Signed minimum of two bitvectors.
+smin :: NatRepr w -> BV w -> BV w -> BV w
+smin w bv1 bv2 = if asSigned w bv1 < asSigned w bv2 then bv1 else bv2
+
+-- | Signed minimum of two bitvectors.
+smax :: NatRepr w -> BV w -> BV w -> BV w
+smax w bv1 bv2 = if asSigned w bv1 < asSigned w bv2 then bv2 else bv1
 
 ----------------------------------------
 -- Width-changing operations
