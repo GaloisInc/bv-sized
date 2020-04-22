@@ -501,3 +501,7 @@ trunc' :: NatRepr w'
       -- ^ Bitvector to truncate
       -> BV w'
 trunc' w' (BV x) = mkBV w' x
+
+-- | Wide multiply of two bitvectors.
+mulWide :: BV w -> BV v -> BV (w+v)
+mulWide (BV x) (BV y) = BV (x*y)

@@ -27,7 +27,7 @@ module Data.BitVector.Sized
   ( -- * 'BV' type
     BV
     -- * Functions that create bitvectors
-  , mkBV, mkBVUnsafeSigned, mkBVUnsafeUnsigned
+  , mkBV, mkBVUnsafeUnsigned, mkBVUnsafeSigned
   , unsignedClamp, signedClamp
   , zero, one, width
   , bit, bit'
@@ -60,6 +60,7 @@ module Data.BitVector.Sized
   , zext
   , sext
   , trunc, trunc'
+  , mulWide
     -- * Conversions to signed/unsigned Integer
   , asSigned
   , asUnsigned
