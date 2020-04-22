@@ -246,7 +246,7 @@ asSigned w (BV x) =
   where wInt = naturalToInt (P.natValue w)
 
 -- | Unsigned interpretation of a bitvector as a Natural.
-asNatural :: BV w -> Integer
+asNatural :: BV w -> Natural
 asNatural = fromIntegral . asUnsigned
 
 ----------------------------------------
