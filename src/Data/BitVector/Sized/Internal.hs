@@ -21,6 +21,8 @@ Internal hidden module containing all definitions for the 'BV' type.
 
 module Data.BitVector.Sized.Internal where
 
+import Data.BitVector.Sized.Panic (panic)
+
 import qualified Data.Bits as B
 import qualified Data.Parameterized as P
 import qualified Prelude as Prelude
@@ -35,7 +37,8 @@ import Prelude hiding (abs, or, and)
 -- too many bits.
 toInt :: Natural -> Int
 toInt i = if i > fromIntegral (maxBound :: Int)
-          then error "PANIC: toInt called with large Natural"
+          then panic "Data.BitVector.Sized.Internal.toInt"
+               ["input too large"]
           else fromIntegral i
 
 ----------------------------------------
@@ -84,13 +87,22 @@ zero :: BV w
 zero = BV 0
 
 -- | The 'BV' that has a particular bit set, and is 0 everywhere else.
-bit :: (0 <= w', w'+1 <= w) => NatRepr w' -> BV w
-bit ix = BV (B.bit (toInt (P.natValue ix)))
+bit :: (0 <= ix, ix+1 <= w)
+    => NatRepr w
+    -- ^ Desired output width
+    -> NatRepr ix
+    -- ^ Index of bit to set
+    -> BV w
+bit _ ix = BV (B.bit (toInt (P.natValue ix)))
 
 -- | Like 'bit', but without the requirement that the index bit refers
 -- to an actual bit in the input 'BV'. If it is out of range, just
 -- silently return 0.
-bit' :: NatRepr w -> Natural -> BV w
+bit' :: NatRepr w
+     -- ^ Desired output width
+     -> Natural
+     -- ^ Index of bit to set
+     -> BV w
 bit' w ix = mkBV w (B.bit (toInt ix))
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
