@@ -33,13 +33,36 @@ import GHC.TypeLits
 import Numeric.Natural
 import Prelude hiding (abs, or, and)
 
--- | Convert an 'Integer' to an 'Int', and panic if the input takes up
+-- | Convert a 'Natural' to an 'Int', and panic if the input takes up
 -- too many bits.
-toInt :: Natural -> Int
-toInt i = if i > fromIntegral (maxBound :: Int)
-          then panic "Data.BitVector.Sized.Internal.toInt"
-               ["input too large"]
-          else fromIntegral i
+naturalToInt :: Natural -> Int
+naturalToInt i = if i > fromIntegral (maxBound :: Int)
+  then panic "Data.BitVector.Sized.Internal.naturalToInt"
+       ["input too large"]
+  else fromIntegral i
+
+-- | Panic if a signed 'Integer' does not fit in the required number
+-- of bits. Returns an unsigned positive integer that fits in @w@
+-- bits.
+integerToUnsigned :: 1 <= w => NatRepr w
+                  -- ^ Width of output
+                  -> Integer
+                  -> Integer
+integerToUnsigned w i = if i < P.minSigned w || i > P.maxSigned w
+  then panic "Data.BitVector.Sized.Internal.checkIntegerSigned"
+       ["input too large"]
+  else if i < 0 then i + P.maxSigned w else i
+
+-- | Panic if an unsigned 'Integer' does not fit in the required
+-- number of bits, otherwise return input.
+checkIntegerUnsigned :: NatRepr w
+                     -- ^ Width of output
+                     -> Integer
+                     -> Integer
+checkIntegerUnsigned w i = if i < 0 || i > P.maxUnsigned w
+  then panic "Data.BitVector.Sized.Internal.checkIntegerUnsigned"
+       ["input too large"]
+  else i
 
 ----------------------------------------
 -- BitVector data type definitions
@@ -82,6 +105,24 @@ mkBV :: NatRepr w
      -> BV w
 mkBV w x = BV (P.toUnsigned w x)
 
+-- | Like 'mkBV', but panics if signed input integer cannot be
+-- represented in @w@ bits.
+mkBVUnsafeSigned :: 1 <= w => NatRepr w
+                 -- ^ Desired width of bitvector
+                 -> Integer
+                 -- ^ Integer value
+                 -> BV w
+mkBVUnsafeSigned w x = BV (integerToUnsigned w x)
+
+-- | Like 'mkBV', but panics if unsigned input integer cannot be
+-- represented in @w@ bits.
+mkBVUnsafeUnsigned :: 1 <= w => NatRepr w
+                 -- ^ Desired width of bitvector
+                 -> Integer
+                 -- ^ Integer value
+                 -> BV w
+mkBVUnsafeUnsigned w x = BV (checkIntegerUnsigned w x)
+
 -- | The zero bitvector of any width.
 zero :: BV w
 zero = BV 0
@@ -93,7 +134,7 @@ bit :: (0 <= ix, ix+1 <= w)
     -> NatRepr ix
     -- ^ Index of bit to set
     -> BV w
-bit _ ix = BV (B.bit (toInt (P.natValue ix)))
+bit _ ix = BV (B.bit (naturalToInt (P.natValue ix)))
 
 -- | Like 'bit', but without the requirement that the index bit refers
 -- to an actual bit in the input 'BV'. If it is out of range, just
@@ -103,7 +144,7 @@ bit' :: NatRepr w
      -> Natural
      -- ^ Index of bit to set
      -> BV w
-bit' w ix = mkBV w (B.bit (toInt ix))
+bit' w ix = mkBV w (B.bit (naturalToInt ix))
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
 minUnsigned :: BV w
@@ -132,22 +173,28 @@ signedClamp :: 1 <= w => NatRepr w -> Integer -> BV w
 signedClamp w x = BV (P.signedClamp w x)
 
 ----------------------------------------
+-- Enum functions
+
+succUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
+succUnsigned w (BV x) =
+  if x == P.maxUnsigned w
+  then Nothing
+  else Just (BV (x+1))
+
+----------------------------------------
 -- BitVector -> Integer functions
 
 -- | Unsigned interpretation of a bitvector as a positive Integer.
 asUnsigned :: BV w -> Integer
 asUnsigned (BV x) = x
 
--- FIXME: In this, and other functions, we are converting to 'Int' in
--- order to use the underlying 'shiftL' function. This could be
--- problematic if the width is really huge.
 -- | Signed interpretation of a bitvector as an Integer.
 asSigned :: NatRepr w -> BV w -> Integer
 asSigned w (BV x) =
   if B.testBit x (width - 1)
   then x - (1 `B.shiftL` width)
   else x
-  where width = P.widthVal w
+  where width = naturalToInt (P.natValue w)
 
 ----------------------------------------
 -- BV w operations (fixed width)
@@ -170,11 +217,11 @@ complement w (BV x) = mkBV w (B.complement x)
 
 -- | Left shift by positive 'Natural'.
 shl :: NatRepr w -> BV w -> Natural -> BV w
-shl w (BV x) shf = mkBV w (x `B.shiftL` toInt shf)
+shl w (BV x) shf = mkBV w (x `B.shiftL` naturalToInt shf)
 
 -- | Right arithmetic shift by positive 'Natural'.
 ashr :: NatRepr w -> BV w -> Natural -> BV w
-ashr w bv shf = mkBV w (asSigned w bv `B.shiftR` toInt shf)
+ashr w bv shf = mkBV w (asSigned w bv `B.shiftR` naturalToInt shf)
 
 -- | Right logical shift.
 lshr :: BV w -> Natural -> BV w
@@ -182,7 +229,7 @@ lshr (BV x) shf =
   -- Shift right (logical by default since the value is positive). No
   -- need to truncate bits, since the result is guaranteed to occupy
   -- no more bits than the input.
-  BV (x `B.shiftR` toInt shf)
+  BV (x `B.shiftR` naturalToInt shf)
 
 -- | Bitwise rotate left.
 rotateL :: NatRepr w -> BV w -> Natural -> BV w
@@ -202,16 +249,16 @@ rotateR w bv rot' = leftChunk `or` rightChunk
 
 -- | Test if a particular bit is set.
 testBit :: BV w -> Natural -> Bool
-testBit (BV x) b = B.testBit x (toInt b)
+testBit (BV x) b = B.testBit x (naturalToInt b)
 
 -- | Get the number of 1 bits in a 'BV'.
 popCount :: BV w -> Integer
-popCount (BV x) = toInteger (B.popCount x)
+popCount (BV x) = fromIntegral (B.popCount x)
 
 -- | Truncate a bitvector to a particular width given at runtime,
 -- while keeping the type-level width constant.
 truncBits :: BV w -> Natural -> BV w
-truncBits (BV x) b = BV (x B..&. (B.bit (toInt b) - 1))
+truncBits (BV x) b = BV (x B..&. (B.bit (naturalToInt b) - 1))
 
 ----------------------------------------
 -- BV w arithmetic operations (fixed width)
