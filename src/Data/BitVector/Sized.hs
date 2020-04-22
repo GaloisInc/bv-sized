@@ -13,13 +13,13 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-This module defines a width-parameterized 'BitVector' type and various
-associated operations. A @BV w@ is a newtype around an 'Integer', so
-operations that require the width take an explicit @NatRepr w@
-argument. We omit all typeclass instances that require compile-time
-knowledge of bitvector width, or force a signed or unsigned
-intepretation. Those instances can be recovered via the use of
-'Data.BitVector.Sized.Signed.SignedBV' or
+This module defines a width-parameterized 'BV' type and various
+associated operations. A @BV w@ is a newtype around an
+'Prelude.Integer', so operations that require the width take an
+explicit @NatRepr w@ argument. We omit all typeclass instances that
+require compile-time knowledge of bitvector width, or force a signed
+or unsigned intepretation. Those instances can be recovered via the
+use of 'Data.BitVector.Sized.Signed.SignedBV' or
 'Data.BitVector.Sized.Unsigned.UnsignedBV'.
 -}
 
@@ -27,7 +27,7 @@ module Data.BitVector.Sized
   ( -- * 'BV' type
     BV
     -- * Functions that create bitvectors
-  , mkBV
+  , mkBV, mkBVUnsafeSigned, mkBVUnsafeUnsigned
   , zero, bit, bit'
   , minUnsigned, maxUnsigned
   , minSigned, maxSigned
@@ -39,6 +39,10 @@ module Data.BitVector.Sized
   , testBit
   , popCount
   , truncBits
+    -- * Enum operations
+  , succUnsigned, succSigned
+  , predUnsigned, predSigned
+  , enumFromToUnsigned, enumFromToSigned
     -- * Arithmetic operations (width-preserving)
   , add, sub, mul
   , uquot, squot, sdiv

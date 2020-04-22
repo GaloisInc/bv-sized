@@ -175,17 +175,52 @@ signedClamp w x = BV (P.signedClamp w x)
 ----------------------------------------
 -- Enum functions
 
+-- | Unsigned successor. @succUnsigned maxUnsigned@ returns 'Nothing'.
 succUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
 succUnsigned w (BV x) =
   if x == P.maxUnsigned w
   then Nothing
   else Just (BV (x+1))
 
+-- | Signed successor. @succSigned maxSigned@ returns 'Nothing'.
 succSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
 succSigned w (BV x) =
   if x == P.maxSigned w
   then Nothing
   else Just (BV (x+1))
+
+-- | Unsigned predecessor. @predUnsigned zero@ returns 'Nothing'.
+predUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
+predUnsigned w (BV x) =
+  if x == P.minUnsigned w
+  then Nothing
+  else Just (BV (x-1))
+
+-- | Signed predecessor. @predSigned zero@ returns 'Nothing'.
+predSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
+predSigned w (BV x) =
+  if x == P.minSigned w
+  then Nothing
+  else Just (BV (x-1))
+
+-- | List of all unsigned bitvectors from a lower to an upper bound,
+-- inclusive.
+enumFromToUnsigned :: BV w
+                   -- ^ Lower bound
+                   -> BV w
+                   -- ^ Upper bound
+                   -> [BV w]
+enumFromToUnsigned bv1 bv2 = BV <$> [asUnsigned bv1 .. asUnsigned bv2]
+
+-- | List of all signed bitvectors from a lower to an upper bound,
+-- inclusive.
+enumFromToSigned :: 1 <= w => NatRepr w
+                 -> BV w
+                 -- ^ Lower bound
+                 -> BV w
+                 -- ^ Upper bound
+                 -> [BV w]
+enumFromToSigned w bv1 bv2 = BV <$> integerToUnsigned w <$> [asSigned w bv1 .. asSigned w bv2]
 
 ----------------------------------------
 -- BitVector -> Integer functions
