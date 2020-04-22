@@ -61,9 +61,10 @@ module Data.BitVector.Sized
   , sext
   , trunc, trunc'
   , mulWide
-    -- * Conversions to signed/unsigned Integer
+    -- * Conversions to Integer and Natural
   , asSigned
   , asUnsigned
+  , asNatural
     -- * parameterized-utils re-exports
   , NatRepr
   , knownNat
