@@ -32,6 +32,13 @@ import GHC.TypeLits
 import Numeric.Natural
 import Prelude hiding (abs, or, and)
 
+-- | Convert an 'Integer' to an 'Int', and panic if the input takes up
+-- too many bits.
+toInt :: Natural -> Int
+toInt i = if i > fromIntegral (maxBound :: Int)
+          then error "PANIC: toInt called with large Natural"
+          else fromIntegral i
+
 ----------------------------------------
 -- BitVector data type definitions
 
@@ -297,34 +304,82 @@ concat :: NatRepr w
 concat loW (BV hi) (BV lo) =
   BV ((hi `B.shiftL` P.widthVal loW) B..|. lo)
 
--- | Slice out a smaller bit vector from a larger one. The lowest
--- significant bit is given explicitly as an argument of type 'Int',
--- and the length of the slice is inferred from a type-level context.
+-- | Slice out a smaller bitvector from a larger one.
 --
--- >>> bvExtract 12 (0xAABCDEF0 :: BV 32) :: BV 8
--- 0xcd
---
--- Note that 'bvExtract' does not do any bounds checking whatsoever;
--- if you try and extract bits that aren't present in the input, you
--- will get 0's.
-extract :: NatRepr w'
-        -> Natural
+-- >>> extract (knownNat @4) (knownNat @1) (mkBV (knownNat @12) 0b110010100110)
+-- BV 3
+-- >>> :type it
+-- it :: BV 4
+extract :: ix + w' <= w
+        => NatRepr w'
+        -- ^ Desired output width
+        -> NatRepr ix
+        -- ^ Index to start extracting from
         -> BV w
+        -- ^ Bitvector to extract from
         -> BV w'
-extract w' pos bv = mkBV w' xShf
+extract w' ix bv = mkBV w' xShf
+  where (BV xShf) = lshr bv (P.natValue ix)
+
+-- | Like 'extract', but takes a 'Natural' as the index to start
+-- extracting from. Neither the index nor the output width is checked
+-- to ensure the resulting 'BV' lies entirely within the bounds of the
+-- original bitvector. Any bits "extracted" from beyond the bounds of
+-- the input bitvector will be 0.
+--
+-- >>> extract' (knownNat @4) 9 (mkBV (knownNat @12) 0b110010100110)
+-- BV 6
+-- >>> :type it
+-- it :: BV 4
+extract' :: NatRepr w'
+         -- ^ Desired output width
+         -> Natural
+         -- ^ Index to start extracting from
+         -> BV w
+         -- ^ Bitvector to extract from
+         -> BV w'
+extract' w' pos bv = mkBV w' xShf
   where (BV xShf) = lshr bv pos
 
--- | Zero-extend a vector to one of greater length. If given an input of greater
--- length than the output type, this performs a truncation.
-zext :: NatRepr w'
+-- | Zero-extend a bitvector to one of greater width.
+--
+-- >>> zext (knownNat @8) (mkBV (knownNat @4) 0b1101)
+-- BV 13
+-- >>> :type it
+-- it :: BV 8
+zext :: w <= w'
+     => NatRepr w'
+     -- ^ Desired output width
      -> BV w
+     -- ^ Bitvector to extend
      -> BV w'
-zext w' (BV x) = mkBV w' x
+zext _ (BV x) = BV x
 
--- | Sign-extend a vector to one of greater length. If given an input of greater
--- length than the output type, this performs a truncation.
-sext :: NatRepr w
+-- | Sign-extend a bitvector to one of greater width.
+sext :: w <= w'
+     => NatRepr w
+     -- ^ Width of input bitvector
      -> NatRepr w'
+     -- ^ Desired output width
      -> BV w
+     -- ^ Bitvector to extend
      -> BV w'
 sext w w' bv = mkBV w' (asSigned w bv)
+
+-- | Truncate a bitvector to one of smaller width.
+trunc :: w' <= w
+      => NatRepr w'
+      -- ^ Desired output width
+      -> BV w
+      -- ^ Bitvector to truncate
+      -> BV w'
+trunc w' (BV x) = mkBV w' x
+
+-- | Like 'trunc', but allows the input width to be greater than the
+-- output width, in which case it just performs a zero extension.
+trunc' :: NatRepr w'
+      -- ^ Desired output width
+      -> BV w
+      -- ^ Bitvector to truncate
+      -> BV w'
+trunc' w' (BV x) = mkBV w' x
