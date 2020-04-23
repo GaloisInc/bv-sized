@@ -26,6 +26,13 @@ use of 'Data.BitVector.Sized.Signed.SignedBV' or
 module Data.BitVector.Sized
   ( -- * 'BV' type
     BV
+    -- * 'NatRepr's (from parameterized-utils)
+  , NatRepr
+  , knownNat
+    -- * Conversions to Integer and Natural
+  , asSigned
+  , asUnsigned
+  , asNatural
     -- * Functions that create bitvectors
   , mkBV, mkBVUnsafeUnsigned, mkBVUnsafeSigned
   , unsignedClamp, signedClamp
@@ -61,13 +68,6 @@ module Data.BitVector.Sized
   , sext
   , trunc, trunc'
   , mulWide
-    -- * Conversions to Integer and Natural
-  , asSigned
-  , asUnsigned
-  , asNatural
-    -- * parameterized-utils re-exports
-  , NatRepr
-  , knownNat
   ) where
 
 import Data.BitVector.Sized.Internal
