@@ -463,13 +463,13 @@ extract' :: NatRepr w'
 extract' w' pos bv = mkBV w' xShf
   where (BV xShf) = lshr bv pos
 
--- | Zero-extend a bitvector to one of greater width.
+-- | Zero-extend a bitvector to one of strictly greater width.
 --
 -- >>> zext (knownNat @8) (mkBV (knownNat @4) 0b1101)
 -- BV 13
 -- >>> :type it
 -- it :: BV 8
-zext :: w <= w'
+zext :: w + 1 <= w'
      => NatRepr w'
      -- ^ Desired output width
      -> BV w
@@ -477,8 +477,8 @@ zext :: w <= w'
      -> BV w'
 zext _ (BV x) = BV x
 
--- | Sign-extend a bitvector to one of greater width.
-sext :: w <= w'
+-- | Sign-extend a bitvector to one of strictly greater width.
+sext :: w + 1 <= w'
      => NatRepr w
      -- ^ Width of input bitvector
      -> NatRepr w'
@@ -488,8 +488,8 @@ sext :: w <= w'
      -> BV w'
 sext w w' bv = mkBV w' (asSigned w bv)
 
--- | Truncate a bitvector to one of smaller width.
-trunc :: w' <= w
+-- | Truncate a bitvector to one of strictly smaller width.
+trunc :: w' + 1 <= w
       => NatRepr w'
       -- ^ Desired output width
       -> BV w
@@ -497,8 +497,9 @@ trunc :: w' <= w
       -> BV w'
 trunc w' (BV x) = mkBV w' x
 
--- | Like 'trunc', but allows the input width to be greater than the
--- output width, in which case it just performs a zero extension.
+-- | Like 'trunc', but allows the input width to be greater than or
+-- equal to the output width, in which case it just performs a zero
+-- extension.
 trunc' :: NatRepr w'
       -- ^ Desired output width
       -> BV w
