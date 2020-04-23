@@ -430,39 +430,39 @@ concat loW (BV hi) (BV lo) =
 
 -- | Slice out a smaller bitvector from a larger one.
 --
--- >>> extract (knownNat @4) (knownNat @1) (mkBV (knownNat @12) 0b110010100110)
+-- >>> select (knownNat @4) (knownNat @1) (mkBV (knownNat @12) 0b110010100110)
 -- BV 3
 -- >>> :type it
 -- it :: BV 4
-extract :: ix + w' <= w
+select :: ix + w' <= w
         => NatRepr w'
         -- ^ Desired output width
         -> NatRepr ix
-        -- ^ Index to start extracting from
+        -- ^ Index to start selecting from
         -> BV w
-        -- ^ Bitvector to extract from
+        -- ^ Bitvector to select from
         -> BV w'
-extract w' ix bv = mkBV w' xShf
+select w' ix bv = mkBV w' xShf
   where (BV xShf) = lshr bv (P.natValue ix)
 
--- | Like 'extract', but takes a 'Natural' as the index to start
--- extracting from. Neither the index nor the output width is checked
+-- | Like 'select', but takes a 'Natural' as the index to start
+-- selecting from. Neither the index nor the output width is checked
 -- to ensure the resulting 'BV' lies entirely within the bounds of the
--- original bitvector. Any bits "extracted" from beyond the bounds of
+-- original bitvector. Any bits "selected" from beyond the bounds of
 -- the input bitvector will be 0.
 --
--- >>> extract' (knownNat @4) 9 (mkBV (knownNat @12) 0b110010100110)
+-- >>> select' (knownNat @4) 9 (mkBV (knownNat @12) 0b110010100110)
 -- BV 6
 -- >>> :type it
 -- it :: BV 4
-extract' :: NatRepr w'
+select' :: NatRepr w'
          -- ^ Desired output width
          -> Natural
-         -- ^ Index to start extracting from
+         -- ^ Index to start selecting from
          -> BV w
-         -- ^ Bitvector to extract from
+         -- ^ Bitvector to select from
          -> BV w'
-extract' w' pos bv = mkBV w' xShf
+select' w' pos bv = mkBV w' xShf
   where (BV xShf) = lshr bv pos
 
 -- | Zero-extend a bitvector to one of strictly greater width.

@@ -63,7 +63,7 @@ module Data.BitVector.Sized
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
   , concat
-  , extract, extract'
+  , select, select'
   , zext
   , sext
   , trunc, trunc'
