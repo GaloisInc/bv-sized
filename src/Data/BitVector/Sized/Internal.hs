@@ -25,8 +25,10 @@ import Data.BitVector.Sized.Panic (panic)
 
 import qualified Data.Bits as B
 import qualified Data.Parameterized as P
+import qualified Numeric as N
 import qualified Prelude as Prelude
 
+import Data.Char (intToDigit)
 import Data.Parameterized (NatRepr)
 import GHC.Generics
 import GHC.TypeLits
@@ -510,3 +512,25 @@ trunc' w' (BV x) = mkBV w' x
 -- | Wide multiply of two bitvectors.
 mulWide :: BV w -> BV v -> BV (w+v)
 mulWide (BV x) (BV y) = BV (x*y)
+
+----------------------------------------
+-- Pretty printing
+
+-- | Pretty print in hex
+ppHex :: NatRepr w -> BV w -> String
+ppHex w (BV x) = "0x" ++ N.showHex x "" ++ ":" ++ ppWidth w
+
+-- | Pretty print in binary
+ppBin :: NatRepr w -> BV w -> String
+ppBin w (BV x) = "0b" ++ N.showIntAtBase 2 intToDigit x "" ++ ":" ++ ppWidth w
+
+-- | Pretty print in octal
+ppOct :: NatRepr w -> BV w -> String
+ppOct w (BV x) = "0o" ++ N.showOct x "" ++ ":" ++ ppWidth w
+
+-- | Pretty print in decimal
+ppDec :: NatRepr w -> BV w -> String
+ppDec w (BV x) = show x ++ ":" ++ ppWidth w
+
+ppWidth :: NatRepr w -> String
+ppWidth w = "[" ++ show (P.natValue w) ++ "]"

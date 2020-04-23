@@ -68,6 +68,11 @@ module Data.BitVector.Sized
   , sext
   , trunc, trunc'
   , mulWide
+    -- * Pretty printing
+  , ppHex
+  , ppBin
+  , ppOct
+  , ppDec
   ) where
 
 import Data.BitVector.Sized.Internal
