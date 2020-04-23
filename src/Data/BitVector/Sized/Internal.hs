@@ -435,14 +435,14 @@ concat loW (BV hi) (BV lo) =
 -- >>> :type it
 -- it :: BV 4
 select :: ix + w' <= w
-        => NatRepr w'
-        -- ^ Desired output width
-        -> NatRepr ix
+        => NatRepr ix
         -- ^ Index to start selecting from
+        -> NatRepr w'
+        -- ^ Desired output width
         -> BV w
         -- ^ Bitvector to select from
         -> BV w'
-select w' ix bv = mkBV w' xShf
+select ix w' bv = mkBV w' xShf
   where (BV xShf) = lshr bv (P.natValue ix)
 
 -- | Like 'select', but takes a 'Natural' as the index to start
@@ -455,15 +455,15 @@ select w' ix bv = mkBV w' xShf
 -- BV 6
 -- >>> :type it
 -- it :: BV 4
-select' :: NatRepr w'
-         -- ^ Desired output width
-         -> Natural
-         -- ^ Index to start selecting from
-         -> BV w
-         -- ^ Bitvector to select from
-         -> BV w'
-select' w' pos bv = mkBV w' xShf
-  where (BV xShf) = lshr bv pos
+select' :: Natural
+        -- ^ Index to start selecting from
+        -> NatRepr w'
+        -- ^ Desired output width
+        -> BV w
+        -- ^ Bitvector to select from
+        -> BV w'
+select' ix w' bv = mkBV w' xShf
+  where (BV xShf) = lshr bv ix
 
 -- | Zero-extend a bitvector to one of strictly greater width.
 --
