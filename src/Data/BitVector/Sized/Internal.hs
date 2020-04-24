@@ -30,6 +30,7 @@ import qualified Numeric as N
 import qualified Prelude as Prelude
 
 import Data.Char (intToDigit)
+import Data.Word
 import Data.Parameterized (NatRepr)
 import GHC.Generics
 import GHC.TypeLits
@@ -137,6 +138,22 @@ one = BV 1
 -- | The bitvector whose value is its own width, of any width.
 width :: NatRepr w -> BV w
 width w = BV (P.intValue w)
+
+-- | Construct a 'BV 8' from a 'Word 8'.
+word8 :: Word8 -> BV 8
+word8 = BV . fromIntegral
+
+-- | Construct a 'BV 16' from a 'Word 16'.
+word16 :: Word8 -> BV 16
+word16 = BV . fromIntegral
+
+-- | Construct a 'BV 32' from a 'Word 32'.
+word32 :: Word8 -> BV 32
+word32 = BV . fromIntegral
+
+-- | Construct a 'BV 64' from a 'Word 64'.
+word64 :: Word8 -> BV 64
+word64 = BV . fromIntegral
 
 -- | The 'BV' that has a particular bit set, and is 0 everywhere else.
 bit :: (0 <= ix, ix+1 <= w)

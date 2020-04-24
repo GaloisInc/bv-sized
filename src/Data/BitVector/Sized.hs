@@ -37,6 +37,7 @@ module Data.BitVector.Sized
   , mkBV, mkBVUnsafeUnsigned, mkBVUnsafeSigned
   , unsignedClamp, signedClamp
   , zero, one, width
+  , word8, word16, word32, word64
   , bit, bit'
   , minUnsigned, maxUnsigned
   , minSigned, maxSigned
