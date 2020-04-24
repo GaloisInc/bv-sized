@@ -44,7 +44,7 @@ module Data.BitVector.Sized
   , and, or, xor
   , complement
   , lshr, ashr, shl, rotateL, rotateR
-  , testBit
+  , testBit, testBit'
   , popCount
   , truncBits
     -- * Enum operations

@@ -303,8 +303,11 @@ rotateR w bv rot' = leftChunk `or` rightChunk
         wNatural = P.natValue w
 
 -- | Test if a particular bit is set.
-testBit :: BV w -> Natural -> Bool
-testBit (BV x) b = B.testBit x (naturalToInt b)
+testBit :: ix+1 <= w => BV w -> NatRepr ix -> Bool
+testBit (BV x) ix = B.testBit x (naturalToInt (P.natValue ix))
+
+testBit' :: BV w -> Natural -> Bool
+testBit' (BV x) ix = B.testBit x (naturalToInt ix)
 
 -- | Get the number of 1 bits in a 'BV'.
 popCount :: BV w -> Integer
@@ -426,7 +429,7 @@ concat :: NatRepr w
        -- ^ Lower-order bits
        -> BV (v+w)
 concat loW (BV hi) (BV lo) =
-  BV ((hi `B.shiftL` P.widthVal loW) B..|. lo)
+  BV ((hi `B.shiftL` naturalToInt (P.natValue loW)) B..|. lo)
 
 -- | Slice out a smaller bitvector from a larger one.
 --
@@ -435,13 +438,13 @@ concat loW (BV hi) (BV lo) =
 -- >>> :type it
 -- it :: BV 4
 select :: ix + w' <= w
-        => NatRepr ix
-        -- ^ Index to start selecting from
-        -> NatRepr w'
-        -- ^ Desired output width
-        -> BV w
-        -- ^ Bitvector to select from
-        -> BV w'
+       => NatRepr ix
+       -- ^ Index to start selecting from
+       -> NatRepr w'
+       -- ^ Desired output width
+       -> BV w
+       -- ^ Bitvector to select from
+       -> BV w'
 select ix w' bv = mkBV w' xShf
   where (BV xShf) = lshr bv (P.natValue ix)
 

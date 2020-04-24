@@ -74,7 +74,7 @@ instance KnownNat w => Bits (SignedBV w) where
   bitSize _    = widthVal (knownNat @w)
   bitSizeMaybe _ = Just (widthVal (knownNat @w))
   isSigned     = const True
-  testBit (SignedBV bv) = BV.testBit bv . fromIntegral
+  testBit (SignedBV bv) = BV.testBit' bv . fromIntegral
   bit          = SignedBV . BV.bit' knownNat . fromIntegral
   popCount (SignedBV bv) = fromInteger (BV.popCount bv)
 
