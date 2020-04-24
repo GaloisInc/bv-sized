@@ -155,7 +155,8 @@ word32 = BV . fromIntegral
 word64 :: Word64 -> BV 64
 word64 = BV . fromIntegral
 
--- | The 'BV' that has a particular bit set, and is 0 everywhere else.
+-- | The 'BV' that has a particular bit set, and is 0 everywhere
+-- else. Panic if index is not representable as an 'Int'.
 bit :: ix+1 <= w
     => NatRepr w
     -- ^ Desired output width
@@ -166,7 +167,7 @@ bit _ ix = BV (B.bit (naturalToInt (P.natValue ix)))
 
 -- | Like 'bit', but without the requirement that the index bit refers
 -- to an actual bit in the input 'BV'. If it is out of range, just
--- silently return 0.
+-- silently return 0. Panic if index is not representable as an 'Int'.
 bit' :: NatRepr w
      -- ^ Desired output width
      -> Natural
@@ -257,7 +258,8 @@ enumFromToSigned w bv1 bv2 = BV <$> integerToUnsigned w <$> [asSigned w bv1 .. a
 asUnsigned :: BV w -> Integer
 asUnsigned (BV x) = x
 
--- | Signed interpretation of a bitvector as an Integer.
+-- | Signed interpretation of a bitvector as an Integer. Panic if
+-- width is not representable as an 'Int'.
 asSigned :: NatRepr w -> BV w -> Integer
 asSigned w (BV x) =
   if B.testBit x (wInt - 1)
@@ -320,12 +322,14 @@ rotateR w bv rot' = leftChunk `or` rightChunk
         leftChunk = shl w bv (wNatural - rot)
         wNatural = P.natValue w
 
--- | Test if a particular bit is set.
+-- | Test if a particular bit is set. Panic if index is not
+-- representable as an 'Int'.
 testBit :: ix+1 <= w => BV w -> NatRepr ix -> Bool
 testBit (BV x) ix = B.testBit x (naturalToInt (P.natValue ix))
 
 -- | Like 'testBit', but takes a 'Natural' for the bit index. If the
--- index is out of bounds, return 'False'.
+-- index is out of bounds, return 'False'. Panic if input is not
+-- representable as an 'Int'.
 testBit' :: BV w -> Natural -> Bool
 testBit' (BV x) ix = B.testBit x (naturalToInt ix)
 
