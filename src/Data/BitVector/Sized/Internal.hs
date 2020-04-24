@@ -372,35 +372,39 @@ sub w (BV x) (BV y) = mkBV w (x-y)
 mul :: NatRepr w -> BV w -> BV w -> BV w
 mul w (BV x) (BV y) = mkBV w (x*y)
 
--- | Bitwise division (unsigned). Rounds to zero.
+-- | Bitwise division (unsigned). Rounds to zero. Division by zero
+-- yields a runtime error.
 uquot :: BV w -> BV w -> BV w
 uquot (BV x) (BV y) = BV (x `quot` y)
 
--- | Bitwise division (signed). Rounds to zero.
+-- | Bitwise division (signed). Rounds to zero. Division by zero
+-- yields a runtime error.
 squot :: NatRepr w -> BV w -> BV w -> BV w
 squot w bv1 bv2 = mkBV w (x `quot` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
--- | Bitwise division (signed). Rounds to negative infinity.
+-- | Bitwise division (signed). Rounds to negative infinity. Division
+-- by zero yields a runtime error.
 sdiv :: NatRepr w -> BV w -> BV w -> BV w
 sdiv w bv1 bv2 = mkBV w (x `div` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
 -- | Bitwise remainder after division (unsigned), when rounded to
--- zero.
+-- zero. Division by zero yields a runtime error.
 urem :: BV w -> BV w -> BV w
 urem (BV x) (BV y) = BV (x `rem` y)
 
--- | Bitwise remainder after division (signed), when rounded to zero.
+-- | Bitwise remainder after division (signed), when rounded to
+-- zero. Division by zero yields a runtime error.
 srem :: NatRepr w -> BV w -> BV w -> BV w
 srem w bv1 bv2 = mkBV w (x `rem` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
 -- | Bitwise remainder after division (signed), when rounded to
--- negative infinity.
+-- negative infinity. Division by zero yields a runtime error.
 smod :: NatRepr w -> BV w -> BV w -> BV w
 smod w bv1 bv2 = mkBV w (x `mod` y)
   where x = asSigned w bv1
