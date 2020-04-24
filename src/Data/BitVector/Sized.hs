@@ -25,7 +25,7 @@ use of 'Data.BitVector.Sized.Signed.SignedBV' or
 
 module Data.BitVector.Sized
   ( -- * 'BV' type
-    BV
+    BV, pattern BV
     -- * 'NatRepr's (from parameterized-utils)
   , NatRepr
   , knownNat
@@ -78,7 +78,14 @@ module Data.BitVector.Sized
   , ppDec
   ) where
 
-import Data.BitVector.Sized.Internal
+import Data.BitVector.Sized.Internal hiding (BV)
+import Data.BitVector.Sized.Internal (BV)
+import qualified Data.BitVector.Sized.Internal as BV
 
 import Data.Parameterized.NatRepr (knownNat, NatRepr)
-import Prelude ()
+import Prelude (Integer)
+
+-- | Get the underlying 'Integer' representation from a 'BV'. Useful
+-- for pattern matching against constants.
+pattern BV :: Integer -> BV w
+pattern BV x <- BV.BV x
