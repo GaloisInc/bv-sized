@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GADTs #-}
@@ -306,12 +307,41 @@ rotateR w bv rot' = leftChunk `or` rightChunk
 testBit :: ix+1 <= w => BV w -> NatRepr ix -> Bool
 testBit (BV x) ix = B.testBit x (naturalToInt (P.natValue ix))
 
+-- | Like 'testBit', but takes a 'Natural' for the bit index. If the
+-- index is out of bounds, return 'False'.
 testBit' :: BV w -> Natural -> Bool
 testBit' (BV x) ix = B.testBit x (naturalToInt ix)
 
 -- | Get the number of 1 bits in a 'BV'.
 popCount :: BV w -> Integer
 popCount (BV x) = fromIntegral (B.popCount x)
+
+-- | Like 'popCount', but returns a 'BV'.
+popCountBV :: BV w -> BV w
+popCountBV = BV . popCount
+
+-- | Count trailing zeros in a 'BV'.
+ctz :: NatRepr w -> BV w -> Integer
+ctz w (BV x) = go 0
+  where go !i | i < toInteger (P.natValue w) &&
+                B.testBit x (fromInteger i) == False = go (i+1)
+              | otherwise = i
+
+-- | Like 'ctz', but returns a 'BV'.
+ctzBV :: NatRepr w -> BV w -> BV w
+ctzBV w bv = BV (ctz w bv)
+
+-- | Count leading zeros in a 'BV'.
+clz :: NatRepr w -> BV w -> Integer
+clz w (BV x) = go 0
+ where go !i | i < toInteger (P.natValue w) &&
+               B.testBit x (P.widthVal w - fromInteger i - 1) == False =
+                 go (i+1)
+             | otherwise = i
+
+-- | Like 'clz', but returns a 'BV'.
+clzBV :: NatRepr w -> BV w -> BV w
+clzBV w bv = BV (clz w bv)
 
 -- | Truncate a bitvector to a particular width given at runtime,
 -- while keeping the type-level width constant.

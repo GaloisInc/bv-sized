@@ -45,12 +45,10 @@ module Data.BitVector.Sized
   , complement
   , lshr, ashr, shl, rotateL, rotateR
   , testBit, testBit'
-  , popCount
+  , popCount, popCountBV
+  , ctz, ctzBV
+  , clz, clzBV
   , truncBits
-    -- * Enum operations
-  , succUnsigned, succSigned
-  , predUnsigned, predSigned
-  , enumFromToUnsigned, enumFromToSigned
     -- * Arithmetic operations (width-preserving)
   , add, sub, mul
   , uquot, squot, sdiv
@@ -60,6 +58,10 @@ module Data.BitVector.Sized
   , slt, sle, ult, ule
   , umin, umax
   , smin, smax
+    -- * Enum operations
+  , succUnsigned, succSigned
+  , predUnsigned, predSigned
+  , enumFromToUnsigned, enumFromToSigned
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
   , concat
