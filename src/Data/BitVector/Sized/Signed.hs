@@ -26,7 +26,7 @@ module Data.BitVector.Sized.Signed
   ) where
 
 import           Data.BitVector.Sized (BV, mkBV)
-import qualified Data.BitVector.Sized as BV
+import qualified Data.BitVector.Sized.Internal as BV
 import Data.Parameterized.NatRepr
 
 import Data.Bits (Bits(..), FiniteBits(..))
@@ -76,7 +76,7 @@ instance KnownNat w => Bits (SignedBV w) where
   isSigned     = const True
   testBit (SignedBV bv) = BV.testBit' bv . fromIntegral
   bit          = SignedBV . BV.bit' knownNat . fromIntegral
-  popCount (SignedBV bv) = fromInteger (BV.popCount bv)
+  popCount (SignedBV bv) = BV.naturalToInt (BV.asNatural (BV.popCount bv))
 
 instance KnownNat w => FiniteBits (SignedBV w) where
   finiteBitSize _ = widthVal (knownNat @w)

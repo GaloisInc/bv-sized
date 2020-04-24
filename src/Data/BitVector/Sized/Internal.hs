@@ -330,35 +330,23 @@ testBit' :: BV w -> Natural -> Bool
 testBit' (BV x) ix = B.testBit x (naturalToInt ix)
 
 -- | Get the number of 1 bits in a 'BV'.
-popCount :: BV w -> Integer
-popCount (BV x) = fromIntegral (B.popCount x)
-
--- | Like 'popCount', but returns a 'BV'.
-popCountBV :: BV w -> BV w
-popCountBV = BV . popCount
+popCount :: BV w -> BV w
+popCount (BV x) = BV (fromIntegral (B.popCount x))
 
 -- | Count trailing zeros in a 'BV'.
-ctz :: NatRepr w -> BV w -> Integer
-ctz w (BV x) = go 0
+ctz :: NatRepr w -> BV w -> BV w
+ctz w (BV x) = BV (go 0)
   where go !i | i < toInteger (P.natValue w) &&
                 B.testBit x (fromInteger i) == False = go (i+1)
               | otherwise = i
 
--- | Like 'ctz', but returns a 'BV'.
-ctzBV :: NatRepr w -> BV w -> BV w
-ctzBV w bv = BV (ctz w bv)
-
 -- | Count leading zeros in a 'BV'.
-clz :: NatRepr w -> BV w -> Integer
-clz w (BV x) = go 0
+clz :: NatRepr w -> BV w -> BV w
+clz w (BV x) = BV (go 0)
  where go !i | i < toInteger (P.natValue w) &&
                B.testBit x (P.widthVal w - fromInteger i - 1) == False =
                  go (i+1)
              | otherwise = i
-
--- | Like 'clz', but returns a 'BV'.
-clzBV :: NatRepr w -> BV w -> BV w
-clzBV w bv = BV (clz w bv)
 
 -- | Truncate a bitvector to a particular width given at runtime,
 -- while keeping the type-level width constant.

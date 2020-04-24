@@ -25,7 +25,7 @@ module Data.BitVector.Sized.Unsigned
   ) where
 
 import           Data.BitVector.Sized.Internal (BV(..), mkBV)
-import qualified Data.BitVector.Sized as BV
+import qualified Data.BitVector.Sized.Internal as BV
 import Data.Parameterized.NatRepr
 
 import Data.Bits (Bits(..), FiniteBits(..))
@@ -69,7 +69,7 @@ instance KnownNat w => Bits (UnsignedBV w) where
   isSigned     = const False
   testBit (UnsignedBV bv) = BV.testBit' bv . fromIntegral
   bit          = UnsignedBV . BV.bit' knownNat . fromIntegral
-  popCount (UnsignedBV bv) = fromIntegral (BV.popCount bv)
+  popCount (UnsignedBV bv) = BV.naturalToInt (BV.asNatural (BV.popCount bv))
 
 instance KnownNat w => FiniteBits (UnsignedBV w) where
   finiteBitSize _ = widthVal (knownNat @w)

@@ -46,9 +46,8 @@ module Data.BitVector.Sized
   , complement
   , shl, lshr, ashr, rotateL, rotateR
   , testBit, testBit'
-  , popCount, popCountBV
-  , ctz, ctzBV
-  , clz, clzBV
+  , popCount
+  , ctz, clz
   , truncBits
     -- * Arithmetic operations (width-preserving)
   , add, sub, mul
