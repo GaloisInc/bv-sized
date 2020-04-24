@@ -144,15 +144,15 @@ word8 :: Word8 -> BV 8
 word8 = BV . fromIntegral
 
 -- | Construct a 'BV 16' from a 'Word 16'.
-word16 :: Word8 -> BV 16
+word16 :: Word16 -> BV 16
 word16 = BV . fromIntegral
 
 -- | Construct a 'BV 32' from a 'Word 32'.
-word32 :: Word8 -> BV 32
+word32 :: Word32 -> BV 32
 word32 = BV . fromIntegral
 
 -- | Construct a 'BV 64' from a 'Word 64'.
-word64 :: Word8 -> BV 64
+word64 :: Word64 -> BV 64
 word64 = BV . fromIntegral
 
 -- | The 'BV' that has a particular bit set, and is 0 everywhere else.
