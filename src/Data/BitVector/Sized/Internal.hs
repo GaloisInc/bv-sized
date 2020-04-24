@@ -296,7 +296,7 @@ shl w (BV x) shf = mkBV w (x `B.shiftL` naturalToInt shf)
 ashr :: NatRepr w -> BV w -> Natural -> BV w
 ashr w bv shf = mkBV w (asSigned w bv `B.shiftR` naturalToInt shf)
 
--- | Right logical shift.
+-- | Right logical shift by positive 'Natural'.
 lshr :: BV w -> Natural -> BV w
 lshr (BV x) shf = 
   -- Shift right (logical by default since the value is positive). No

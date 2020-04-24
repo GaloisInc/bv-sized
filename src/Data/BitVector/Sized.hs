@@ -44,7 +44,7 @@ module Data.BitVector.Sized
     -- * Bitwise operations (width-preserving)
   , and, or, xor
   , complement
-  , lshr, ashr, shl, rotateL, rotateR
+  , shl, lshr, ashr, rotateL, rotateR
   , testBit, testBit'
   , popCount, popCountBV
   , ctz, ctzBV
