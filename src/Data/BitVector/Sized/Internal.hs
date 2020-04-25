@@ -129,18 +129,6 @@ mkBVUnsafeUnsigned :: NatRepr w
                  -> BV w
 mkBVUnsafeUnsigned w x = BV (checkIntegerUnsigned w x)
 
--- | The zero bitvector of any width.
-zero :: BV w
-zero = BV 0
-
--- | The bitvector with value 1, of any positive width.
-one :: 1 <= w => BV w
-one = BV 1
-
--- | The bitvector whose value is its own width, of any width.
-width :: NatRepr w -> BV w
-width w = BV (P.intValue w)
-
 -- | Construct a 'BV' from a 'Word8'.
 word8 :: Word8 -> BV 8
 word8 = BV . fromIntegral
@@ -156,26 +144,6 @@ word32 = BV . fromIntegral
 -- | Construct a 'BV' from a 'Word64'.
 word64 :: Word64 -> BV 64
 word64 = BV . fromIntegral
-
--- | The 'BV' that has a particular bit set, and is 0 everywhere
--- else. Panic if index is not representable as an 'Int'.
-bit :: ix+1 <= w
-    => NatRepr w
-    -- ^ Desired output width
-    -> NatRepr ix
-    -- ^ Index of bit to set
-    -> BV w
-bit _ ix = BV (B.bit (naturalToInt (P.natValue ix)))
-
--- | Like 'bit', but without the requirement that the index bit refers
--- to an actual bit in the input 'BV'. If it is out of range, just
--- silently return 0. Panic if index is not representable as an 'Int'.
-bit' :: NatRepr w
-     -- ^ Desired output width
-     -> Natural
-     -- ^ Index of bit to set
-     -> BV w
-bit' w ix = mkBV w (B.bit (naturalToInt ix))
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
 minUnsigned :: BV w
@@ -202,56 +170,6 @@ unsignedClamp w x = BV (P.unsignedClamp w x)
 -- @-2^(w-1)@ and @2^(w-1) - 1@ (inclusive).
 signedClamp :: 1 <= w => NatRepr w -> Integer -> BV w
 signedClamp w x = BV (P.signedClamp w x)
-
-----------------------------------------
--- Enum functions
-
--- | Unsigned successor. @succUnsigned maxUnsigned@ returns 'Nothing'.
-succUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
-succUnsigned w (BV x) =
-  if x == P.maxUnsigned w
-  then Nothing
-  else Just (BV (x+1))
-
--- | Signed successor. @succSigned maxSigned@ returns 'Nothing'.
-succSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
-succSigned w (BV x) =
-  if x == P.maxSigned w
-  then Nothing
-  else Just (BV (x+1))
-
--- | Unsigned predecessor. @predUnsigned zero@ returns 'Nothing'.
-predUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
-predUnsigned w (BV x) =
-  if x == P.minUnsigned w
-  then Nothing
-  else Just (BV (x-1))
-
--- | Signed predecessor. @predSigned zero@ returns 'Nothing'.
-predSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
-predSigned w (BV x) =
-  if x == P.minSigned w
-  then Nothing
-  else Just (BV (x-1))
-
--- | List of all unsigned bitvectors from a lower to an upper bound,
--- inclusive.
-enumFromToUnsigned :: BV w
-                   -- ^ Lower bound
-                   -> BV w
-                   -- ^ Upper bound
-                   -> [BV w]
-enumFromToUnsigned bv1 bv2 = BV <$> [asUnsigned bv1 .. asUnsigned bv2]
-
--- | List of all signed bitvectors from a lower to an upper bound,
--- inclusive.
-enumFromToSigned :: 1 <= w => NatRepr w
-                 -> BV w
-                 -- ^ Lower bound
-                 -> BV w
-                 -- ^ Upper bound
-                 -> [BV w]
-enumFromToSigned w bv1 bv2 = BV <$> integerToUnsigned w <$> [asSigned w bv1 .. asSigned w bv2]
 
 ----------------------------------------
 -- BitVector -> Integer functions
@@ -324,6 +242,111 @@ rotateR w bv rot' = leftChunk `or` rightChunk
         leftChunk = shl w bv (wNatural - rot)
         wNatural = P.natValue w
 
+-- | The zero bitvector of any width.
+zero :: BV w
+zero = BV 0
+
+-- | The bitvector with value 1, of any positive width.
+one :: 1 <= w => BV w
+one = BV 1
+
+-- | The bitvector whose value is its own width, of any width.
+width :: NatRepr w -> BV w
+width w = BV (P.intValue w)
+
+-- | The 'BV' that has a particular bit set, and is 0 everywhere
+-- else. Panic if index is not representable as an 'Int'.
+bit :: ix+1 <= w
+    => NatRepr w
+    -- ^ Desired output width
+    -> NatRepr ix
+    -- ^ Index of bit to set
+    -> BV w
+bit _ ix = BV (B.bit (naturalToInt (P.natValue ix)))
+
+-- | Like 'bit', but without the requirement that the index bit refers
+-- to an actual bit in the output 'BV'. If it is out of range, just
+-- silently return the zero bitvector. Panic if index is not
+-- representable as an 'Int'.
+bit' :: NatRepr w
+     -- ^ Desired output width
+     -> Natural
+     -- ^ Index of bit to set
+     -> BV w
+bit' w ix = mkBV w (B.bit (naturalToInt ix))
+
+-- | @setBit w bv ix@ is the same as @or bv (bit w ix)@.
+setBit :: ix+1 <= w
+       => NatRepr w
+       -- ^ Desired output width
+       -> BV w
+       -- ^ Original bitvector
+       -> NatRepr ix
+       -- ^ Index of bit to set
+       -> BV w
+setBit w bv ix = or bv (bit w ix)
+
+-- | Like 'setBit', but without the requirement that the index bit
+-- refers to an actual bit in the input 'BV'. If it is out of range,
+-- just silently return the original input. Panic if index is not
+-- representable as an 'Int'.
+setBit' :: NatRepr w
+        -- ^ Desired output width
+        -> BV w
+        -- ^ Original bitvector
+        -> Natural
+        -- ^ Index of bit to set
+        -> BV w
+setBit' w bv ix = or bv (bit' w ix)
+
+-- | @clearbit w bv ix@ is the same as @and bv (complement (bit w ix))@.
+clearBit :: ix+1 <= w
+         => NatRepr w
+         -- ^ Desired output width
+         -> BV w
+         -- ^ Original bitvector
+         -> NatRepr ix
+         -- ^ Index of bit to clear
+         -> BV w
+clearBit w bv ix = and bv (complement w (bit w ix))
+
+-- | Like 'clearBit', but without the requirement that the index bit
+-- refers to an actual bit in the input 'BV'. If it is out of range,
+-- just silently return the original input. Panic if index is not
+-- representable as an 'Int'.
+clearBit' :: NatRepr w
+          -- ^ Desired output width
+          -> BV w
+          -- ^ Original bitvector
+          -> Natural
+          -- ^ Index of bit to clear
+          -> BV w
+clearBit' w bv ix = and bv (complement w (bit' w ix))
+
+-- | @complementBit w bv ix@ is the same as @xor bv (bit w ix)@.
+complementBit :: ix+1 <= w
+              => NatRepr w
+              -- ^ Desired output width
+              -> BV w
+              -- ^ Original bitvector
+              -> NatRepr ix
+              -- ^ Index of bit to flip
+              -> BV w
+complementBit w bv ix = xor bv (bit w ix)
+
+-- | Like 'complementBit', but without the requirement that the index
+-- bit refers to an actual bit in the input 'BV'. If it is out of
+-- range, just silently return the original input. Panic if index is
+-- not representable as an 'Int'.
+complementBit' :: NatRepr w
+               -- ^ Desired output width
+               -> BV w
+               -- ^ Original bitvector
+               -> Natural
+               -- ^ Index of bit to flip
+               -> BV w
+complementBit' w bv ix = xor bv (bit' w ix)
+
 -- | Test if a particular bit is set. Panic if index is not
 -- representable as an 'Int'.
 testBit :: ix+1 <= w => BV w -> NatRepr ix -> Bool
@@ -362,61 +385,61 @@ truncBits (BV x) b = BV (x B..&. (B.bit (naturalToInt b) - 1))
 ----------------------------------------
 -- BV w arithmetic operations (fixed width)
 
--- | Bitwise add.
+-- | Bitvector add.
 add :: NatRepr w -> BV w -> BV w -> BV w
 add w (BV x) (BV y) = mkBV w (x+y)
 
--- | Bitwise subtract.
+-- | Bitvector subtract.
 sub :: NatRepr w -> BV w -> BV w -> BV w
 sub w (BV x) (BV y) = mkBV w (x-y)
 
--- | Bitwise multiply.
+-- | Bitvector multiply.
 mul :: NatRepr w -> BV w -> BV w -> BV w
 mul w (BV x) (BV y) = mkBV w (x*y)
 
--- | Bitwise division (unsigned). Rounds to zero. Division by zero
+-- | Bitvector division (unsigned). Rounds to zero. Division by zero
 -- yields a runtime error.
 uquot :: BV w -> BV w -> BV w
 uquot (BV x) (BV y) = BV (x `quot` y)
 
--- | Bitwise division (signed). Rounds to zero. Division by zero
+-- | Bitvector division (signed). Rounds to zero. Division by zero
 -- yields a runtime error.
 squot :: NatRepr w -> BV w -> BV w -> BV w
 squot w bv1 bv2 = mkBV w (x `quot` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
--- | Bitwise division (signed). Rounds to negative infinity. Division
+-- | Bitvector division (signed). Rounds to negative infinity. Division
 -- by zero yields a runtime error.
 sdiv :: NatRepr w -> BV w -> BV w -> BV w
 sdiv w bv1 bv2 = mkBV w (x `div` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
--- | Bitwise remainder after division (unsigned), when rounded to
+-- | Bitvector remainder after division (unsigned), when rounded to
 -- zero. Division by zero yields a runtime error.
 urem :: BV w -> BV w -> BV w
 urem (BV x) (BV y) = BV (x `rem` y)
 
--- | Bitwise remainder after division (signed), when rounded to
+-- | Bitvector remainder after division (signed), when rounded to
 -- zero. Division by zero yields a runtime error.
 srem :: NatRepr w -> BV w -> BV w -> BV w
 srem w bv1 bv2 = mkBV w (x `rem` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
--- | Bitwise remainder after division (signed), when rounded to
+-- | Bitvector remainder after division (signed), when rounded to
 -- negative infinity. Division by zero yields a runtime error.
 smod :: NatRepr w -> BV w -> BV w -> BV w
 smod w bv1 bv2 = mkBV w (x `mod` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
--- | Bitwise absolute value.
+-- | Bitvector absolute value.
 abs :: NatRepr w -> BV w -> BV w
 abs w bv = mkBV w (Prelude.abs (asSigned w bv))
 
--- | Bitwise negation.
+-- | Bitvector negation.
 negate :: NatRepr w -> BV w -> BV w
 negate w (BV x) = mkBV w (-x)
 
@@ -560,6 +583,56 @@ trunc' w' (BV x) = mkBV w' x
 -- | Wide multiply of two bitvectors.
 mulWide :: BV w -> BV v -> BV (w+v)
 mulWide (BV x) (BV y) = BV (x*y)
+
+----------------------------------------
+-- Enum functions
+
+-- | Unsigned successor. @succUnsigned maxUnsigned@ returns 'Nothing'.
+succUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
+succUnsigned w (BV x) =
+  if x == P.maxUnsigned w
+  then Nothing
+  else Just (BV (x+1))
+
+-- | Signed successor. @succSigned maxSigned@ returns 'Nothing'.
+succSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
+succSigned w (BV x) =
+  if x == P.maxSigned w
+  then Nothing
+  else Just (BV (x+1))
+
+-- | Unsigned predecessor. @predUnsigned zero@ returns 'Nothing'.
+predUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
+predUnsigned w (BV x) =
+  if x == P.minUnsigned w
+  then Nothing
+  else Just (BV (x-1))
+
+-- | Signed predecessor. @predSigned zero@ returns 'Nothing'.
+predSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
+predSigned w (BV x) =
+  if x == P.minSigned w
+  then Nothing
+  else Just (BV (x-1))
+
+-- | List of all unsigned bitvectors from a lower to an upper bound,
+-- inclusive.
+enumFromToUnsigned :: BV w
+                   -- ^ Lower bound
+                   -> BV w
+                   -- ^ Upper bound
+                   -> [BV w]
+enumFromToUnsigned bv1 bv2 = BV <$> [asUnsigned bv1 .. asUnsigned bv2]
+
+-- | List of all signed bitvectors from a lower to an upper bound,
+-- inclusive.
+enumFromToSigned :: 1 <= w => NatRepr w
+                 -> BV w
+                 -- ^ Lower bound
+                 -> BV w
+                 -- ^ Upper bound
+                 -> [BV w]
+enumFromToSigned w bv1 bv2 = BV <$> integerToUnsigned w <$> [asSigned w bv1 .. asSigned w bv2]
 
 ----------------------------------------
 -- Pretty printing

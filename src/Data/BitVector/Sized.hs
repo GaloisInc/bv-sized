@@ -21,6 +21,9 @@ require compile-time knowledge of bitvector width, or force a signed
 or unsigned intepretation. Those instances can be recovered via the
 use of 'Data.BitVector.Sized.Signed.SignedBV' or
 'Data.BitVector.Sized.Unsigned.UnsignedBV'.
+
+This module should be imported qualified, as many of the names clash
+with those in Prelude or other base packages.
 -}
 
 module Data.BitVector.Sized
@@ -29,22 +32,26 @@ module Data.BitVector.Sized
     -- * 'NatRepr's (from parameterized-utils)
   , NatRepr
   , knownNat
+    -- * Constructors
+  , mkBV, mkBVUnsafeUnsigned, mkBVUnsafeSigned
+  , unsignedClamp, signedClamp
+  , word8, word16, word32, word64
+  , minUnsigned, maxUnsigned
+  , minSigned, maxSigned
     -- * Conversions to Integer and Natural
   , asSigned
   , asUnsigned
   , asNatural
-    -- * Functions that create bitvectors
-  , mkBV, mkBVUnsafeUnsigned, mkBVUnsafeSigned
-  , unsignedClamp, signedClamp
-  , zero, one, width
-  , word8, word16, word32, word64
-  , bit, bit'
-  , minUnsigned, maxUnsigned
-  , minSigned, maxSigned
-    -- * Bitwise operations (width-preserving)
+    -- * Bits operations (width-preserving)
+    -- | 'BV' versions of the functions in @Data.Bits@.
   , and, or, xor
   , complement
   , shl, lshr, ashr, rotateL, rotateR
+  , zero, one, width
+  , bit, bit'
+  , setBit, setBit'
+  , clearBit, clearBit'
+  , complementBit, complementBit'
   , testBit, testBit'
   , popCount
   , ctz, clz
@@ -58,10 +65,6 @@ module Data.BitVector.Sized
   , slt, sle, ult, ule
   , umin, umax
   , smin, smax
-    -- * Enum operations
-  , succUnsigned, succSigned
-  , predUnsigned, predSigned
-  , enumFromToUnsigned, enumFromToSigned
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
   , concat
@@ -70,6 +73,10 @@ module Data.BitVector.Sized
   , sext
   , trunc, trunc'
   , mulWide
+    -- * Enum operations
+  , succUnsigned, succSigned
+  , predUnsigned, predSigned
+  , enumFromToUnsigned, enumFromToSigned
     -- * Pretty printing
   , ppHex
   , ppBin
