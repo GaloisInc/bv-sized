@@ -102,6 +102,8 @@ instance P.HashableF BV where
 -- BV 10
 -- >>> mkBV (knownNat @2) 10
 -- BV 2
+-- >>> mkBV (knownNat @4) (-2)
+-- BV 14
 mkBV :: NatRepr w
      -- ^ Desired width of bitvector
      -> Integer
