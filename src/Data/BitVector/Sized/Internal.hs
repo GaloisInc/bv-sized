@@ -155,7 +155,7 @@ maxUnsigned w = BV (P.maxUnsigned w)
 
 -- | The minimum value for bitvector in two's complement with given width.
 minSigned :: 1 <= w => NatRepr w -> BV w
-minSigned w = BV (P.minSigned w)
+minSigned w = mkBV w (P.minSigned w)
 
 -- | The maximum value for bitvector in two's complement with given width.
 maxSigned :: 1 <= w => NatRepr w -> BV w
