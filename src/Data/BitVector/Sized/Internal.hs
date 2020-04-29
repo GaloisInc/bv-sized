@@ -45,37 +45,19 @@ import Numeric.Natural
 import Prelude hiding (abs, or, and, negate)
 import qualified Prelude as Prelude
 
+----------------------------------------
+-- Utility functions
+
+-- | Check that a 'NatRepr' is representable as an 'Int'.
 checkNatRepr :: NatRepr w -> a -> a
 checkNatRepr = checkNatural . natValue
 
+-- | Check that a 'Natural' is representable as an 'Int'.
 checkNatural :: Natural -> a -> a
 checkNatural n a = if n > fromIntegral (maxBound :: Int)
   then panic "Data.BitVector.Sized.Internal.checkNatural"
        [show n <> " not representable as Int"]
   else a
-
--- -- | Convert a 'Natural' to an 'Int', and panic if the input takes up
--- -- too many bits.
--- naturalToInt :: Natural -> Int
--- naturalToInt i = if i > fromIntegral (maxBound :: Int)
---   then panic "Data.BitVector.Sized.Internal.naturalToInt"
---        ["input width not representable as Int"]
---   else fromIntegral i
-
--- widthVal :: NatRepr w -> Int
--- widthVal = naturalToInt . natValue
-
--- iMaxUnsigned :: NatRepr w -> Integer
--- iMaxUnsigned w = B.bit (widthVal w) - 1
-
--- iMinUnsigned :: NatRepr w -> Integer
--- iMinUnsigned w = checkNatRepr w 0
-
--- iMaxSigned :: NatRepr w -> Integer
--- iMaxSigned w = B.bit (widthVal w - 1) - 1
-
--- iMinSigned :: NatRepr w -> Integer
--- iMinSigned w = Prelude.negate (B.bit (widthVal w - 1))
 
 ----------------------------------------
 -- BitVector data type definitions
@@ -103,14 +85,17 @@ instance HashableF BV where
 ----------------------------------------
 -- BV construction
 -- | Internal function for masking the input integer *without*
--- checking that the width is representable as an 'Int'.
+-- checking that the width is representable as an 'Int'. We use this
+-- instead of 'mkBV' whenever we already have some guarantee that the
+-- width is legal.
 mkBV' :: NatRepr w -> Integer -> BV w
 mkBV' w x = BV (P.toUnsigned w x)
 
 -- | Construct a bitvector with a particular width, where the width is
 -- provided as an explicit `NatRepr` argument. The input 'Integer',
 -- whether positive or negative, is silently truncated to fit into the
--- number of bits demanded by the return type.
+-- number of bits demanded by the return type. The width cannot be
+-- arbitrarily large; it must be representable as an 'Int'.
 --
 -- >>> mkBV (knownNat @4) 10
 -- BV 10
@@ -128,7 +113,6 @@ mkBV w x = checkNatRepr w $ mkBV' w x
 -- | Panic if an unsigned 'Integer' does not fit in the required
 -- number of bits, otherwise return input.
 checkUnsigned :: NatRepr w
-              -- ^ Width of output
               -> Integer
               -> Integer
 checkUnsigned w i = if i < 0 || i > P.maxUnsigned w
