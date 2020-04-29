@@ -84,7 +84,7 @@ module Data.BitVector.Sized
   , ppDec
   ) where
 
-import Data.BitVector.Sized.Internal hiding (BV)
+import Data.BitVector.Sized.Internal hiding (BV(..))
 import qualified Data.BitVector.Sized.Internal as BV
 
 import Data.Parameterized.NatRepr (knownNat, NatRepr)
@@ -94,3 +94,4 @@ import Prelude (Integer)
 -- for pattern matching against constants.
 pattern BV :: Integer -> BV.BV w
 pattern BV x <- BV.BV x
+{-# COMPLETE BV #-}
