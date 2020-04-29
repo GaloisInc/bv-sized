@@ -105,5 +105,5 @@ instance KnownNat w => Ix (UnsignedBV w) where
     (BV.asUnsigned ixBV)
 
 instance KnownNat w => Bounded (UnsignedBV w) where
-  minBound = UnsignedBV BV.minUnsigned
+  minBound = UnsignedBV (BV.minUnsigned knownNat)
   maxBound = UnsignedBV (BV.maxUnsigned knownNat)

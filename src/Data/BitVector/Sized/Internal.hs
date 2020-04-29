@@ -60,9 +60,9 @@ signedToUnsigned w i = if i < P.minSigned w || i > P.maxSigned w
 -- | Panic if an unsigned 'Integer' does not fit in the required
 -- number of bits, otherwise return input.
 checkUnsigned :: NatRepr w
-                     -- ^ Width of output
-                     -> Integer
-                     -> Integer
+              -- ^ Width of output
+              -> Integer
+              -> Integer
 checkUnsigned w i = if i < 0 || i > P.maxUnsigned w
   then panic "Data.BitVector.Sized.Internal.checkUnsigned"
        ["input out of bounds"]
@@ -146,8 +146,8 @@ word64 :: Word64 -> BV 64
 word64 = BV . fromIntegral
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
-minUnsigned :: BV w
-minUnsigned = BV 0
+minUnsigned :: NatRepr w -> BV w
+minUnsigned _ = BV 0
 
 -- | The maximum unsigned value for bitvector with given width.
 maxUnsigned :: NatRepr w -> BV w
