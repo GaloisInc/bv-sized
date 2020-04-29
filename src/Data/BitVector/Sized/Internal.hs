@@ -587,28 +587,28 @@ mulWide (BV x) (BV y) = BV (x*y)
 ----------------------------------------
 -- Enum functions
 
--- | Unsigned successor. @succUnsigned maxUnsigned@ returns 'Nothing'.
+-- | Unsigned successor. @succUnsigned w (maxUnsigned w)@ returns 'Nothing'.
 succUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
 succUnsigned w (BV x) =
   if x == P.maxUnsigned w
   then Nothing
   else Just (BV (x+1))
 
--- | Signed successor. @succSigned maxSigned@ returns 'Nothing'.
+-- | Signed successor. @succSigned w (maxSigned w)@ returns 'Nothing'.
 succSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
 succSigned w (BV x) =
   if x == P.maxSigned w
   then Nothing
   else Just (mkBV w (x+1))
 
--- | Unsigned predecessor. @predUnsigned zero@ returns 'Nothing'.
+-- | Unsigned predecessor. @predUnsigned w zero@ returns 'Nothing'.
 predUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
 predUnsigned w (BV x) =
   if x == P.minUnsigned w
   then Nothing
   else Just (BV (x-1))
 
--- | Signed predecessor. @predSigned zero@ returns 'Nothing'.
+-- | Signed predecessor. @predSigned w (minSigned w)@ returns 'Nothing'.
 predSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
 predSigned w bv@(BV x) =
   if bv == minSigned w
