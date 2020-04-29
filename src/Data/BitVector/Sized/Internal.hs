@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -25,48 +26,56 @@ module Data.BitVector.Sized.Internal where
 import Data.BitVector.Sized.Panic (panic)
 
 import qualified Data.Bits as B
-import qualified Data.Parameterized as P
 import qualified Numeric as N
-import qualified Prelude as Prelude
 
 import Data.Char (intToDigit)
 import Data.Word
-import Data.Parameterized (NatRepr)
+import Data.Parameterized ( NatRepr
+                          , natValue
+                          , intValue
+                          , widthVal
+                          , ShowF
+                          , EqF(..)
+                          , Hashable(..)
+                          , HashableF(..))
+import qualified Data.Parameterized.NatRepr as P
 import GHC.Generics
 import GHC.TypeLits
 import Numeric.Natural
-import Prelude hiding (abs, or, and)
+import Prelude hiding (abs, or, and, negate)
+import qualified Prelude as Prelude
 
--- | Convert a 'Natural' to an 'Int', and panic if the input takes up
--- too many bits.
-naturalToInt :: Natural -> Int
-naturalToInt i = if i > fromIntegral (maxBound :: Int)
-  then panic "Data.BitVector.Sized.Internal.naturalToInt"
-       ["input out of bounds"]
-  else fromIntegral i
+checkNatRepr :: NatRepr w -> a -> a
+checkNatRepr = checkNatural . natValue
 
--- | Panic if a signed 'Integer' does not fit in the required number
--- of bits. Returns an unsigned positive integer that fits in @w@
--- bits.
-signedToUnsigned :: 1 <= w => NatRepr w
-                  -- ^ Width of output
-                  -> Integer
-                  -> Integer
-signedToUnsigned w i = if i < P.minSigned w || i > P.maxSigned w
-  then panic "Data.BitVector.Sized.Internal.checkIntegerSigned"
-       ["input out of bounds"]
-  else if i < 0 then i + P.maxUnsigned w + 1 else i
+checkNatural :: Natural -> a -> a
+checkNatural n a = if n > fromIntegral (maxBound :: Int)
+  then panic "Data.BitVector.Sized.Internal.checkNatural"
+       [show n <> " not representable as Int"]
+  else a
 
--- | Panic if an unsigned 'Integer' does not fit in the required
--- number of bits, otherwise return input.
-checkUnsigned :: NatRepr w
-              -- ^ Width of output
-              -> Integer
-              -> Integer
-checkUnsigned w i = if i < 0 || i > P.maxUnsigned w
-  then panic "Data.BitVector.Sized.Internal.checkUnsigned"
-       ["input out of bounds"]
-  else i
+-- -- | Convert a 'Natural' to an 'Int', and panic if the input takes up
+-- -- too many bits.
+-- naturalToInt :: Natural -> Int
+-- naturalToInt i = if i > fromIntegral (maxBound :: Int)
+--   then panic "Data.BitVector.Sized.Internal.naturalToInt"
+--        ["input width not representable as Int"]
+--   else fromIntegral i
+
+-- widthVal :: NatRepr w -> Int
+-- widthVal = naturalToInt . natValue
+
+-- iMaxUnsigned :: NatRepr w -> Integer
+-- iMaxUnsigned w = B.bit (widthVal w) - 1
+
+-- iMinUnsigned :: NatRepr w -> Integer
+-- iMinUnsigned w = checkNatRepr w 0
+
+-- iMaxSigned :: NatRepr w -> Integer
+-- iMaxSigned w = B.bit (widthVal w - 1) - 1
+
+-- iMinSigned :: NatRepr w -> Integer
+-- iMinSigned w = Prelude.negate (B.bit (widthVal w - 1))
 
 ----------------------------------------
 -- BitVector data type definitions
@@ -80,19 +89,24 @@ data BV (w :: Nat) :: * where
   BV :: Integer -> BV w
   deriving (Generic, Show, Read, Eq, Ord)
 
-instance P.ShowF BV
+instance ShowF BV
 
-instance P.EqF BV where
+instance EqF BV where
   BV bv `eqF` BV bv' = bv == bv'
 
-instance P.Hashable (BV w) where
-  hashWithSalt salt (BV i) = P.hashWithSalt salt i
+instance Hashable (BV w) where
+  hashWithSalt salt (BV i) = hashWithSalt salt i
 
-instance P.HashableF BV where
-  hashWithSaltF salt (BV i) = P.hashWithSalt salt i
+instance HashableF BV where
+  hashWithSaltF salt (BV i) = hashWithSalt salt i
 
 ----------------------------------------
 -- BV construction
+-- | Internal function for masking the input integer *without*
+-- checking that the width is representable as an 'Int'.
+mkBV' :: NatRepr w -> Integer -> BV w
+mkBV' w x = BV (P.toUnsigned w x)
+
 -- | Construct a bitvector with a particular width, where the width is
 -- provided as an explicit `NatRepr` argument. The input 'Integer',
 -- whether positive or negative, is silently truncated to fit into the
@@ -109,16 +123,18 @@ mkBV :: NatRepr w
      -> Integer
      -- ^ Integer value to truncate to bitvector width
      -> BV w
-mkBV w x = BV (P.toUnsigned w x)
+mkBV w x = checkNatRepr w $ mkBV' w x
 
--- | Like 'mkBV', but panics if signed input integer cannot be
--- represented in @w@ bits.
-mkBVUnsafeSigned :: 1 <= w => NatRepr w
-                 -- ^ Desired width of bitvector
-                 -> Integer
-                 -- ^ Integer value
-                 -> BV w
-mkBVUnsafeSigned w x = BV (signedToUnsigned w x)
+-- | Panic if an unsigned 'Integer' does not fit in the required
+-- number of bits, otherwise return input.
+checkUnsigned :: NatRepr w
+              -- ^ Width of output
+              -> Integer
+              -> Integer
+checkUnsigned w i = if i < 0 || i > P.maxUnsigned w
+  then panic "Data.BitVector.Sized.Internal.checkUnsigned"
+       ["input out of bounds"]
+  else i
 
 -- | Like 'mkBV', but panics if unsigned input integer cannot be
 -- represented in @w@ bits.
@@ -127,7 +143,28 @@ mkBVUnsafeUnsigned :: NatRepr w
                  -> Integer
                  -- ^ Integer value
                  -> BV w
-mkBVUnsafeUnsigned w x = BV (checkUnsigned w x)
+mkBVUnsafeUnsigned w x = checkNatRepr w $ BV (checkUnsigned w x)
+
+-- | Panic if a signed 'Integer' does not fit in the required number
+-- of bits. Returns an unsigned positive integer that fits in @w@
+-- bits.
+signedToUnsigned :: 1 <= w => NatRepr w
+                 -- ^ Width of output
+                 -> Integer
+                 -> Integer
+signedToUnsigned w i = if i < P.minSigned w || i > P.maxSigned w
+  then panic "Data.BitVector.Sized.Internal.checkIntegerSigned"
+       ["input out of bounds"]
+  else if i < 0 then i + P.maxUnsigned w + 1 else i
+
+-- | Like 'mkBV', but panics if signed input integer cannot be
+-- represented in @w@ bits.
+mkBVUnsafeSigned :: 1 <= w => NatRepr w
+                 -- ^ Desired width of bitvector
+                 -> Integer
+                 -- ^ Integer value
+                 -> BV w
+mkBVUnsafeSigned w x = checkNatRepr w $ BV (signedToUnsigned w x)
 
 -- | Construct a 'BV' from a 'Word8'.
 word8 :: Word8 -> BV 8
@@ -147,11 +184,11 @@ word64 = BV . fromIntegral
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
 minUnsigned :: NatRepr w -> BV w
-minUnsigned _ = BV 0
+minUnsigned w = checkNatRepr w $ BV 0
 
 -- | The maximum unsigned value for bitvector with given width.
 maxUnsigned :: NatRepr w -> BV w
-maxUnsigned w = BV (P.maxUnsigned w)
+maxUnsigned w = checkNatRepr w $ BV (P.maxUnsigned w)
 
 -- | The minimum value for bitvector in two's complement with given width.
 minSigned :: 1 <= w => NatRepr w -> BV w
@@ -159,17 +196,23 @@ minSigned w = mkBV w (P.minSigned w)
 
 -- | The maximum value for bitvector in two's complement with given width.
 maxSigned :: 1 <= w => NatRepr w -> BV w
-maxSigned w = BV (P.maxSigned w)
+maxSigned w = checkNatRepr w $ BV (P.maxSigned w)
 
 -- | @unsignedClamp w i@ rounds @i@ to the nearest value between @0@
 -- and @2^w - 1@ (inclusive).
 unsignedClamp :: NatRepr w -> Integer -> BV w
-unsignedClamp w x = BV (P.unsignedClamp w x)
+unsignedClamp w x = checkNatRepr w $
+  if | x < P.minUnsigned w -> BV (P.minUnsigned w)
+     | x > P.maxUnsigned w -> BV (P.maxUnsigned w)
+     | otherwise -> BV x
 
 -- | @signedClamp w i@ rounds @i@ to the nearest value between
 -- @-2^(w-1)@ and @2^(w-1) - 1@ (inclusive).
 signedClamp :: 1 <= w => NatRepr w -> Integer -> BV w
-signedClamp w x = BV (P.signedClamp w x)
+signedClamp w x = checkNatRepr w $
+  if | x < P.minSigned w -> BV (P.minSigned w)
+     | x > P.maxSigned w -> BV (P.maxSigned w)
+     | otherwise -> BV x
 
 ----------------------------------------
 -- BitVector -> Integer functions
@@ -185,7 +228,7 @@ asSigned w (BV x) =
   if B.testBit x (wInt - 1)
   then x - (1 `B.shiftL` wInt)
   else x
-  where wInt = naturalToInt (P.natValue w)
+  where wInt = widthVal w
 
 -- | Unsigned interpretation of a bitvector as a Natural.
 asNatural :: BV w -> Natural
@@ -208,23 +251,25 @@ xor (BV x) (BV y) = BV (x `B.xor` y)
 
 -- | Bitwise complement (flip every bit).
 complement :: NatRepr w -> BV w -> BV w
-complement w (BV x) = mkBV w (B.complement x)
+complement w (BV x) = mkBV' w (B.complement x)
 
 -- | Left shift by positive 'Natural'.
 shl :: NatRepr w -> BV w -> Natural -> BV w
-shl w (BV x) shf = mkBV w (x `B.shiftL` naturalToInt shf)
+shl w (BV x) shf = checkNatural shf $
+  mkBV' w (x `B.shiftL` fromIntegral shf)
 
 -- | Right arithmetic shift by positive 'Natural'.
 ashr :: NatRepr w -> BV w -> Natural -> BV w
-ashr w bv shf = mkBV w (asSigned w bv `B.shiftR` naturalToInt shf)
+ashr w bv shf = checkNatural shf $
+  mkBV' w (asSigned w bv `B.shiftR` fromIntegral shf)
 
 -- | Right logical shift by positive 'Natural'.
 lshr :: BV w -> Natural -> BV w
-lshr (BV x) shf = 
+lshr (BV x) shf = checkNatural shf $
   -- Shift right (logical by default since the value is positive). No
   -- need to truncate bits, since the result is guaranteed to occupy
   -- no more bits than the input.
-  BV (x `B.shiftR` naturalToInt shf)
+  BV (x `B.shiftR` fromIntegral shf)
 
 -- | Bitwise rotate left.
 rotateL :: NatRepr w -> BV w -> Natural -> BV w
@@ -232,7 +277,7 @@ rotateL w bv rot' = leftChunk `or` rightChunk
   where rot = rot' `mod` wNatural
         leftChunk = shl w bv rot
         rightChunk = lshr bv (wNatural - rot)
-        wNatural = P.natValue w
+        wNatural = natValue w
 
 -- | Bitwise rotate right.
 rotateR :: NatRepr w -> BV w -> Natural -> BV w
@@ -240,99 +285,96 @@ rotateR w bv rot' = leftChunk `or` rightChunk
   where rot = rot' `mod` wNatural
         rightChunk = lshr bv rot
         leftChunk = shl w bv (wNatural - rot)
-        wNatural = P.natValue w
+        wNatural = natValue w
 
 -- | The zero bitvector of any width.
 zero :: NatRepr w -> BV w
-zero _ = BV 0
+zero w = checkNatRepr w $ BV 0
 
 -- | The bitvector with value 1, of any positive width.
 one :: 1 <= w => NatRepr w -> BV w
-one _ = BV 1
+one w = checkNatRepr w $ BV 1
 
 -- | The bitvector whose value is its own width, of any width.
 width :: NatRepr w -> BV w
-width w = BV (P.intValue w)
+width w = checkNatRepr w $ BV (intValue w)
 
 -- | The 'BV' that has a particular bit set, and is 0 everywhere
--- else. Panic if index is not representable as an 'Int'.
+-- else.
 bit :: ix+1 <= w
     => NatRepr w
     -- ^ Desired output width
     -> NatRepr ix
     -- ^ Index of bit to set
     -> BV w
-bit _ ix = BV (B.bit (naturalToInt (P.natValue ix)))
+bit w ix = checkNatRepr w $ BV (B.bit (widthVal ix))
 
 -- | Like 'bit', but without the requirement that the index bit refers
 -- to an actual bit in the output 'BV'. If it is out of range, just
--- silently return the zero bitvector. Panic if index is not
--- representable as an 'Int'.
+-- silently return the zero bitvector.
 bit' :: NatRepr w
      -- ^ Desired output width
      -> Natural
      -- ^ Index of bit to set
      -> BV w
-bit' w ix = mkBV w (B.bit (naturalToInt ix))
+bit' w ix = mkBV w (B.bit (fromIntegral ix))
 
 -- | @setBit w bv ix@ is the same as @or bv (bit w ix)@.
 setBit :: ix+1 <= w
        => NatRepr w
        -- ^ Desired output width
-       -> BV w
-       -- ^ Original bitvector
        -> NatRepr ix
        -- ^ Index of bit to set
        -> BV w
-setBit w bv ix = or bv (bit w ix)
+       -- ^ Original bitvector
+       -> BV w
+setBit w ix bv = or bv (bit w ix)
 
 -- | Like 'setBit', but without the requirement that the index bit
 -- refers to an actual bit in the input 'BV'. If it is out of range,
--- just silently return the original input. Panic if index is not
--- representable as an 'Int'.
+-- just silently return the original input.
 setBit' :: NatRepr w
         -- ^ Desired output width
-        -> BV w
-        -- ^ Original bitvector
         -> Natural
         -- ^ Index of bit to set
         -> BV w
-setBit' w bv ix = or bv (bit' w ix)
+        -- ^ Original bitvector
+        -> BV w
+setBit' w ix bv = or bv (bit' w ix)
 
--- | @clearbit w bv ix@ is the same as @and bv (complement (bit w ix))@.
+-- | @clearBit w bv ix@ is the same as @and bv (complement (bit w ix))@.
 clearBit :: ix+1 <= w
          => NatRepr w
          -- ^ Desired output width
-         -> BV w
-         -- ^ Original bitvector
          -> NatRepr ix
          -- ^ Index of bit to clear
          -> BV w
-clearBit w bv ix = and bv (complement w (bit w ix))
+         -- ^ Original bitvector
+         -> BV w
+clearBit w ix bv = and bv (complement w (bit w ix))
 
 -- | Like 'clearBit', but without the requirement that the index bit
 -- refers to an actual bit in the input 'BV'. If it is out of range,
--- just silently return the original input. Panic if index is not
--- representable as an 'Int'.
+-- just silently return the original input.
 clearBit' :: NatRepr w
           -- ^ Desired output width
-          -> BV w
-          -- ^ Original bitvector
           -> Natural
           -- ^ Index of bit to clear
           -> BV w
-clearBit' w bv ix = and bv (complement w (bit' w ix))
+          -- ^ Original bitvector
+          -> BV w
+clearBit' w ix bv = and bv (complement w (bit' w ix))
 
 -- | @complementBit w bv ix@ is the same as @xor bv (bit w ix)@.
 complementBit :: ix+1 <= w
               => NatRepr w
               -- ^ Desired output width
-              -> BV w
-              -- ^ Original bitvector
               -> NatRepr ix
               -- ^ Index of bit to flip
               -> BV w
-complementBit w bv ix = xor bv (bit w ix)
+              -- ^ Original bitvector
+              -> BV w
+complementBit w ix bv = xor bv (bit w ix)
 
 -- | Like 'complementBit', but without the requirement that the index
 -- bit refers to an actual bit in the input 'BV'. If it is out of
@@ -340,23 +382,23 @@ complementBit w bv ix = xor bv (bit w ix)
 -- not representable as an 'Int'.
 complementBit' :: NatRepr w
                -- ^ Desired output width
-               -> BV w
-               -- ^ Original bitvector
                -> Natural
                -- ^ Index of bit to flip
                -> BV w
-complementBit' w bv ix = xor bv (bit' w ix)
+               -- ^ Original bitvector
+               -> BV w
+complementBit' w ix bv = xor bv (bit' w ix)
 
 -- | Test if a particular bit is set. Panic if index is not
 -- representable as an 'Int'.
-testBit :: ix+1 <= w => BV w -> NatRepr ix -> Bool
-testBit (BV x) ix = B.testBit x (naturalToInt (P.natValue ix))
+testBit :: ix+1 <= w => NatRepr ix -> BV w -> Bool
+testBit ix (BV x) = B.testBit x (widthVal ix)
 
 -- | Like 'testBit', but takes a 'Natural' for the bit index. If the
 -- index is out of bounds, return 'False'. Panic if input is not
 -- representable as an 'Int'.
-testBit' :: BV w -> Natural -> Bool
-testBit' (BV x) ix = B.testBit x (naturalToInt ix)
+testBit' :: Natural -> BV w -> Bool
+testBit' ix (BV x) = B.testBit x (fromIntegral ix)
 
 -- | Get the number of 1 bits in a 'BV'.
 popCount :: BV w -> BV w
@@ -365,22 +407,22 @@ popCount (BV x) = BV (fromIntegral (B.popCount x))
 -- | Count trailing zeros in a 'BV'.
 ctz :: NatRepr w -> BV w -> BV w
 ctz w (BV x) = BV (go 0)
-  where go !i | i < toInteger (P.natValue w) &&
+  where go !i | i < toInteger (natValue w) &&
                 B.testBit x (fromInteger i) == False = go (i+1)
               | otherwise = i
 
 -- | Count leading zeros in a 'BV'.
 clz :: NatRepr w -> BV w -> BV w
 clz w (BV x) = BV (go 0)
- where go !i | i < toInteger (P.natValue w) &&
-               B.testBit x (P.widthVal w - fromInteger i - 1) == False =
+ where go !i | i < toInteger (natValue w) &&
+               B.testBit x (widthVal w - fromInteger i - 1) == False =
                  go (i+1)
              | otherwise = i
 
 -- | Truncate a bitvector to a particular width given at runtime,
 -- while keeping the type-level width constant.
-truncBits :: BV w -> Natural -> BV w
-truncBits (BV x) b = BV (x B..&. (B.bit (naturalToInt b) - 1))
+truncBits :: Natural -> BV w -> BV w
+truncBits b (BV x) = BV (x B..&. (B.bit (fromIntegral b) - 1))
 
 ----------------------------------------
 -- BV w arithmetic operations (fixed width)
@@ -445,7 +487,7 @@ negate w (BV x) = mkBV w (-x)
 
 -- | Get the sign bit as a 'BV'.
 signBit :: 1 <= w => NatRepr w -> BV w -> BV w
-signBit w bv@(BV _) = lshr bv (P.natValue w - 1) `and` BV 1
+signBit w bv@(BV _) = lshr bv (natValue w - 1) `and` BV 1
 
 -- | Signed less than.
 slt :: NatRepr w -> BV w -> BV w -> Bool
@@ -497,7 +539,7 @@ concat :: NatRepr w
        -- ^ Lower-order bits
        -> BV (v+w)
 concat loW (BV hi) (BV lo) =
-  BV ((hi `B.shiftL` naturalToInt (P.natValue loW)) B..|. lo)
+  BV ((hi `B.shiftL` (widthVal loW)) B..|. lo)
 
 -- | Slice out a smaller bitvector from a larger one.
 --
@@ -514,7 +556,7 @@ select :: ix + w' <= w
        -- ^ Bitvector to select from
        -> BV w'
 select ix w' bv = mkBV w' xShf
-  where (BV xShf) = lshr bv (P.natValue ix)
+  where (BV xShf) = lshr bv (natValue ix)
 
 -- | Like 'select', but takes a 'Natural' as the index to start
 -- selecting from. Neither the index nor the output width is checked
@@ -654,4 +696,4 @@ ppDec :: NatRepr w -> BV w -> String
 ppDec w (BV x) = show x ++ ":" ++ ppWidth w
 
 ppWidth :: NatRepr w -> String
-ppWidth w = "[" ++ show (P.natValue w) ++ "]"
+ppWidth w = "[" ++ show (natValue w) ++ "]"

@@ -67,9 +67,9 @@ instance KnownNat w => Bits (UnsignedBV w) where
   bitSize _    = widthVal (knownNat @w)
   bitSizeMaybe _ = Just (widthVal (knownNat @w))
   isSigned     = const False
-  testBit (UnsignedBV bv) = BV.testBit' bv . fromIntegral
+  testBit (UnsignedBV bv) ix = BV.testBit' (fromIntegral ix) bv
   bit          = UnsignedBV . BV.bit' knownNat . fromIntegral
-  popCount (UnsignedBV bv) = BV.naturalToInt (BV.asNatural (BV.popCount bv))
+  popCount (UnsignedBV bv) = fromIntegral (BV.asUnsigned (BV.popCount bv))
 
 instance KnownNat w => FiniteBits (UnsignedBV w) where
   finiteBitSize _ = widthVal (knownNat @w)
