@@ -243,12 +243,12 @@ rotateR w bv rot' = leftChunk `or` rightChunk
         wNatural = P.natValue w
 
 -- | The zero bitvector of any width.
-zero :: BV w
-zero = BV 0
+zero :: NatRepr w -> BV w
+zero _ = BV 0
 
 -- | The bitvector with value 1, of any positive width.
-one :: 1 <= w => BV w
-one = BV 1
+one :: 1 <= w => NatRepr w -> BV w
+one _ = BV 1
 
 -- | The bitvector whose value is its own width, of any width.
 width :: NatRepr w -> BV w
