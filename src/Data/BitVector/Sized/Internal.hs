@@ -48,23 +48,23 @@ naturalToInt i = if i > fromIntegral (maxBound :: Int)
 -- | Panic if a signed 'Integer' does not fit in the required number
 -- of bits. Returns an unsigned positive integer that fits in @w@
 -- bits.
-integerToUnsigned :: 1 <= w => NatRepr w
+signedToUnsigned :: 1 <= w => NatRepr w
                   -- ^ Width of output
                   -> Integer
                   -> Integer
-integerToUnsigned w i = if i < P.minSigned w || i > P.maxSigned w
+signedToUnsigned w i = if i < P.minSigned w || i > P.maxSigned w
   then panic "Data.BitVector.Sized.Internal.checkIntegerSigned"
        ["input out of bounds"]
   else if i < 0 then i + P.maxUnsigned w + 1 else i
 
 -- | Panic if an unsigned 'Integer' does not fit in the required
 -- number of bits, otherwise return input.
-checkIntegerUnsigned :: NatRepr w
+checkUnsigned :: NatRepr w
                      -- ^ Width of output
                      -> Integer
                      -> Integer
-checkIntegerUnsigned w i = if i < 0 || i > P.maxUnsigned w
-  then panic "Data.BitVector.Sized.Internal.checkIntegerUnsigned"
+checkUnsigned w i = if i < 0 || i > P.maxUnsigned w
+  then panic "Data.BitVector.Sized.Internal.checkUnsigned"
        ["input out of bounds"]
   else i
 
@@ -118,7 +118,7 @@ mkBVUnsafeSigned :: 1 <= w => NatRepr w
                  -> Integer
                  -- ^ Integer value
                  -> BV w
-mkBVUnsafeSigned w x = BV (integerToUnsigned w x)
+mkBVUnsafeSigned w x = BV (signedToUnsigned w x)
 
 -- | Like 'mkBV', but panics if unsigned input integer cannot be
 -- represented in @w@ bits.
@@ -127,7 +127,7 @@ mkBVUnsafeUnsigned :: NatRepr w
                  -> Integer
                  -- ^ Integer value
                  -> BV w
-mkBVUnsafeUnsigned w x = BV (checkIntegerUnsigned w x)
+mkBVUnsafeUnsigned w x = BV (checkUnsigned w x)
 
 -- | Construct a 'BV' from a 'Word8'.
 word8 :: Word8 -> BV 8
@@ -632,7 +632,7 @@ enumFromToSigned :: 1 <= w => NatRepr w
                  -> BV w
                  -- ^ Upper bound
                  -> [BV w]
-enumFromToSigned w bv1 bv2 = BV <$> integerToUnsigned w <$> [asSigned w bv1 .. asSigned w bv2]
+enumFromToSigned w bv1 bv2 = BV <$> signedToUnsigned w <$> [asSigned w bv1 .. asSigned w bv2]
 
 ----------------------------------------
 -- Pretty printing
