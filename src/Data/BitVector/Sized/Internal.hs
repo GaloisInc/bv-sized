@@ -599,7 +599,7 @@ succSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
 succSigned w (BV x) =
   if x == P.maxSigned w
   then Nothing
-  else Just (BV (x+1))
+  else Just (mkBV w (x+1))
 
 -- | Unsigned predecessor. @predUnsigned zero@ returns 'Nothing'.
 predUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
@@ -610,10 +610,10 @@ predUnsigned w (BV x) =
 
 -- | Signed predecessor. @predSigned zero@ returns 'Nothing'.
 predSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
-predSigned w (BV x) =
-  if x == P.minSigned w
+predSigned w bv@(BV x) =
+  if bv == minSigned w
   then Nothing
-  else Just (BV (x-1))
+  else Just (mkBV w (x-1))
 
 -- | List of all unsigned bitvectors from a lower to an upper bound,
 -- inclusive.
