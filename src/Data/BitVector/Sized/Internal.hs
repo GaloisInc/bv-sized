@@ -29,6 +29,7 @@ import qualified Data.Bits as B
 import qualified Numeric as N
 
 import Data.Char (intToDigit)
+import Data.Maybe (fromJust)
 import Data.Word
 import Data.Parameterized ( NatRepr
                           , natValue
@@ -105,7 +106,7 @@ mkBV' w x = BV (P.toUnsigned w x)
 -- >>> mkBV (knownNat @4) (-2)
 -- BV 14
 mkBV :: NatRepr w
-     -- ^ Desired width of bitvector
+     -- ^ Desired bitvector width
      -> Integer
      -- ^ Integer value to truncate to bitvector width
      -> BV w
@@ -115,20 +116,19 @@ mkBV w x = checkNatRepr w $ mkBV' w x
 -- number of bits, otherwise return input.
 checkUnsigned :: NatRepr w
               -> Integer
-              -> Integer
+              -> Maybe Integer
 checkUnsigned w i = if i < 0 || i > P.maxUnsigned w
-  then panic "Data.BitVector.Sized.Internal.checkUnsigned"
-       ["input out of bounds"]
-  else i
+  then Nothing
+  else Just i
 
--- | Like 'mkBV', but panics if unsigned input integer cannot be
+-- | Like 'mkBV', but returns 'Nothing' if unsigned input integer cannot be
 -- represented in @w@ bits.
-mkBVUnsafeUnsigned :: NatRepr w
-                 -- ^ Desired width of bitvector
-                 -> Integer
-                 -- ^ Integer value
-                 -> BV w
-mkBVUnsafeUnsigned w x = checkNatRepr w $ BV (checkUnsigned w x)
+mkBVUnsigned :: NatRepr w
+             -- ^ Desired bitvector width
+             -> Integer
+             -- ^ Integer value
+             -> Maybe (BV w)
+mkBVUnsigned w x = checkNatRepr w $ BV <$> checkUnsigned w x
 
 -- | Panic if a signed 'Integer' does not fit in the required number
 -- of bits. Returns an unsigned positive integer that fits in @w@
@@ -136,20 +136,19 @@ mkBVUnsafeUnsigned w x = checkNatRepr w $ BV (checkUnsigned w x)
 signedToUnsigned :: 1 <= w => NatRepr w
                  -- ^ Width of output
                  -> Integer
-                 -> Integer
+                 -> Maybe Integer
 signedToUnsigned w i = if i < P.minSigned w || i > P.maxSigned w
-  then panic "Data.BitVector.Sized.Internal.checkIntegerSigned"
-       ["input out of bounds"]
-  else if i < 0 then i + P.maxUnsigned w + 1 else i
+  then Nothing
+  else Just $ if i < 0 then i + P.maxUnsigned w + 1 else i
 
--- | Like 'mkBV', but panics if signed input integer cannot be
--- represented in @w@ bits.
-mkBVUnsafeSigned :: 1 <= w => NatRepr w
-                 -- ^ Desired width of bitvector
-                 -> Integer
-                 -- ^ Integer value
-                 -> BV w
-mkBVUnsafeSigned w x = checkNatRepr w $ BV (signedToUnsigned w x)
+-- | Like 'mkBV', but returns 'Nothing' if signed input integer cannot
+-- be represented in @w@ bits.
+mkBVSigned :: 1 <= w => NatRepr w
+              -- ^ Desired bitvector width
+           -> Integer
+           -- ^ Integer value
+           -> Maybe (BV w)
+mkBVSigned w x = checkNatRepr w $ BV <$> signedToUnsigned w x
 
 -- | Construct a 'BV' from a 'Word8'.
 word8 :: Word8 -> BV 8
@@ -657,7 +656,7 @@ enumFromToSigned :: 1 <= w => NatRepr w
                  -> BV w
                  -- ^ Upper bound
                  -> [BV w]
-enumFromToSigned w bv1 bv2 = BV <$> signedToUnsigned w <$> [asSigned w bv1 .. asSigned w bv2]
+enumFromToSigned w bv1 bv2 = (BV . fromJust . signedToUnsigned w) <$> [asSigned w bv1 .. asSigned w bv2]
 
 ----------------------------------------
 -- Pretty printing

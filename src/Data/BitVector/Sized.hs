@@ -33,11 +33,11 @@ module Data.BitVector.Sized
   , NatRepr
   , knownNat
     -- * Constructors
-  , mkBV, mkBVUnsafeUnsigned, mkBVUnsafeSigned
+  , mkBV, mkBVUnsigned, mkBVSigned
   , unsignedClamp, signedClamp
-  , word8, word16, word32, word64
   , minUnsigned, maxUnsigned
   , minSigned, maxSigned
+  , word8, word16, word32, word64
     -- * Conversions to Integer and Natural
   , asSigned
   , asUnsigned
