@@ -9,7 +9,7 @@
 Module      : Data.BitVector.Sized
 Copyright   : (c) Galois Inc. 2018
 License     : BSD-3
-Maintainer  : benselfridge@galois.com
+Maintainer  : Ben Selfridge <benselfridge@galois.com>
 Stability   : experimental
 Portability : portable
 
