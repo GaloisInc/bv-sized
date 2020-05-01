@@ -409,15 +409,15 @@ truncBits b (BV x) = checkNatural b $ BV (x B..&. (B.bit (fromIntegral b) - 1))
 
 -- | Bitvector add.
 add :: NatRepr w -> BV w -> BV w -> BV w
-add w (BV x) (BV y) = mkBV w (x+y)
+add w (BV x) (BV y) = mkBV' w (x+y)
 
 -- | Bitvector subtract.
 sub :: NatRepr w -> BV w -> BV w -> BV w
-sub w (BV x) (BV y) = mkBV w (x-y)
+sub w (BV x) (BV y) = mkBV' w (x-y)
 
 -- | Bitvector multiply.
 mul :: NatRepr w -> BV w -> BV w -> BV w
-mul w (BV x) (BV y) = mkBV w (x*y)
+mul w (BV x) (BV y) = mkBV' w (x*y)
 
 -- | Bitvector division (unsigned). Rounds to zero. Division by zero
 -- yields a runtime error.
@@ -427,14 +427,14 @@ uquot (BV x) (BV y) = BV (x `quot` y)
 -- | Bitvector division (signed). Rounds to zero. Division by zero
 -- yields a runtime error.
 squot :: NatRepr w -> BV w -> BV w -> BV w
-squot w bv1 bv2 = mkBV w (x `quot` y)
+squot w bv1 bv2 = mkBV' w (x `quot` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
 -- | Bitvector division (signed). Rounds to negative infinity. Division
 -- by zero yields a runtime error.
 sdiv :: NatRepr w -> BV w -> BV w -> BV w
-sdiv w bv1 bv2 = mkBV w (x `div` y)
+sdiv w bv1 bv2 = mkBV' w (x `div` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
@@ -446,24 +446,24 @@ urem (BV x) (BV y) = BV (x `rem` y)
 -- | Bitvector remainder after division (signed), when rounded to
 -- zero. Division by zero yields a runtime error.
 srem :: NatRepr w -> BV w -> BV w -> BV w
-srem w bv1 bv2 = mkBV w (x `rem` y)
+srem w bv1 bv2 = mkBV' w (x `rem` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
 -- | Bitvector remainder after division (signed), when rounded to
 -- negative infinity. Division by zero yields a runtime error.
 smod :: NatRepr w -> BV w -> BV w -> BV w
-smod w bv1 bv2 = mkBV w (x `mod` y)
+smod w bv1 bv2 = mkBV' w (x `mod` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
 -- | Bitvector absolute value.
 abs :: NatRepr w -> BV w -> BV w
-abs w bv = mkBV w (Prelude.abs (asSigned w bv))
+abs w bv = mkBV' w (Prelude.abs (asSigned w bv))
 
 -- | Bitvector negation.
 negate :: NatRepr w -> BV w -> BV w
-negate w (BV x) = mkBV w (-x)
+negate w (BV x) = mkBV' w (-x)
 
 -- | Get the sign bit as a 'BV'.
 signBit :: 1 <= w => NatRepr w -> BV w -> BV w
@@ -623,7 +623,7 @@ succSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
 succSigned w (BV x) =
   if x == P.maxSigned w
   then Nothing
-  else Just (mkBV w (x+1))
+  else Just (mkBV' w (x+1))
 
 -- | Unsigned predecessor. @predUnsigned w zero@ returns 'Nothing'.
 predUnsigned :: NatRepr w -> BV w -> Maybe (BV w)
@@ -637,7 +637,7 @@ predSigned :: 1 <= w => NatRepr w -> BV w -> Maybe (BV w)
 predSigned w bv@(BV x) =
   if bv == minSigned w
   then Nothing
-  else Just (mkBV w (x-1))
+  else Just (mkBV' w (x-1))
 
 -- | List of all unsigned bitvectors from a lower to an upper bound,
 -- inclusive.
