@@ -20,6 +20,7 @@ library
   exposed-modules:     Data.BitVector.Sized
                        Data.BitVector.Sized.Signed
                        Data.BitVector.Sized.Unsigned
+                       Data.BitVector.Sized.Overflow
   other-modules:       Data.BitVector.Sized.Internal
                        Data.BitVector.Sized.Panic
   build-depends:       base >= 4.7 && < 5,
