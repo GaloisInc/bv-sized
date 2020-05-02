@@ -21,6 +21,8 @@ module Data.BitVector.Sized.Overflow
   , ofUnsigned
   , ofSigned
   , ofResult
+  -- * Overflowing bitwise operators
+  , shlOf
   -- * Overflowing arithmetic operators
   , addOf
   , subOf
@@ -31,10 +33,17 @@ module Data.BitVector.Sized.Overflow
   , smodOf
   ) where
 
+import qualified Data.Bits as B
+import Numeric.Natural
+
 import Data.Parameterized ( NatRepr )
 import qualified Data.Parameterized.NatRepr as P
 
-import Data.BitVector.Sized.Internal (BV(..), mkBV', asUnsigned, asSigned)
+import Data.BitVector.Sized.Internal ( BV(..)
+                                     , mkBV'
+                                     , asUnsigned
+                                     , asSigned
+                                     , checkNatural)
 
 data UnsignedOverflow = UnsignedOverflow
                       | NoUnsignedOverflow
@@ -92,6 +101,19 @@ instance Monad Overflow where
     let Overflow uof' sof' b = k a
     in Overflow (uof <> uof') (sof <> sof') b
 
+getUof :: NatRepr w -> Integer -> UnsignedOverflow
+getUof w x = if x < P.minUnsigned w || x > P.maxUnsigned w
+             then UnsignedOverflow
+             else NoUnsignedOverflow
+
+getSof :: NatRepr w -> Integer -> SignedOverflow
+getSof w x = case P.isZeroOrGT1 w of
+  Left P.Refl -> NoSignedOverflow
+  Right P.LeqProof ->
+    if x < P.minSigned w || x > P.maxSigned w
+    then SignedOverflow
+    else NoSignedOverflow
+
 -- | This only works if the operation has equivalent signed and
 -- unsigned interpretations on bitvectors.
 liftBinary :: (Integer -> Integer -> Integer)
@@ -106,15 +128,8 @@ liftBinary op w xv yv =
       ures = ux `op` uy
       sres = sx `op` sy
 
-      uof = if ures < P.minUnsigned w || ures > P.maxUnsigned w
-            then UnsignedOverflow
-            else NoUnsignedOverflow
-      sof = case P.isZeroOrGT1 w of
-        Left P.Refl -> NoSignedOverflow
-        Right P.LeqProof ->
-          if sres < P.minSigned w || sres > P.maxSigned w
-          then SignedOverflow
-          else NoSignedOverflow
+      uof = getUof w ures
+      sof = getSof w sres
   in Overflow uof sof (mkBV' w ures)
 
 -- | Bitvector add.
@@ -128,6 +143,17 @@ subOf = liftBinary (-)
 -- | Bitvector multiply.
 mulOf :: NatRepr w -> BV w -> BV w -> Overflow (BV w)
 mulOf = liftBinary (*)
+
+-- | Left shift by positive 'Natural'.
+shlOf :: NatRepr w -> BV w -> Natural -> Overflow (BV w)
+shlOf w xv shf = checkNatural shf $
+  let ux = asUnsigned xv
+      sx = asSigned w xv
+      ures = ux `B.shiftL` fromIntegral shf
+      sres = sx `B.shiftL` fromIntegral shf
+      uof = getUof w ures
+      sof = getSof w sres
+  in Overflow uof sof (mkBV' w ures)
 
 -- | Bitvector division (signed). Rounds to zero. Division by zero
 -- yields a runtime error.
