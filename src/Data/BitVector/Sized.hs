@@ -38,6 +38,7 @@ module Data.BitVector.Sized
   , minUnsigned, maxUnsigned
   , minSigned, maxSigned
   , word8, word16, word32, word64
+  , int8, int16, int32, int64
     -- * Conversions to Integer and Natural
   , asSigned
   , asUnsigned

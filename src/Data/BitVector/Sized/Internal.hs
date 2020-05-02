@@ -29,6 +29,7 @@ import qualified Data.Bits as B
 import qualified Numeric as N
 
 import Data.Char (intToDigit)
+import Data.Int
 import Data.Maybe (fromJust)
 import Data.Word
 import Data.Parameterized ( NatRepr
@@ -165,6 +166,22 @@ word32 = BV . fromIntegral
 -- | Construct a 'BV' from a 'Word64'.
 word64 :: Word64 -> BV 64
 word64 = BV . fromIntegral
+
+-- | Construct a 'BV' from a 'Int8'.
+int8 :: Int8 -> BV 8
+int8 = word8 . fromIntegral
+
+-- | Construct a 'BV' from a 'Int16'.
+int16 :: Int16 -> BV 16
+int16 = word16 . fromIntegral
+
+-- | Construct a 'BV' from a 'Int32'.
+int32 :: Int32 -> BV 32
+int32 = word32 . fromIntegral
+
+-- | Construct a 'BV' from a 'Int64'.
+int64 :: Int64 -> BV 64
+int64 = word64 . fromIntegral
 
 -- | The minimum unsigned value for bitvector with given width (always 0).
 minUnsigned :: NatRepr w -> BV w
