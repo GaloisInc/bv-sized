@@ -424,6 +424,15 @@ mul w (BV x) (BV y) = mkBV' w (x*y)
 uquot :: BV w -> BV w -> BV w
 uquot (BV x) (BV y) = BV (x `quot` y)
 
+-- | Bitvector remainder after division (unsigned), when rounded to
+-- zero. Division by zero yields a runtime error.
+urem :: BV w -> BV w -> BV w
+urem (BV x) (BV y) = BV (x `rem` y)
+
+-- | 'uquot' and 'urem' returned as a pair.
+uquotRem :: BV w -> BV w -> (BV w, BV w)
+uquotRem bv1 bv2 = (uquot bv1 bv2, urem bv1 bv2)
+
 -- | Bitvector division (signed). Rounds to zero. Division by zero
 -- yields a runtime error.
 squot :: NatRepr w -> BV w -> BV w -> BV w
@@ -431,22 +440,21 @@ squot w bv1 bv2 = mkBV' w (x `quot` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
--- | Bitvector division (signed). Rounds to negative infinity. Division
--- by zero yields a runtime error.
-sdiv :: NatRepr w -> BV w -> BV w -> BV w
-sdiv w bv1 bv2 = mkBV' w (x `div` y)
-  where x = asSigned w bv1
-        y = asSigned w bv2
-
--- | Bitvector remainder after division (unsigned), when rounded to
--- zero. Division by zero yields a runtime error.
-urem :: BV w -> BV w -> BV w
-urem (BV x) (BV y) = BV (x `rem` y)
-
 -- | Bitvector remainder after division (signed), when rounded to
 -- zero. Division by zero yields a runtime error.
 srem :: NatRepr w -> BV w -> BV w -> BV w
 srem w bv1 bv2 = mkBV' w (x `rem` y)
+  where x = asSigned w bv1
+        y = asSigned w bv2
+
+-- | 'squot' and 'srem' returned as a pair.
+squotRem :: NatRepr w -> BV w -> BV w -> (BV w, BV w)
+squotRem w bv1 bv2 = (squot w bv1 bv2, srem w bv1 bv2)
+
+-- | Bitvector division (signed). Rounds to negative infinity. Division
+-- by zero yields a runtime error.
+sdiv :: NatRepr w -> BV w -> BV w -> BV w
+sdiv w bv1 bv2 = mkBV' w (x `div` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
@@ -456,6 +464,10 @@ smod :: NatRepr w -> BV w -> BV w -> BV w
 smod w bv1 bv2 = mkBV' w (x `mod` y)
   where x = asSigned w bv1
         y = asSigned w bv2
+
+-- | 'sdiv' and 'smod' returned as a pair.
+sdivMod :: NatRepr w -> BV w -> BV w -> (BV w, BV w)
+sdivMod w bv1 bv2 = (sdiv w bv1 bv2, smod w bv1 bv2)
 
 -- | Bitvector absolute value.
 abs :: NatRepr w -> BV w -> BV w

@@ -60,6 +60,7 @@ module Data.BitVector.Sized
   , add, sub, mul
   , uquot, squot, sdiv
   , urem, srem, smod
+  , uquotRem, squotRem, sdivMod
   , abs, negate
   , signBit
   , slt, sle, ult, ule

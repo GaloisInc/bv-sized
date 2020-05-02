@@ -18,9 +18,9 @@ might actually overflow.
 
 module Data.BitVector.Sized.Overflow
   ( Overflow
-  , overflowUnsigned
-  , overflowSigned
-  , result
+  , ofUnsigned
+  , ofSigned
+  , ofResult
   -- * Overflowing arithmetic operators
   , addOf
   , subOf
@@ -64,18 +64,18 @@ data Overflow a =
   deriving (Show, Eq)
 
 -- | Return 'True' if a computation caused unsigned overflow.
-overflowUnsigned :: Overflow a -> Bool
-overflowUnsigned (Overflow UnsignedOverflow _ _) = True
-overflowUnsigned _ = False
+ofUnsigned :: Overflow a -> Bool
+ofUnsigned (Overflow UnsignedOverflow _ _) = True
+ofUnsigned _ = False
 
 -- | Return 'True' if a computation caused signed overflow.
-overflowSigned :: Overflow a -> Bool
-overflowSigned (Overflow _ SignedOverflow _) = True
-overflowSigned _ = False
+ofSigned :: Overflow a -> Bool
+ofSigned (Overflow _ SignedOverflow _) = True
+ofSigned _ = False
 
 -- | Return the result of a computation.
-result :: Overflow a -> a
-result (Overflow _ _ res) = res
+ofResult :: Overflow a -> a
+ofResult (Overflow _ _ res) = res
 
 instance Functor Overflow where
   fmap f (Overflow uof sof a) = Overflow uof sof (f a)
