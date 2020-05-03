@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiWayIf #-}
@@ -45,6 +46,7 @@ import qualified Data.Parameterized.NatRepr as P
 import qualified Data.Parameterized.Pair as P
 import GHC.Generics
 import GHC.TypeLits
+import Language.Haskell.TH.Lift (Lift)
 import Numeric.Natural
 import Prelude hiding (abs, or, and, negate, concat)
 import qualified Prelude as Prelude
@@ -73,7 +75,7 @@ data BV (w :: Nat) :: * where
   -- complement representation. However, an invariant on the value is
   -- that it must always be positive.
   BV :: Integer -> BV w
-  deriving (Generic, Show, Read, Eq, Ord)
+  deriving (Generic, Show, Read, Eq, Ord, Lift)
 
 instance ShowF BV
 

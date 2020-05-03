@@ -43,7 +43,7 @@ module Data.BitVector.Sized
   , unsignedClamp, signedClamp
   , minUnsigned, maxUnsigned
   , minSigned, maxSigned
-    -- * Construction from 'Data.Word' and 'Data.Int'
+    -- * Construction from @Word@ and @Int@
   , word8, word16, word32, word64
   , int8, int16, int32, int64
   , bytesBE, bytesLE
