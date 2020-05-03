@@ -14,12 +14,18 @@ Stability   : experimental
 Portability : portable
 
 This module defines a width-parameterized 'BV' type and various
-associated operations. A @BV w@ is a newtype around an
-'Prelude.Integer', so operations that require the width take an
-explicit @NatRepr w@ argument. We omit all typeclass instances that
-require compile-time knowledge of bitvector width, or force a signed
-or unsigned intepretation. Those instances can be recovered via the
-use of 'Data.BitVector.Sized.Signed.SignedBV' or
+associated operations. A @'BV' w@ is a newtype around an 'Integer', so
+operations that require the width take an explicit @'NatRepr' w@
+argument. We explicitly do not allow widths that cannot be represented
+as an 'Prelude.Int', as we appeal to the underlying 'Prelude.Num' and
+'Data.Bits.Bits' instances on 'Integer' for the implementation of many
+of the same operations (which, in turn, require those widths to be
+'Prelude.Int's).
+
+We omit all typeclass instances that require compile-time knowledge of
+bitvector width, or force a signed or unsigned intepretation. Those
+instances can be recovered via the use of
+'Data.BitVector.Sized.Signed.SignedBV' or
 'Data.BitVector.Sized.Unsigned.UnsignedBV'.
 
 This module should be imported qualified, as many of the names clash
