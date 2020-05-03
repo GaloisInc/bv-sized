@@ -42,10 +42,11 @@ import Data.Parameterized ( NatRepr
                           , Hashable(..)
                           , HashableF(..))
 import qualified Data.Parameterized.NatRepr as P
+import qualified Data.Parameterized.Pair as P
 import GHC.Generics
 import GHC.TypeLits
 import Numeric.Natural
-import Prelude hiding (abs, or, and, negate)
+import Prelude hiding (abs, or, and, negate, concat)
 import qualified Prelude as Prelude
 
 ----------------------------------------
@@ -151,6 +152,41 @@ mkBVSigned :: 1 <= w => NatRepr w
            -> Maybe (BV w)
 mkBVSigned w x = checkNatRepr w $ BV <$> signedToUnsigned w x
 
+-- | The minimum unsigned value for bitvector with given width (always 0).
+minUnsigned :: NatRepr w -> BV w
+minUnsigned w = checkNatRepr w $ BV 0
+
+-- | The maximum unsigned value for bitvector with given width.
+maxUnsigned :: NatRepr w -> BV w
+maxUnsigned w = checkNatRepr w $ BV (P.maxUnsigned w)
+
+-- | The minimum value for bitvector in two's complement with given width.
+minSigned :: 1 <= w => NatRepr w -> BV w
+minSigned w = mkBV w (P.minSigned w)
+
+-- | The maximum value for bitvector in two's complement with given width.
+maxSigned :: 1 <= w => NatRepr w -> BV w
+maxSigned w = checkNatRepr w $ BV (P.maxSigned w)
+
+-- | @unsignedClamp w i@ rounds @i@ to the nearest value between @0@
+-- and @2^w - 1@ (inclusive).
+unsignedClamp :: NatRepr w -> Integer -> BV w
+unsignedClamp w x = checkNatRepr w $
+  if | x < P.minUnsigned w -> BV (P.minUnsigned w)
+     | x > P.maxUnsigned w -> BV (P.maxUnsigned w)
+     | otherwise -> BV x
+
+-- | @signedClamp w i@ rounds @i@ to the nearest value between
+-- @-2^(w-1)@ and @2^(w-1) - 1@ (inclusive).
+signedClamp :: 1 <= w => NatRepr w -> Integer -> BV w
+signedClamp w x = checkNatRepr w $
+  if | x < P.minSigned w -> BV (P.minSigned w)
+     | x > P.maxSigned w -> BV (P.maxSigned w)
+     | otherwise -> BV x
+
+----------------------------------------
+-- Construction from 'Word' and 'Int'
+
 -- | Construct a 'BV' from a 'Word8'.
 word8 :: Word8 -> BV 8
 word8 = BV . fromIntegral
@@ -183,37 +219,33 @@ int32 = word32 . fromIntegral
 int64 :: Int64 -> BV 64
 int64 = word64 . fromIntegral
 
--- | The minimum unsigned value for bitvector with given width (always 0).
-minUnsigned :: NatRepr w -> BV w
-minUnsigned w = checkNatRepr w $ BV 0
+-- | Construct a 'BV' from a list of bytes, in big endian order (bytes
+-- with lower value index in the list are mapped to higher order bytes
+-- in the output bitvector). Return the resulting 'BV' along with its
+-- width.
+--
+-- >>> case bytesBE [2, 1] of p -> (fstPair p, sndPair p)
+-- (16,BV 513)
+bytesBE :: [Word8] -> P.Pair NatRepr BV
+bytesBE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
+bytesBE (b:bs) = case bytesBE bs of
+  P.Pair w bv ->  P.Pair w' bv'
+    where w' = (P.knownNat @8) `addNat` w
+          bv' = concat (P.knownNat @8) w (word8 b) bv
 
--- | The maximum unsigned value for bitvector with given width.
-maxUnsigned :: NatRepr w -> BV w
-maxUnsigned w = checkNatRepr w $ BV (P.maxUnsigned w)
-
--- | The minimum value for bitvector in two's complement with given width.
-minSigned :: 1 <= w => NatRepr w -> BV w
-minSigned w = mkBV w (P.minSigned w)
-
--- | The maximum value for bitvector in two's complement with given width.
-maxSigned :: 1 <= w => NatRepr w -> BV w
-maxSigned w = checkNatRepr w $ BV (P.maxSigned w)
-
--- | @unsignedClamp w i@ rounds @i@ to the nearest value between @0@
--- and @2^w - 1@ (inclusive).
-unsignedClamp :: NatRepr w -> Integer -> BV w
-unsignedClamp w x = checkNatRepr w $
-  if | x < P.minUnsigned w -> BV (P.minUnsigned w)
-     | x > P.maxUnsigned w -> BV (P.maxUnsigned w)
-     | otherwise -> BV x
-
--- | @signedClamp w i@ rounds @i@ to the nearest value between
--- @-2^(w-1)@ and @2^(w-1) - 1@ (inclusive).
-signedClamp :: 1 <= w => NatRepr w -> Integer -> BV w
-signedClamp w x = checkNatRepr w $
-  if | x < P.minSigned w -> BV (P.minSigned w)
-     | x > P.maxSigned w -> BV (P.maxSigned w)
-     | otherwise -> BV x
+-- | Construct a 'BV' from a list of bytes, in little endian order
+-- (bytes with lower value index in the list are mapped to lower order
+-- bytes in the output bitvector). Return the resulting 'BV' along
+-- with its width.
+--
+-- >>> case bytesLE [2, 1] of p -> (fstPair p, sndPair p)
+-- (16,BV 258)
+bytesLE :: [Word8] -> P.Pair NatRepr BV
+bytesLE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
+bytesLE (b:bs) = case bytesLE bs of
+  P.Pair w bv ->  P.Pair w' bv'
+    where w' = w `addNat` (P.knownNat @8)
+          bv' = concat w (P.knownNat @8) bv (word8 b)
 
 ----------------------------------------
 -- BitVector -> Integer functions
