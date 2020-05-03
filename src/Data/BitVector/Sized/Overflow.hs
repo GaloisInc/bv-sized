@@ -45,6 +45,9 @@ import Data.BitVector.Sized.Internal ( BV(..)
                                      , asSigned
                                      , checkNatural)
 
+----------------------------------------
+-- Unsigned and signed overflow datatypes
+
 data UnsignedOverflow = UnsignedOverflow
                       | NoUnsignedOverflow
   deriving (Show, Eq)
@@ -67,6 +70,8 @@ instance Semigroup SignedOverflow where
 instance Monoid SignedOverflow where
   mempty = NoSignedOverflow
 
+----------------------------------------
+-- Overflow wrapper
 -- | A value annotated with overflow information.
 data Overflow a =
   Overflow UnsignedOverflow SignedOverflow a
@@ -85,6 +90,12 @@ ofSigned _ = False
 -- | Return the result of a computation.
 ofResult :: Overflow a -> a
 ofResult (Overflow _ _ res) = res
+
+instance Foldable Overflow where
+  foldMap f (Overflow _ _ a) = f a
+
+instance Traversable Overflow where
+  sequenceA (Overflow uof sof a) = Overflow uof sof <$> a
 
 instance Functor Overflow where
   fmap f (Overflow uof sof a) = Overflow uof sof (f a)
