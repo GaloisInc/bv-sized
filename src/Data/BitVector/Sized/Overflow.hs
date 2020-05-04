@@ -17,7 +17,9 @@ might actually overflow.
 -}
 
 module Data.BitVector.Sized.Overflow
-  ( Overflow
+  ( Overflow(..)
+  , UnsignedOverflow(..)
+  , SignedOverflow(..)
   , ofUnsigned
   , ofSigned
   , ofResult
@@ -48,6 +50,7 @@ import Data.BitVector.Sized.Internal ( BV(..)
 ----------------------------------------
 -- Unsigned and signed overflow datatypes
 
+-- | Datatype representing the possibility of unsigned overflow.
 data UnsignedOverflow = UnsignedOverflow
                       | NoUnsignedOverflow
   deriving (Show, Eq)
@@ -59,6 +62,7 @@ instance Semigroup UnsignedOverflow where
 instance Monoid UnsignedOverflow where
   mempty = NoUnsignedOverflow
 
+-- | Datatype representing the possibility of signed overflow.
 data SignedOverflow = SignedOverflow
                     | NoSignedOverflow
   deriving (Show, Eq)
