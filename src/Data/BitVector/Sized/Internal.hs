@@ -48,7 +48,7 @@ import GHC.Generics
 import GHC.TypeLits
 import Language.Haskell.TH.Lift (Lift)
 import Numeric.Natural
-import Prelude hiding (abs, or, and, negate, concat)
+import Prelude hiding (abs, or, and, negate, concat, signum)
 import qualified Prelude as Prelude
 
 ----------------------------------------
@@ -531,6 +531,10 @@ negate w (BV x) = mkBV' w (-x)
 -- | Get the sign bit as a 'BV'.
 signBit :: 1 <= w => NatRepr w -> BV w -> BV w
 signBit w bv@(BV _) = lshr bv (natValue w - 1) `and` BV 1
+
+-- | Return 1 if positive, -1 if negative, and 0 if 0.
+signum :: 1 <= w => NatRepr w -> BV w -> BV w
+signum w bv = mkBV' w (Prelude.signum (asSigned w bv))
 
 -- | Signed less than.
 slt :: NatRepr w -> BV w -> BV w -> Bool

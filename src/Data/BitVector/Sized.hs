@@ -72,6 +72,7 @@ module Data.BitVector.Sized
   , uquotRem, squotRem, sdivMod
   , abs, negate
   , signBit
+  , signum
   , slt, sle, ult, ule
   , umin, umax
   , smin, smax
