@@ -330,8 +330,8 @@ asBitsBE w bv = [ testBit' i bv | i <- fromInteger <$> [wi - 1, wi - 2 .. 0] ]
 -- >>> asBitsLE (knownNat @5) (mkBV knownNat 0b1101)
 -- [True,False,True,True,False]
 asBitsLE :: NatRepr w -> BV w -> [Bool]
-asBitsLE w bv = [ testBit' i bv | i <- [0 .. wi - 1] ]
-  where wi = natValue w
+asBitsLE w bv = [ testBit' i bv | i <- fromInteger <$> [0 .. wi - 1] ]
+  where wi = intValue w
 
 ----------------------------------------
 -- BV w operations (fixed width)
