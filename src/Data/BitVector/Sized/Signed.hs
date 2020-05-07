@@ -96,7 +96,7 @@ instance (KnownNat w, 1 <= w) => Num (SignedBV w) where
   (+)         = liftBinary (BV.add knownNat)
   (*)         = liftBinary (BV.mul knownNat)
   abs         = liftUnary (BV.abs knownNat)
-  signum      = liftUnary (BV.signBit knownNat)
+  signum (SignedBV bv) = mkSignedBV knownNat $ signum $ BV.asSigned knownNat bv
   fromInteger = SignedBV . mkBV knownNat
   negate      = liftUnary (BV.negate knownNat)
 

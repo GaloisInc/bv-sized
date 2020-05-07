@@ -89,7 +89,7 @@ instance KnownNat w => Num (UnsignedBV w) where
   (+)         = liftBinary (BV.add knownNat)
   (*)         = liftBinary (BV.mul knownNat)
   abs         = id
-  signum      = const $ UnsignedBV (BV 0)
+  signum (UnsignedBV bv) = UnsignedBV $ BV.BV $ signum $ BV.asUnsigned bv
   fromInteger = UnsignedBV . mkBV knownNat
   -- in this case, negate just means "additive inverse"
   negate      = liftUnary (BV.negate knownNat)
