@@ -1,4 +1,6 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeOperators #-}
 
 {-|
 Module      : Data.BitVector.Sized.Overflow
@@ -37,6 +39,7 @@ module Data.BitVector.Sized.Overflow
 
 import qualified Data.Bits as B
 import Numeric.Natural
+import GHC.TypeLits
 
 import Data.Parameterized ( NatRepr )
 import qualified Data.Parameterized.NatRepr as P
@@ -45,7 +48,9 @@ import Data.BitVector.Sized.Internal ( BV(..)
                                      , mkBV'
                                      , asUnsigned
                                      , asSigned
-                                     , checkNatural)
+                                     , shiftAmount
+                                     )
+
 
 ----------------------------------------
 -- Unsigned and signed overflow datatypes
@@ -131,7 +136,7 @@ getSof w x = case P.isZeroOrGT1 w of
 
 -- | This only works if the operation has equivalent signed and
 -- unsigned interpretations on bitvectors.
-liftBinary :: (Integer -> Integer -> Integer)
+liftBinary :: (1 <= w) => (Integer -> Integer -> Integer)
            -> NatRepr w
            -> BV w -> BV w -> Overflow (BV w)
 liftBinary op w xv yv =
@@ -148,72 +153,64 @@ liftBinary op w xv yv =
   in Overflow uof sof (mkBV' w ures)
 
 -- | Bitvector add.
-addOf :: NatRepr w -> BV w -> BV w -> Overflow (BV w)
+addOf :: (1 <= w) => NatRepr w -> BV w -> BV w -> Overflow (BV w)
 addOf = liftBinary (+)
 
 -- | Bitvector subtract.
-subOf :: NatRepr w -> BV w -> BV w -> Overflow (BV w)
+subOf :: (1 <= w) => NatRepr w -> BV w -> BV w -> Overflow (BV w)
 subOf = liftBinary (-)
 
 -- | Bitvector multiply.
-mulOf :: NatRepr w -> BV w -> BV w -> Overflow (BV w)
+mulOf :: (1 <= w) => NatRepr w -> BV w -> BV w -> Overflow (BV w)
 mulOf = liftBinary (*)
 
 -- | Left shift by positive 'Natural'.
-shlOf :: NatRepr w -> BV w -> Natural -> Overflow (BV w)
-shlOf w xv shf = checkNatural shf $
+shlOf :: (1 <= w) => NatRepr w -> BV w -> Natural -> Overflow (BV w)
+shlOf w xv shf =
   let ux = asUnsigned xv
       sx = asSigned w xv
-      ures = ux `B.shiftL` fromIntegral shf
-      sres = sx `B.shiftL` fromIntegral shf
+      ures = ux `B.shiftL` shiftAmount w shf
+      sres = sx `B.shiftL` shiftAmount w shf
       uof = getUof w ures
       sof = getSof w sres
   in Overflow uof sof (mkBV' w ures)
 
 -- | Bitvector division (signed). Rounds to zero. Division by zero
 -- yields a runtime error.
-squotOf :: NatRepr w -> BV w -> BV w -> Overflow (BV w)
+squotOf :: (1 <= w) => NatRepr w -> BV w -> BV w -> Overflow (BV w)
 squotOf w bv1 bv2 = Overflow NoUnsignedOverflow sof (mkBV' w (x `quot` y))
   where x = asSigned w bv1
         y = asSigned w bv2
-        sof = case P.isZeroOrGT1 w of
-          Left P.Refl -> NoSignedOverflow
-          Right P.LeqProof -> if (x == P.minSigned w && y == -1)
-                              then SignedOverflow
-                              else NoSignedOverflow
+        sof = if (x == P.minSigned w && y == -1)
+              then SignedOverflow
+              else NoSignedOverflow
 
 -- | Bitvector remainder after division (signed), when rounded to
 -- zero. Division by zero yields a runtime error.
-sremOf :: NatRepr w -> BV w -> BV w -> Overflow (BV w)
+sremOf :: (1 <= w) => NatRepr w -> BV w -> BV w -> Overflow (BV w)
 sremOf w bv1 bv2 = Overflow NoUnsignedOverflow sof (mkBV' w (x `rem` y))
   where x = asSigned w bv1
         y = asSigned w bv2
-        sof = case P.isZeroOrGT1 w of
-          Left P.Refl -> NoSignedOverflow
-          Right P.LeqProof -> if (x == P.minSigned w && y == -1)
-                              then SignedOverflow
-                              else NoSignedOverflow
+        sof = if (x == P.minSigned w && y == -1)
+              then SignedOverflow
+              else NoSignedOverflow
 
 -- | Bitvector division (signed). Rounds to zero. Division by zero
 -- yields a runtime error.
-sdivOf :: NatRepr w -> BV w -> BV w -> Overflow (BV w)
+sdivOf :: (1 <= w) => NatRepr w -> BV w -> BV w -> Overflow (BV w)
 sdivOf w bv1 bv2 = Overflow NoUnsignedOverflow sof (mkBV' w (x `div` y))
   where x = asSigned w bv1
         y = asSigned w bv2
-        sof = case P.isZeroOrGT1 w of
-          Left P.Refl -> NoSignedOverflow
-          Right P.LeqProof -> if (x == P.minSigned w && y == -1)
-                              then SignedOverflow
-                              else NoSignedOverflow
+        sof = if (x == P.minSigned w && y == -1)
+              then SignedOverflow
+              else NoSignedOverflow
 
 -- | Bitvector remainder after division (signed), when rounded to
 -- zero. Division by zero yields a runtime error.
-smodOf :: NatRepr w -> BV w -> BV w -> Overflow (BV w)
+smodOf :: (1 <= w) => NatRepr w -> BV w -> BV w -> Overflow (BV w)
 smodOf w bv1 bv2 = Overflow NoUnsignedOverflow sof (mkBV' w (x `mod` y))
   where x = asSigned w bv1
         y = asSigned w bv2
-        sof = case P.isZeroOrGT1 w of
-          Left P.Refl -> NoSignedOverflow
-          Right P.LeqProof -> if (x == P.minSigned w && y == -1)
-                              then SignedOverflow
-                              else NoSignedOverflow
+        sof = if (x == P.minSigned w && y == -1)
+              then SignedOverflow
+              else NoSignedOverflow

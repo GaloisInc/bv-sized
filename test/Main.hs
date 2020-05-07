@@ -54,13 +54,13 @@ bin :: Show a
     -- ^ generator for width
     -> (forall w. NatRepr w -> a -> BV.BV w)
     -- ^ morphism on domains
-    -> (forall w . NatRepr w -> Gen a)
+    -> (forall w. NatRepr w -> Gen a)
     -- ^ generator for first arg
-    -> (forall w . NatRepr w -> Gen a)
+    -> (forall w. NatRepr w -> Gen a)
     -- ^ generator for second arg
-    -> (forall w . NatRepr w -> a -> a -> a)
+    -> (forall w. NatRepr w -> a -> a -> a)
     -- ^ binary operator on domain
-    -> (forall w . NatRepr w -> BV.BV w -> BV.BV w -> BV.BV w)
+    -> (forall w. NatRepr w -> BV.BV w -> BV.BV w -> BV.BV w)
     -- ^ binary operator on codomain
     -> Property
 bin genW p gen1 gen2 aOp bOp = property $ do
@@ -178,31 +178,31 @@ arithHomTests = testGroup "arithmetic homomorphisms tests"
     (const rem) (const BV.urem)
   , testProperty "squot-pos-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedPos
-    (const quot) BV.squot
+    (const quot) (forcePos BV.squot)
   , testProperty "squot-neg-denom" $ bin anyPosWidth BV.mkBV
     signed signedNeg
-    (const quot) BV.squot
+    (const quot) (forcePos BV.squot)
   , testProperty "srem-pos-denom" $ bin anyPosWidth BV.mkBV
     signed signedPos
-    (const rem) BV.srem
+    (const rem) (forcePos BV.srem)
   , testProperty "srem-neg-denom" $ bin anyPosWidth BV.mkBV
     signed signedNeg
-    (const rem) BV.srem
+    (const rem) (forcePos BV.srem)
   , testProperty "sdiv-pos-denom" $ bin anyPosWidth BV.mkBV
     signed signedPos
-    (const div) BV.sdiv
+    (const div) (forcePos BV.sdiv)
   , testProperty "sdiv-neg-denom" $ bin anyPosWidth BV.mkBV
     signed signedNeg
-    (const div) BV.sdiv
+    (const div) (forcePos BV.sdiv)
   , testProperty "smod-pos-denom" $ bin anyPosWidth BV.mkBV
     signed signedPos
-    (const mod) BV.smod
+    (const mod) (forcePos BV.smod)
   , testProperty "smod-neg-denom" $ bin anyPosWidth BV.mkBV
     signed signedNeg
-    (const mod) BV.smod
+    (const mod) (forcePos BV.smod)
   , testProperty "abs" $ un anyPosWidth BV.mkBV
     signed
-    (const abs) BV.abs
+    (const abs) (forcePos BV.abs)
   , testProperty "negate" $ un anyPosWidth BV.mkBV
     largeSigned
     (const negate) BV.negate
@@ -211,10 +211,10 @@ arithHomTests = testGroup "arithmetic homomorphisms tests"
     (\_ a -> if a < 0 then 1 else 0) (forcePos BV.signBit)
   , testProperty "slt" $ binPred anyPosWidth BV.mkBV
     signed signed
-    (const (<)) BV.slt
+    (const (<)) (forcePos BV.slt)
   , testProperty "sle" $ binPred anyPosWidth BV.mkBV
     signed signed
-    (const (<=)) BV.sle
+    (const (<=)) (forcePos BV.sle)
   , testProperty "ult" $ binPred anyWidth BV.mkBV
     unsigned unsigned
     (const (<)) (const BV.ult)

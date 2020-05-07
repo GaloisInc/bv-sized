@@ -300,7 +300,7 @@ asUnsigned :: BV w -> Integer
 asUnsigned (BV x) = x
 
 -- | Signed interpretation of a bitvector as an Integer.
-asSigned :: NatRepr w -> BV w -> Integer
+asSigned :: (1 <= w) => NatRepr w -> BV w -> Integer
 asSigned w (BV x) =
   -- NB, fromNatural is OK here because we maintain the invariant that
   --  any existing BV value has a representable width
@@ -363,7 +363,7 @@ shl :: NatRepr w -> BV w -> Natural -> BV w
 shl w (BV x) shf = mkBV' w (x `B.shiftL` shiftAmount w shf)
 
 -- | Right arithmetic shift by positive 'Natural'.
-ashr :: NatRepr w -> BV w -> Natural -> BV w
+ashr :: (1 <= w) => NatRepr w -> BV w -> Natural -> BV w
 ashr w bv shf = mkBV' w (asSigned w bv `B.shiftR` shiftAmount w shf)
 
 -- | Right logical shift by positive 'Natural'.
@@ -569,43 +569,43 @@ uquotRem bv1 bv2 = (uquot bv1 bv2, urem bv1 bv2)
 
 -- | Bitvector division (signed). Rounds to zero. Division by zero
 -- yields a runtime error.
-squot :: NatRepr w -> BV w -> BV w -> BV w
+squot :: (1 <= w) => NatRepr w -> BV w -> BV w -> BV w
 squot w bv1 bv2 = mkBV' w (x `quot` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
 -- | Bitvector remainder after division (signed), when rounded to
 -- zero. Division by zero yields a runtime error.
-srem :: NatRepr w -> BV w -> BV w -> BV w
+srem :: (1 <= w) => NatRepr w -> BV w -> BV w -> BV w
 srem w bv1 bv2 = mkBV' w (x `rem` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
 -- | 'squot' and 'srem' returned as a pair.
-squotRem :: NatRepr w -> BV w -> BV w -> (BV w, BV w)
+squotRem :: (1 <= w) => NatRepr w -> BV w -> BV w -> (BV w, BV w)
 squotRem w bv1 bv2 = (squot w bv1 bv2, srem w bv1 bv2)
 
 -- | Bitvector division (signed). Rounds to negative infinity. Division
 -- by zero yields a runtime error.
-sdiv :: NatRepr w -> BV w -> BV w -> BV w
+sdiv :: (1 <= w) => NatRepr w -> BV w -> BV w -> BV w
 sdiv w bv1 bv2 = mkBV' w (x `div` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
 -- | Bitvector remainder after division (signed), when rounded to
 -- negative infinity. Division by zero yields a runtime error.
-smod :: NatRepr w -> BV w -> BV w -> BV w
+smod :: (1 <= w) => NatRepr w -> BV w -> BV w -> BV w
 smod w bv1 bv2 = mkBV' w (x `mod` y)
   where x = asSigned w bv1
         y = asSigned w bv2
 
 -- | 'sdiv' and 'smod' returned as a pair.
-sdivMod :: NatRepr w -> BV w -> BV w -> (BV w, BV w)
+sdivMod :: (1 <= w) => NatRepr w -> BV w -> BV w -> (BV w, BV w)
 sdivMod w bv1 bv2 = (sdiv w bv1 bv2, smod w bv1 bv2)
 
 -- | Bitvector absolute value.  Returns the 2's complement
 --   magnitude of the bitvector.
-abs :: NatRepr w -> BV w -> BV w
+abs :: (1 <= w) => NatRepr w -> BV w -> BV w
 abs w bv = mkBV' w (Prelude.abs (asSigned w bv))
 
 -- | 2's complement bitvector negation.
@@ -621,11 +621,11 @@ signum :: 1 <= w => NatRepr w -> BV w -> BV w
 signum w bv = mkBV' w (Prelude.signum (asSigned w bv))
 
 -- | Signed less than.
-slt :: NatRepr w -> BV w -> BV w -> Bool
+slt :: (1 <= w) => NatRepr w -> BV w -> BV w -> Bool
 slt w bv1 bv2 = asSigned w bv1 < asSigned w bv2
 
 -- | Signed less than or equal.
-sle :: NatRepr w -> BV w -> BV w -> Bool
+sle :: (1 <= w) => NatRepr w -> BV w -> BV w -> Bool
 sle w bv1 bv2 = asSigned w bv1 <= asSigned w bv2
 
 -- | Unsigned less than.
@@ -645,11 +645,11 @@ umax :: BV w -> BV w -> BV w
 umax (BV x) (BV y) = if x < y then BV y else BV x
 
 -- | Signed minimum of two bitvectors.
-smin :: NatRepr w -> BV w -> BV w -> BV w
+smin :: (1 <= w) => NatRepr w -> BV w -> BV w -> BV w
 smin w bv1 bv2 = if asSigned w bv1 < asSigned w bv2 then bv1 else bv2
 
 -- | Signed maximum of two bitvectors.
-smax :: NatRepr w -> BV w -> BV w -> BV w
+smax :: (1 <= w) => NatRepr w -> BV w -> BV w -> BV w
 smax w bv1 bv2 = if asSigned w bv1 < asSigned w bv2 then bv2 else bv1
 
 ----------------------------------------
@@ -728,7 +728,7 @@ zext :: w + 1 <= w'
 zext w (BV x) = checkNatRepr w $ BV x
 
 -- | Sign-extend a bitvector to one of strictly greater width.
-sext :: w + 1 <= w'
+sext :: (1 <= w, w + 1 <= w')
      => NatRepr w
      -- ^ Width of input bitvector
      -> NatRepr w'

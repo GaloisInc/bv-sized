@@ -45,7 +45,7 @@ newtype SignedBV w = SignedBV (BV w)
 mkSignedBV :: NatRepr w -> Integer -> SignedBV w
 mkSignedBV w x = SignedBV (BV.mkBV w x)
 
-instance KnownNat w => Ord (SignedBV w) where
+instance (KnownNat w, 1 <= w) => Ord (SignedBV w) where
   SignedBV bv1 `compare` SignedBV bv2 =
     if | bv1 == bv2              -> EQ
        | BV.slt knownNat bv1 bv2 -> LT
@@ -66,9 +66,12 @@ liftBinaryInt :: (BV w -> Natural -> BV w)
               -> SignedBV w
               -> Int
               -> SignedBV w
-liftBinaryInt op (SignedBV bv) i = SignedBV (op bv (fromIntegral i))
+liftBinaryInt op (SignedBV bv) i = SignedBV (op bv (intToNatural i))
 
-instance KnownNat w => Bits (SignedBV w) where
+intToNatural :: Int -> Natural
+intToNatural = fromIntegral
+
+instance (KnownNat w, 1 <= w) => Bits (SignedBV w) where
   (.&.)        = liftBinary BV.and
   (.|.)        = liftBinary BV.or
   xor          = liftBinary BV.xor
@@ -80,11 +83,11 @@ instance KnownNat w => Bits (SignedBV w) where
   bitSize _    = widthVal (knownNat @w)
   bitSizeMaybe _ = Just (widthVal (knownNat @w))
   isSigned     = const True
-  testBit (SignedBV bv) ix = BV.testBit' (fromIntegral ix) bv
-  bit          = SignedBV . BV.bit' knownNat . fromIntegral
-  popCount (SignedBV bv) = fromIntegral (BV.asUnsigned (BV.popCount bv))
+  testBit (SignedBV bv) ix = BV.testBit' (intToNatural ix) bv
+  bit          = SignedBV . BV.bit' knownNat . intToNatural
+  popCount (SignedBV bv) = fromInteger (BV.asUnsigned (BV.popCount bv))
 
-instance KnownNat w => FiniteBits (SignedBV w) where
+instance (KnownNat w, 1 <= w) => FiniteBits (SignedBV w) where
   finiteBitSize _ = widthVal (knownNat @w)
 
 instance (KnownNat w, 1 <= w) => Num (SignedBV w) where
@@ -95,17 +98,17 @@ instance (KnownNat w, 1 <= w) => Num (SignedBV w) where
   fromInteger = SignedBV . mkBV knownNat
   negate      = liftUnary (BV.negate knownNat)
 
-instance KnownNat w => Enum (SignedBV w) where
-  toEnum = SignedBV . mkBV knownNat . fromIntegral . checkInt
-    where checkInt i | lo <= i && i <= hi = i
+instance (KnownNat w, 1 <= w) => Enum (SignedBV w) where
+  toEnum = SignedBV . mkBV knownNat . checkInt
+    where checkInt i | lo <= toInteger i && toInteger i <= hi = toInteger i
                      | otherwise = panic "Data.BitVector.Sized.Signed"
                                    ["toEnum: bad argument"]
-            where lo = negate (bit (widthVal (knownNat @w) - 1))
-                  hi = bit (widthVal (knownNat @w) - 1) - 1
+            where lo = minSigned (knownNat @w)
+                  hi = maxSigned (knownNat @w)
 
-  fromEnum (SignedBV bv) = fromIntegral (BV.asSigned (knownNat @w) bv)
+  fromEnum (SignedBV bv) = fromInteger (BV.asSigned (knownNat @w) bv)
 
-instance KnownNat w => Ix (SignedBV w) where
+instance (KnownNat w, 1 <= w) => Ix (SignedBV w) where
   range (SignedBV loBV, SignedBV hiBV) =
     (SignedBV . mkBV knownNat) <$>
     [BV.asSigned knownNat loBV .. BV.asSigned knownNat hiBV]

@@ -59,7 +59,10 @@ liftBinaryInt :: (BV w -> Natural -> BV w)
               -> UnsignedBV w
               -> Int
               -> UnsignedBV w
-liftBinaryInt op (UnsignedBV bv) i = UnsignedBV (op bv (fromIntegral i))
+liftBinaryInt op (UnsignedBV bv) i = UnsignedBV (op bv (intToNatural i))
+
+intToNatural :: Int -> Natural
+intToNatural = fromIntegral
 
 instance KnownNat w => Bits (UnsignedBV w) where
   (.&.)        = liftBinary BV.and
@@ -73,9 +76,9 @@ instance KnownNat w => Bits (UnsignedBV w) where
   bitSize _    = widthVal (knownNat @w)
   bitSizeMaybe _ = Just (widthVal (knownNat @w))
   isSigned     = const False
-  testBit (UnsignedBV bv) ix = BV.testBit' (fromIntegral ix) bv
-  bit          = UnsignedBV . BV.bit' knownNat . fromIntegral
-  popCount (UnsignedBV bv) = fromIntegral (BV.asUnsigned (BV.popCount bv))
+  testBit (UnsignedBV bv) ix = BV.testBit' (intToNatural ix) bv
+  bit          = UnsignedBV . BV.bit' knownNat . intToNatural
+  popCount (UnsignedBV bv) = fromInteger (BV.asUnsigned (BV.popCount bv))
 
 instance KnownNat w => FiniteBits (UnsignedBV w) where
   finiteBitSize _ = widthVal (knownNat @w)
@@ -83,19 +86,19 @@ instance KnownNat w => FiniteBits (UnsignedBV w) where
 instance KnownNat w => Num (UnsignedBV w) where
   (+)         = liftBinary (BV.add knownNat)
   (*)         = liftBinary (BV.mul knownNat)
-  abs         = liftUnary (BV.abs knownNat)
+  abs         = id
   signum      = const $ UnsignedBV (BV 0)
   fromInteger = UnsignedBV . mkBV knownNat
   -- in this case, negate just means "additive inverse"
   negate      = liftUnary (BV.negate knownNat)
 
 instance KnownNat w => Enum (UnsignedBV w) where
-  toEnum = UnsignedBV . mkBV knownNat . fromIntegral . checkInt
-    where checkInt i | 0 <= i && i <= fromInteger (maxUnsigned (knownNat @w)) = i
+  toEnum = UnsignedBV . mkBV knownNat . checkInt
+    where checkInt i | 0 <= i && toInteger i <= (maxUnsigned (knownNat @w)) = toInteger i
                      | otherwise = panic "Data.BitVector.Sized.Unsigned"
                                    ["toEnum: bad argument"]
 
-  fromEnum (UnsignedBV bv) = fromIntegral (BV.asUnsigned bv)
+  fromEnum (UnsignedBV bv) = fromInteger (BV.asUnsigned bv)
 
 instance KnownNat w => Ix (UnsignedBV w) where
   range (UnsignedBV loBV, UnsignedBV hiBV) =
