@@ -104,7 +104,7 @@ import Data.Parameterized.NatRepr (knownNat, NatRepr)
 import Prelude (Integer)
 
 -- | Get the underlying 'Integer' representation from a 'BV'. We
--- guarantee that @(\(BV.BV x) -> x) == BV.toUnsigned@.
+-- guarantee that @(\\(BV.BV x) -> x) == BV.toUnsigned@.
 pattern BV :: Integer -> BV.BV w
 pattern BV x <- BV.BV x
 {-# COMPLETE BV #-}
