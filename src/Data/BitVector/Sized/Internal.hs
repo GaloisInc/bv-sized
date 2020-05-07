@@ -511,7 +511,11 @@ testBit ix (BV x) = B.testBit x (fromNatural (natValue ix))
 -- | Like 'testBit', but takes a 'Natural' for the bit index. If the
 -- index is out of bounds, return 'False'.
 testBit' :: Natural -> BV w -> Bool
-testBit' ix (BV x) = checkNatural ix $ B.testBit x (fromNatural ix)
+testBit' ix (BV x)
+  -- NB, If the index is larger than the maximum representable 'Int',
+  -- this function should be 'False' by construction of 'BV'.
+  | ix > fromIntegral (maxBound :: Int) = False
+  | otherwise = B.testBit x (fromNatural ix)
 
 -- | Get the number of 1 bits in a 'BV'.
 popCount :: BV w -> BV w
