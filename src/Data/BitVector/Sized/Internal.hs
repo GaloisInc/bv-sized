@@ -42,7 +42,7 @@ import Data.Parameterized ( NatRepr
                           , ShowF
                           , EqF(..)
                           , Hashable(..)
-                          , HashableF(..))
+                          )
 import qualified Data.Parameterized.NatRepr as P
 import qualified Data.Parameterized.Pair as P
 import GHC.Generics

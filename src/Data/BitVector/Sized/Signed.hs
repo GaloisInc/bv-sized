@@ -28,6 +28,7 @@ module Data.BitVector.Sized.Signed
 
 import           Data.BitVector.Sized (BV, mkBV)
 import qualified Data.BitVector.Sized.Internal as BV
+import           Data.BitVector.Sized.Panic (panic)
 import Data.Parameterized.NatRepr
 
 import Data.Bits (Bits(..), FiniteBits(..))
@@ -95,7 +96,13 @@ instance (KnownNat w, 1 <= w) => Num (SignedBV w) where
   negate      = liftUnary (BV.negate knownNat)
 
 instance KnownNat w => Enum (SignedBV w) where
-  toEnum = SignedBV . mkBV knownNat . fromIntegral
+  toEnum = SignedBV . mkBV knownNat . fromIntegral . checkInt
+    where checkInt i | lo <= i && i <= hi = i
+                     | otherwise = panic "Data.BitVector.Sized.Signed"
+                                   ["toEnum: bad argument"]
+            where lo = negate (bit (widthVal (knownNat @w) - 1))
+                  hi = bit (widthVal (knownNat @w) - 1) - 1
+
   fromEnum (SignedBV bv) = fromIntegral (BV.asSigned (knownNat @w) bv)
 
 instance KnownNat w => Ix (SignedBV w) where

@@ -27,6 +27,7 @@ module Data.BitVector.Sized.Unsigned
 
 import           Data.BitVector.Sized.Internal (BV(..), mkBV)
 import qualified Data.BitVector.Sized.Internal as BV
+import           Data.BitVector.Sized.Panic (panic)
 import Data.Parameterized.NatRepr
 
 import Data.Bits (Bits(..), FiniteBits(..))
@@ -89,7 +90,11 @@ instance KnownNat w => Num (UnsignedBV w) where
   negate      = liftUnary (BV.negate knownNat)
 
 instance KnownNat w => Enum (UnsignedBV w) where
-  toEnum   = UnsignedBV . mkBV knownNat . fromIntegral
+  toEnum = UnsignedBV . mkBV knownNat . fromIntegral . checkInt
+    where checkInt i | 0 <= i && i <= fromInteger (maxUnsigned (knownNat @w)) = i
+                     | otherwise = panic "Data.BitVector.Sized.Unsigned"
+                                   ["toEnum: bad argument"]
+
   fromEnum (UnsignedBV bv) = fromIntegral (BV.asUnsigned bv)
 
 instance KnownNat w => Ix (UnsignedBV w) where
