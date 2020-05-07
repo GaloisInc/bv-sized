@@ -86,9 +86,6 @@ instance EqF BV where
 instance Hashable (BV w) where
   hashWithSalt salt (BV i) = hashWithSalt salt i
 
-instance HashableF BV where
-  hashWithSaltF salt (BV i) = hashWithSalt salt i
-
 ----------------------------------------
 -- BV construction
 -- | Internal function for masking the input integer *without*
