@@ -320,8 +320,8 @@ asNatural = (fromInteger :: Integer -> Natural) . asUnsigned
 -- >>> asBitsBE (knownNat @5) (mkBV knownNat 0b1101)
 -- [False,True,True,False,True]
 asBitsBE :: NatRepr w -> BV w -> [Bool]
-asBitsBE w bv = [ testBit' i bv | i <- [wi - 1, wi - 2 .. 0] ]
-  where wi = natValue w
+asBitsBE w bv = [ testBit' i bv | i <- fromInteger <$> [wi - 1, wi - 2 .. 0] ]
+  where wi = intValue w
 
 -- | Convert a bitvector to a list of bits, in little endian order
 -- (lower order bits in the bitvector are mapped to lower indices in
