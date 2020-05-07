@@ -40,6 +40,7 @@ import Numeric.Natural
 newtype SignedBV w = SignedBV (BV w)
   deriving (Generic, Show, Read, Eq)
 
+-- | Convenience wrapper for 'BV.mkBV'.
 mkSignedBV :: NatRepr w -> Integer -> SignedBV w
 mkSignedBV w x = SignedBV (BV.mkBV w x)
 
