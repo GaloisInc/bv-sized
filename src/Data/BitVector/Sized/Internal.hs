@@ -299,6 +299,26 @@ asSigned w (BV x) =
 asNatural :: BV w -> Natural
 asNatural = fromIntegral . asUnsigned
 
+-- | Convert a bitvector to a list of bits, in big endian order
+-- (higher order bits in the bitvector are mapped to lower indices in
+-- the output list).
+--
+-- >>> asBitsBE (knownNat @5) (mkBV knownNat 0b1101)
+-- [False,True,True,False,True]
+asBitsBE :: NatRepr w -> BV w -> [Bool]
+asBitsBE w bv = [ testBit' i bv | i <- [wi - 1, wi - 2 .. 0] ]
+  where wi = natValue w
+
+-- | Convert a bitvector to a list of bits, in little endian order
+-- (lower order bits in the bitvector are mapped to lower indices in
+-- the output list).
+--
+-- >>> asBitsLE (knownNat @5) (mkBV knownNat 0b1101)
+-- [True,False,True,True,False]
+asBitsLE :: NatRepr w -> BV w -> [Bool]
+asBitsLE w bv = [ testBit' i bv | i <- [0 .. wi - 1] ]
+  where wi = natValue w
+
 ----------------------------------------
 -- BV w operations (fixed width)
 

@@ -49,10 +49,11 @@ module Data.BitVector.Sized
   , int8, int16, int32, int64
   , bitsBE, bitsLE
   , bytesBE, bytesLE
-    -- * Conversions to Integer and Natural
+    -- * Conversions to primitive types
   , asSigned
   , asUnsigned
   , asNatural
+  , asBitsBE, asBitsLE
     -- * Bits operations (width-preserving)
     -- | 'BV' versions of the functions in @Data.Bits@.
   , and, or, xor
