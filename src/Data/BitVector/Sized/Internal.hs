@@ -37,7 +37,6 @@ import Data.Word
 import Data.Parameterized ( NatRepr
                           , natValue
                           , intValue
-                          , widthVal
                           , addNat
                           , ShowF
                           , EqF(..)
@@ -61,10 +60,19 @@ checkNatRepr = checkNatural . natValue
 
 -- | Check that a 'Natural' is representable as an 'Int'.
 checkNatural :: Natural -> a -> a
-checkNatural n a = if n > fromIntegral (maxBound :: Int)
+checkNatural n a = if n > (fromIntegral (maxBound :: Int) :: Natural)
   then panic "Data.BitVector.Sized.Internal.checkNatural"
        [show n <> " not representable as Int"]
   else a
+
+
+-- | Unsafe corecion from @Natural@ to @Int@.  We mostly use
+--   this to interact with operations from "Data.Bits".
+--   This should only be called when we already know
+--   the input @Natural@ is small enough, e.g., because
+--   we previously called @checkNatural@.
+fromNatural :: Natural -> Int
+fromNatural = fromIntegral
 
 ----------------------------------------
 -- BitVector data type definitions
@@ -75,7 +83,11 @@ data BV (w :: Nat) :: Type where
   -- since many of the operations on bitvectors rely on a two's
   -- complement representation. However, an invariant on the value is
   -- that it must always be positive.
+  --
+  -- Secondly, we maintain the invariant that any constructed BV value
+  -- has a width whose value is representable in a Haskell @Int@
   BV :: Integer -> BV w
+
   deriving (Generic, Show, Read, Eq, Ord, Lift)
 
 instance ShowF BV
@@ -194,35 +206,35 @@ bool False = BV 0
 
 -- | Construct a 'BV' from a 'Word8'.
 word8 :: Word8 -> BV 8
-word8 = BV . fromIntegral
+word8 = BV . toInteger
 
 -- | Construct a 'BV' from a 'Word16'.
 word16 :: Word16 -> BV 16
-word16 = BV . fromIntegral
+word16 = BV . toInteger
 
 -- | Construct a 'BV' from a 'Word32'.
 word32 :: Word32 -> BV 32
-word32 = BV . fromIntegral
+word32 = BV . toInteger
 
 -- | Construct a 'BV' from a 'Word64'.
 word64 :: Word64 -> BV 64
-word64 = BV . fromIntegral
+word64 = BV . toInteger
 
 -- | Construct a 'BV' from an 'Int8'.
 int8 :: Int8 -> BV 8
-int8 = word8 . fromIntegral
+int8 = word8 . (fromIntegral :: Int8 -> Word8)
 
 -- | Construct a 'BV' from an 'Int16'.
 int16 :: Int16 -> BV 16
-int16 = word16 . fromIntegral
+int16 = word16 . (fromIntegral :: Int16 -> Word16)
 
 -- | Construct a 'BV' from an 'Int32'.
 int32 :: Int32 -> BV 32
-int32 = word32 . fromIntegral
+int32 = word32 . (fromIntegral :: Int32 -> Word32)
 
 -- | Construct a 'BV' from an 'Int64'.
 int64 :: Int64 -> BV 64
-int64 = word64 . fromIntegral
+int64 = word64 . (fromIntegral :: Int64 -> Word64)
 
 -- | Construct a 'BV' from a list of bits, in big endian order (bits
 -- with lower value index in the list are mapped to higher order bits
@@ -290,14 +302,16 @@ asUnsigned (BV x) = x
 -- | Signed interpretation of a bitvector as an Integer.
 asSigned :: NatRepr w -> BV w -> Integer
 asSigned w (BV x) =
+  -- NB, fromNatural is OK here because we maintain the invariant that
+  --  any existing BV value has a representable width
+  let wInt = fromNatural (natValue w) in
   if B.testBit x (wInt - 1)
-  then x - (1 `B.shiftL` wInt)
+  then x - B.bit wInt
   else x
-  where wInt = widthVal w
 
 -- | Unsigned interpretation of a bitvector as a Natural.
 asNatural :: BV w -> Natural
-asNatural = fromIntegral . asUnsigned
+asNatural = (fromInteger :: Integer -> Natural) . asUnsigned
 
 -- | Convert a bitvector to a list of bits, in big endian order
 -- (higher order bits in the bitvector are mapped to lower indices in
@@ -338,37 +352,41 @@ xor (BV x) (BV y) = BV (x `B.xor` y)
 complement :: NatRepr w -> BV w -> BV w
 complement w (BV x) = mkBV' w (B.complement x)
 
+
+-- | Clamp shift amounts to the word width and
+--   coerce to an @Int@
+shiftAmount :: NatRepr w -> Natural -> Int
+shiftAmount w shf = fromNatural (min (natValue w) shf)
+
 -- | Left shift by positive 'Natural'.
 shl :: NatRepr w -> BV w -> Natural -> BV w
-shl w (BV x) shf = checkNatural shf $
-  mkBV' w (x `B.shiftL` fromIntegral shf)
+shl w (BV x) shf = mkBV' w (x `B.shiftL` shiftAmount w shf)
 
 -- | Right arithmetic shift by positive 'Natural'.
 ashr :: NatRepr w -> BV w -> Natural -> BV w
-ashr w bv shf = checkNatural shf $
-  mkBV' w (asSigned w bv `B.shiftR` fromIntegral shf)
+ashr w bv shf = mkBV' w (asSigned w bv `B.shiftR` shiftAmount w shf)
 
 -- | Right logical shift by positive 'Natural'.
-lshr :: BV w -> Natural -> BV w
-lshr (BV x) shf = checkNatural shf $
+lshr :: NatRepr w -> BV w -> Natural -> BV w
+lshr w (BV x) shf =
   -- Shift right (logical by default since the value is positive). No
   -- need to truncate bits, since the result is guaranteed to occupy
   -- no more bits than the input.
-  BV (x `B.shiftR` fromIntegral shf)
+  BV (x `B.shiftR` shiftAmount w shf)
 
 -- | Bitwise rotate left.
 rotateL :: NatRepr w -> BV w -> Natural -> BV w
 rotateL w bv rot' = leftChunk `or` rightChunk
   where rot = rot' `mod` wNatural
         leftChunk = shl w bv rot
-        rightChunk = lshr bv (wNatural - rot)
+        rightChunk = lshr w bv (wNatural - rot)
         wNatural = natValue w
 
 -- | Bitwise rotate right.
 rotateR :: NatRepr w -> BV w -> Natural -> BV w
 rotateR w bv rot' = leftChunk `or` rightChunk
   where rot = rot' `mod` wNatural
-        rightChunk = lshr bv rot
+        rightChunk = lshr w bv rot
         leftChunk = shl w bv (wNatural - rot)
         wNatural = natValue w
 
@@ -392,7 +410,10 @@ bit :: ix+1 <= w
     -> NatRepr ix
     -- ^ Index of bit to set
     -> BV w
-bit w ix = checkNatRepr w $ BV (B.bit (widthVal ix))
+bit w ix =
+  checkNatRepr w $
+    -- NB fromNatural is OK here because of the (ix+1<w) constraint
+    BV (B.bit (fromNatural (natValue ix)))
 
 -- | Like 'bit', but without the requirement that the index bit refers
 -- to an actual bit in the output 'BV'. If it is out of range, just
@@ -402,7 +423,9 @@ bit' :: NatRepr w
      -> Natural
      -- ^ Index of bit to set
      -> BV w
-bit' w ix = mkBV w (B.bit (fromIntegral ix))
+bit' w ix
+  | ix < natValue w = checkNatRepr w $ mkBV' w (B.bit (fromNatural ix))
+  | otherwise = zero w
 
 -- | @setBit bv ix@ is the same as @or bv (bit knownNat ix)@.
 setBit :: ix+1 <= w
@@ -411,7 +434,9 @@ setBit :: ix+1 <= w
        -> BV w
        -- ^ Original bitvector
        -> BV w
-setBit ix bv = or bv (BV (B.bit (widthVal ix)))
+setBit ix bv =
+  -- NB, fromNatural is OK because of the (ix+1 <= w) constraint
+  or bv (BV (B.bit (fromNatural (natValue ix))))
 
 -- | Like 'setBit', but without the requirement that the index bit
 -- refers to an actual bit in the input 'BV'. If it is out of range,
@@ -423,7 +448,9 @@ setBit' :: NatRepr w
         -> BV w
         -- ^ Original bitvector
         -> BV w
-setBit' w ix bv = or bv (mkBV' w (B.bit (fromIntegral ix)))
+setBit' w ix bv
+  | ix < natValue w = or bv (BV (B.bit (fromNatural ix)))
+  | otherwise = bv
 
 -- | @clearBit w bv ix@ is the same as @and bv (complement (bit w ix))@.
 clearBit :: ix+1 <= w
@@ -434,7 +461,10 @@ clearBit :: ix+1 <= w
          -> BV w
          -- ^ Original bitvector
          -> BV w
-clearBit w ix bv = and bv (complement w (BV (B.bit (widthVal ix))))
+clearBit w ix bv =
+  -- NB, fromNatural is OK because of the (ix+1<=w) constraint
+  and bv (complement w (BV (B.bit (fromNatural (natValue ix)))))
+
 
 -- | Like 'clearBit', but without the requirement that the index bit
 -- refers to an actual bit in the input 'BV'. If it is out of range,
@@ -446,7 +476,9 @@ clearBit' :: NatRepr w
           -> BV w
           -- ^ Original bitvector
           -> BV w
-clearBit' w ix bv = and bv (complement w (mkBV' w (B.bit (fromIntegral ix))))
+clearBit' w ix bv
+  | ix < natValue w = and bv (complement w (BV (B.bit (fromNatural ix))))
+  | otherwise = bv
 
 -- | @complementBit bv ix@ is the same as @xor bv (bit knownNat ix)@.
 complementBit :: ix+1 <= w
@@ -455,7 +487,9 @@ complementBit :: ix+1 <= w
               -> BV w
               -- ^ Original bitvector
               -> BV w
-complementBit ix bv = xor bv (BV (B.bit (widthVal ix)))
+complementBit ix bv =
+  -- NB, fromNatural is OK because of (ix+1 <= w) constraint
+  xor bv (BV (B.bit (fromNatural (natValue ix))))
 
 -- | Like 'complementBit', but without the requirement that the index
 -- bit refers to an actual bit in the input 'BV'. If it is out of
@@ -467,40 +501,42 @@ complementBit' :: NatRepr w
                -> BV w
                -- ^ Original bitvector
                -> BV w
-complementBit' w ix bv = xor bv (mkBV' w (B.bit (fromIntegral ix)))
+complementBit' w ix bv
+  | ix < natValue w = xor bv (BV (B.bit (fromNatural ix)))
+  | otherwise = bv
 
 -- | Test if a particular bit is set.
 testBit :: ix+1 <= w => NatRepr ix -> BV w -> Bool
-testBit ix (BV x) = B.testBit x (widthVal ix)
+testBit ix (BV x) = B.testBit x (fromNatural (natValue ix))
 
 -- | Like 'testBit', but takes a 'Natural' for the bit index. If the
 -- index is out of bounds, return 'False'.
 testBit' :: Natural -> BV w -> Bool
-testBit' ix (BV x) = checkNatural ix $ B.testBit x (fromIntegral ix)
+testBit' ix (BV x) = checkNatural ix $ B.testBit x (fromNatural ix)
 
 -- | Get the number of 1 bits in a 'BV'.
 popCount :: BV w -> BV w
-popCount (BV x) = BV (fromIntegral (B.popCount x))
+popCount (BV x) = BV (toInteger (B.popCount x))
 
 -- | Count trailing zeros in a 'BV'.
 ctz :: NatRepr w -> BV w -> BV w
 ctz w (BV x) = BV (go 0)
-  where go !i | i < toInteger (natValue w) &&
+  where go !i | i < intValue w &&
                 B.testBit x (fromInteger i) == False = go (i+1)
               | otherwise = i
 
 -- | Count leading zeros in a 'BV'.
 clz :: NatRepr w -> BV w -> BV w
 clz w (BV x) = BV (go 0)
- where go !i | i < toInteger (natValue w) &&
-               B.testBit x (widthVal w - fromInteger i - 1) == False =
+ where go !i | i < intValue w &&
+               B.testBit x (fromInteger (intValue w - i - 1)) == False =
                  go (i+1)
              | otherwise = i
 
 -- | Truncate a bitvector to a particular width given at runtime,
 -- while keeping the type-level width constant.
 truncBits :: Natural -> BV w -> BV w
-truncBits b (BV x) = checkNatural b $ BV (x B..&. (B.bit (fromIntegral b) - 1))
+truncBits b (BV x) = checkNatural b $ BV (x B..&. (B.bit (fromNatural b) - 1))
 
 ----------------------------------------
 -- BV w arithmetic operations (fixed width)
@@ -567,17 +603,18 @@ smod w bv1 bv2 = mkBV' w (x `mod` y)
 sdivMod :: NatRepr w -> BV w -> BV w -> (BV w, BV w)
 sdivMod w bv1 bv2 = (sdiv w bv1 bv2, smod w bv1 bv2)
 
--- | Bitvector absolute value.
+-- | Bitvector absolute value.  Returns the 2's complement
+--   magnitude of the bitvector.
 abs :: NatRepr w -> BV w -> BV w
 abs w bv = mkBV' w (Prelude.abs (asSigned w bv))
 
--- | Bitvector negation.
+-- | 2's complement bitvector negation.
 negate :: NatRepr w -> BV w -> BV w
 negate w (BV x) = mkBV' w (-x)
 
 -- | Get the sign bit as a 'BV'.
 signBit :: 1 <= w => NatRepr w -> BV w -> BV w
-signBit w bv@(BV _) = lshr bv (natValue w - 1) `and` BV 1
+signBit w bv@(BV _) = lshr w bv (natValue w - 1) `and` BV 1
 
 -- | Return 1 if positive, -1 if negative, and 0 if 0.
 signum :: 1 <= w => NatRepr w -> BV w -> BV w
@@ -589,7 +626,7 @@ slt w bv1 bv2 = asSigned w bv1 < asSigned w bv2
 
 -- | Signed less than or equal.
 sle :: NatRepr w -> BV w -> BV w -> Bool
-sle w bv1 bv2 = bv1 == bv2 || slt w bv1 bv2
+sle w bv1 bv2 = asSigned w bv1 <= asSigned w bv2
 
 -- | Unsigned less than.
 ult :: BV w -> BV w -> Bool
@@ -597,7 +634,7 @@ ult bv1 bv2 = asUnsigned bv1 < asUnsigned bv2
 
 -- | Unsigned less than or equal.
 ule :: BV w -> BV w -> Bool
-ule bv1 bv2 = bv1 == bv2 || ult bv1 bv2
+ule bv1 bv2 = asUnsigned bv1 <= asUnsigned bv2
 
 -- | Unsigned minimum of two bitvectors.
 umin :: BV w -> BV w -> BV w
@@ -635,7 +672,7 @@ concat :: NatRepr w
        -- ^ Lower-order bits
        -> BV (w+w')
 concat w w' (BV hi) (BV lo) = checkNatRepr (w `addNat` w') $
-  BV ((hi `B.shiftL` (widthVal w')) B..|. lo)
+  BV ((hi `B.shiftL` (fromNatural (natValue w'))) B..|. lo)
 
 -- | Slice out a smaller bitvector from a larger one.
 --
@@ -651,8 +688,9 @@ select :: ix + w' <= w
        -> BV w
        -- ^ Bitvector to select from
        -> BV w'
-select ix w' bv = mkBV' w' xShf
-  where (BV xShf) = lshr bv (natValue ix)
+select ix w' (BV x) = mkBV' w' xShf
+  -- NB fromNatural is OK because of (ix + w' <= w) constraint
+  where xShf = x `B.shiftR` (fromNatural (natValue ix))
 
 -- | Like 'select', but takes a 'Natural' as the index to start
 -- selecting from. Neither the index nor the output width is checked
@@ -671,8 +709,9 @@ select' :: Natural
         -> BV w
         -- ^ Bitvector to select from
         -> BV w'
-select' ix w' bv = mkBV w' xShf
-  where (BV xShf) = lshr bv ix
+select' ix w' (BV x)
+  | toInteger ix < toInteger (maxBound :: Int) = mkBV w' (x `B.shiftR` (fromNatural ix))
+  | otherwise = zero w'
 
 -- | Zero-extend a bitvector to one of strictly greater width.
 --
@@ -706,7 +745,7 @@ trunc :: w' + 1 <= w
       -> BV w
       -- ^ Bitvector to truncate
       -> BV w'
-trunc w' (BV x) = mkBV w' x
+trunc w' (BV x) = mkBV' w' x
 
 -- | Like 'trunc', but allows the input width to be greater than or
 -- equal to the output width, in which case it just performs a zero
