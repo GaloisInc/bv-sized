@@ -26,30 +26,36 @@ module Data.BitVector.Sized.Internal where
 
 import Data.BitVector.Sized.Panic (panic)
 
-import qualified Data.Bits as B
-import qualified Numeric as N
+-- Qualified imports
+import qualified Data.Bits                  as B
+import qualified Data.Bits.Bitwise          as B
+import qualified Numeric                    as N
+import qualified Data.Parameterized.NatRepr as P
+import qualified Prelude as Prelude
 
+-- Unqualified imports
 import Data.Char (intToDigit)
+import Data.List (genericLength)
 import Data.Int
 import Data.Kind (Type)
 import Data.Maybe (fromJust)
 import Data.Word
 import Data.Parameterized ( NatRepr
+                          , mkNatRepr
                           , natValue
                           , intValue
                           , addNat
                           , ShowF
                           , EqF(..)
                           , Hashable(..)
+                          , Some(..)
+                          , Pair(..)
                           )
-import qualified Data.Parameterized.NatRepr as P
-import qualified Data.Parameterized.Pair as P
 import GHC.Generics
 import GHC.TypeLits
 import Language.Haskell.TH.Lift (Lift)
 import Numeric.Natural
 import Prelude hiding (abs, or, and, negate, concat, signum)
-import qualified Prelude as Prelude
 
 ----------------------------------------
 -- Utility functions
@@ -242,12 +248,9 @@ int64 = word64 . (fromIntegral :: Int64 -> Word64)
 --
 -- >>> case bitsBE [True, False] of p -> (fstPair p, sndPair p)
 -- (2,BV 2)
-bitsBE :: [Bool] -> P.Pair NatRepr BV
-bitsBE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
-bitsBE (b:bs) = case bitsBE bs of
-  P.Pair w bv -> P.Pair w' bv'
-    where w' = (P.knownNat @1) `addNat` w
-          bv' = concat (P.knownNat @1) w (bool b) bv
+bitsBE :: [Bool] -> Pair NatRepr BV
+bitsBE bs = case mkNatRepr (fromInteger (genericLength bs)) of
+  Some w -> checkNatRepr w $ Pair w (BV (B.fromListBE bs))
 
 -- | Construct a 'BV' from a list of bits, in little endian order
 -- (bits with lower value index in the list are mapped to lower order
@@ -256,12 +259,9 @@ bitsBE (b:bs) = case bitsBE bs of
 --
 -- >>> case bitsLE [True, False] of p -> (fstPair p, sndPair p)
 -- (2,BV 1)
-bitsLE :: [Bool] -> P.Pair NatRepr BV
-bitsLE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
-bitsLE (b:bs) = case bitsLE bs of
-  P.Pair w bv -> P.Pair w' bv'
-    where w' = w `addNat` (P.knownNat @1)
-          bv' = concat w (P.knownNat @1) bv (bool b)
+bitsLE :: [Bool] -> Pair NatRepr BV
+bitsLE bs = case mkNatRepr (fromInteger (genericLength bs)) of
+  Some w -> checkNatRepr w $ Pair w (BV (B.fromListLE bs))
 
 -- | Construct a 'BV' from a list of bytes, in big endian order (bytes
 -- with lower value index in the list are mapped to higher order bytes
@@ -270,10 +270,10 @@ bitsLE (b:bs) = case bitsLE bs of
 --
 -- >>> case bytesBE [2, 1] of p -> (fstPair p, sndPair p)
 -- (16,BV 513)
-bytesBE :: [Word8] -> P.Pair NatRepr BV
-bytesBE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
+bytesBE :: [Word8] -> Pair NatRepr BV
+bytesBE [] = Pair (P.knownNat @0) (zero (P.knownNat @0))
 bytesBE (b:bs) = case bytesBE bs of
-  P.Pair w bv ->  P.Pair w' bv'
+  Pair w bv ->  Pair w' bv'
     where w' = (P.knownNat @8) `addNat` w
           bv' = concat (P.knownNat @8) w (word8 b) bv
 
@@ -284,10 +284,10 @@ bytesBE (b:bs) = case bytesBE bs of
 --
 -- >>> case bytesLE [2, 1] of p -> (fstPair p, sndPair p)
 -- (16,BV 258)
-bytesLE :: [Word8] -> P.Pair NatRepr BV
-bytesLE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
+bytesLE :: [Word8] -> Pair NatRepr BV
+bytesLE [] = Pair (P.knownNat @0) (zero (P.knownNat @0))
 bytesLE (b:bs) = case bytesLE bs of
-  P.Pair w bv ->  P.Pair w' bv'
+  Pair w bv ->  Pair w' bv'
     where w' = w `addNat` (P.knownNat @8)
           bv' = concat w (P.knownNat @8) bv (word8 b)
 
