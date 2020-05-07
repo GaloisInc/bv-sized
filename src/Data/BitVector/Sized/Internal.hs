@@ -208,19 +208,19 @@ word32 = BV . fromIntegral
 word64 :: Word64 -> BV 64
 word64 = BV . fromIntegral
 
--- | Construct a 'BV' from a 'Int8'.
+-- | Construct a 'BV' from an 'Int8'.
 int8 :: Int8 -> BV 8
 int8 = word8 . fromIntegral
 
--- | Construct a 'BV' from a 'Int16'.
+-- | Construct a 'BV' from an 'Int16'.
 int16 :: Int16 -> BV 16
 int16 = word16 . fromIntegral
 
--- | Construct a 'BV' from a 'Int32'.
+-- | Construct a 'BV' from an 'Int32'.
 int32 :: Int32 -> BV 32
 int32 = word32 . fromIntegral
 
--- | Construct a 'BV' from a 'Int64'.
+-- | Construct a 'BV' from an 'Int64'.
 int64 :: Int64 -> BV 64
 int64 = word64 . fromIntegral
 
