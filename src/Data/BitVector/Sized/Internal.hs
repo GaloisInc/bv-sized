@@ -31,6 +31,7 @@ import qualified Numeric as N
 
 import Data.Char (intToDigit)
 import Data.Int
+import Data.Kind (Type)
 import Data.Maybe (fromJust)
 import Data.Word
 import Data.Parameterized ( NatRepr
@@ -69,7 +70,7 @@ checkNatural n a = if n > fromIntegral (maxBound :: Int)
 -- BitVector data type definitions
 
 -- | Bitvector datatype, parameterized by width.
-data BV (w :: Nat) :: * where
+data BV (w :: Nat) :: Type where
   -- | We store the value as an 'Integer' rather than a 'Natural',
   -- since many of the operations on bitvectors rely on a two's
   -- complement representation. However, an invariant on the value is

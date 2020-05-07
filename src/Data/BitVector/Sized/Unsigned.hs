@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeApplications #-}
 
 {-|
-Module      : Data.BitVector.Sized.Signed
+Module      : Data.BitVector.Sized.Unsigned
 Copyright   : (c) Galois Inc. 2018
 License     : BSD-3
 Maintainer  : benselfridge@galois.com
