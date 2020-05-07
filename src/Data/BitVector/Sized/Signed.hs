@@ -89,6 +89,8 @@ instance (KnownNat w, 1 <= w) => Bits (SignedBV w) where
 
 instance (KnownNat w, 1 <= w) => FiniteBits (SignedBV w) where
   finiteBitSize _ = widthVal (knownNat @w)
+  countLeadingZeros  (SignedBV bv) = fromInteger $ BV.asUnsigned $ BV.clz knownNat bv
+  countTrailingZeros (SignedBV bv) = fromInteger $ BV.asUnsigned $ BV.ctz knownNat bv
 
 instance (KnownNat w, 1 <= w) => Num (SignedBV w) where
   (+)         = liftBinary (BV.add knownNat)
