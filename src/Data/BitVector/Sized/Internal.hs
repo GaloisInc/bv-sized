@@ -116,8 +116,8 @@ mkBV :: NatRepr w
      -> BV w
 mkBV w x = checkNatRepr w $ mkBV' w x
 
--- | Panic if an unsigned 'Integer' does not fit in the required
--- number of bits, otherwise return input.
+-- | Return 'Nothing' if the unsigned 'Integer' does not fit in the
+-- required number of bits, otherwise return the input.
 checkUnsigned :: NatRepr w
               -> Integer
               -> Maybe Integer
@@ -134,9 +134,9 @@ mkBVUnsigned :: NatRepr w
              -> Maybe (BV w)
 mkBVUnsigned w x = checkNatRepr w $ BV <$> checkUnsigned w x
 
--- | Panic if a signed 'Integer' does not fit in the required number
--- of bits. Returns an unsigned positive integer that fits in @w@
--- bits.
+-- | Return 'Nothing if the signed 'Integer' does not fit in the
+-- required number of bits, otherwise return an unsigned positive
+-- integer that fits in @w@ bits.
 signedToUnsigned :: 1 <= w => NatRepr w
                  -- ^ Width of output
                  -> Integer
