@@ -351,7 +351,7 @@ bit' :: NatRepr w
      -> BV w
 bit' w ix = mkBV w (B.bit (fromIntegral ix))
 
--- | @setBit w bv ix@ is the same as @or bv (bit w ix)@.
+-- | @setBit bv ix@ is the same as @or bv (bit knownNat ix)@.
 setBit :: ix+1 <= w
        => NatRepr ix
        -- ^ Index of bit to set
@@ -395,16 +395,14 @@ clearBit' :: NatRepr w
           -> BV w
 clearBit' w ix bv = and bv (complement w (mkBV' w (B.bit (fromIntegral ix))))
 
--- | @complementBit w bv ix@ is the same as @xor bv (bit w ix)@.
+-- | @complementBit bv ix@ is the same as @xor bv (bit knownNat ix)@.
 complementBit :: ix+1 <= w
-              => NatRepr w
-              -- ^ Desired output width
-              -> NatRepr ix
+              => NatRepr ix
               -- ^ Index of bit to flip
               -> BV w
               -- ^ Original bitvector
               -> BV w
-complementBit _w ix bv = xor bv (BV (B.bit (widthVal ix)))
+complementBit ix bv = xor bv (BV (B.bit (widthVal ix)))
 
 -- | Like 'complementBit', but without the requirement that the index
 -- bit refers to an actual bit in the input 'BV'. If it is out of
