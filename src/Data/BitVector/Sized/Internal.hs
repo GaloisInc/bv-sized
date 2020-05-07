@@ -230,7 +230,7 @@ int64 = word64 . fromIntegral
 -- width.
 --
 -- >>> case bitsBE [True, False] of p -> (fstPair p, sndPair p)
---- (2,BV 2)
+-- (2,BV 2)
 bitsBE :: [Bool] -> P.Pair NatRepr BV
 bitsBE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
 bitsBE (b:bs) = case bitsBE bs of
@@ -244,7 +244,7 @@ bitsBE (b:bs) = case bitsBE bs of
 -- with its width.
 --
 -- >>> case bitsLE [True, False] of p -> (fstPair p, sndPair p)
---- (2,BV 1)
+-- (2,BV 1)
 bitsLE :: [Bool] -> P.Pair NatRepr BV
 bitsLE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
 bitsLE (b:bs) = case bitsLE bs of
@@ -591,7 +591,7 @@ umax (BV x) (BV y) = if x < y then BV y else BV x
 smin :: NatRepr w -> BV w -> BV w -> BV w
 smin w bv1 bv2 = if asSigned w bv1 < asSigned w bv2 then bv1 else bv2
 
--- | Signed minimum of two bitvectors.
+-- | Signed maximum of two bitvectors.
 smax :: NatRepr w -> BV w -> BV w -> BV w
 smax w bv1 bv2 = if asSigned w bv1 < asSigned w bv2 then bv2 else bv1
 
