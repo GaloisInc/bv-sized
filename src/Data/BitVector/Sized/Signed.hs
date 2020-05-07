@@ -23,6 +23,7 @@ instances not provided by 'BV'.
 
 module Data.BitVector.Sized.Signed
   ( SignedBV(..)
+  , mkSignedBV
   ) where
 
 import           Data.BitVector.Sized (BV, mkBV)
@@ -38,6 +39,9 @@ import Numeric.Natural
 -- | Signed bit vector.
 newtype SignedBV w = SignedBV (BV w)
   deriving (Generic, Show, Read, Eq)
+
+mkSignedBV :: NatRepr w -> Integer -> SignedBV w
+mkSignedBV w x = SignedBV (BV.mkBV w x)
 
 instance KnownNat w => Ord (SignedBV w) where
   SignedBV bv1 `compare` SignedBV bv2 =

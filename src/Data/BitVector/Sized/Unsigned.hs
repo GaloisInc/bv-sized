@@ -22,6 +22,8 @@ instances not provided by 'BV'.
 
 module Data.BitVector.Sized.Unsigned
   ( UnsignedBV(..)
+  , mkUnsignedBV
+  , mapUnsignedBV
   ) where
 
 import           Data.BitVector.Sized.Internal (BV(..), mkBV)
@@ -35,8 +37,14 @@ import GHC.TypeLits
 import Numeric.Natural
 
 -- | Signed bit vector.
-newtype UnsignedBV w = UnsignedBV (BV w)
+newtype UnsignedBV w = UnsignedBV { asBV :: BV w }
   deriving (Generic, Show, Read, Eq, Ord)
+
+mkUnsignedBV :: NatRepr w -> Integer -> UnsignedBV w
+mkUnsignedBV w x = UnsignedBV (BV.mkBV w x)
+
+mapUnsignedBV :: (BV w -> BV w) -> UnsignedBV w -> UnsignedBV w
+mapUnsignedBV f (UnsignedBV bv) = UnsignedBV (f bv)
 
 liftUnary :: (BV w -> BV w)
           -> UnsignedBV w
