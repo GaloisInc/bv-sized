@@ -88,12 +88,8 @@ instance KnownNat w => Num (UnsignedBV w) where
   -- in this case, negate just means "additive inverse"
   negate      = liftUnary (BV.negate knownNat)
 
-checkInt :: NatRepr w -> Int -> Int
-checkInt w i | 0 <= i && i <= fromIntegral (maxUnsigned w) = i
-             | otherwise = error "bad argument"
-
 instance KnownNat w => Enum (UnsignedBV w) where
-  toEnum   = UnsignedBV . mkBV knownNat . fromIntegral . checkInt (knownNat @w)
+  toEnum   = UnsignedBV . mkBV knownNat . fromIntegral
   fromEnum (UnsignedBV bv) = fromIntegral (BV.asUnsigned bv)
 
 instance KnownNat w => Ix (UnsignedBV w) where

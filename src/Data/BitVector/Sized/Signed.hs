@@ -94,14 +94,8 @@ instance (KnownNat w, 1 <= w) => Num (SignedBV w) where
   fromInteger = SignedBV . mkBV knownNat
   negate      = liftUnary (BV.negate knownNat)
 
-checkInt :: NatRepr w -> Int -> Int
-checkInt w i | lo <= i && i <= hi = i
-             | otherwise = error "bad argument"
-  where lo = negate (bit (widthVal w - 1))
-        hi = bit (widthVal w - 1) - 1
-
 instance KnownNat w => Enum (SignedBV w) where
-  toEnum = SignedBV . mkBV knownNat . fromIntegral . checkInt (knownNat @w)
+  toEnum = SignedBV . mkBV knownNat . fromIntegral
   fromEnum (SignedBV bv) = fromIntegral (BV.asSigned (knownNat @w) bv)
 
 instance KnownNat w => Ix (SignedBV w) where
