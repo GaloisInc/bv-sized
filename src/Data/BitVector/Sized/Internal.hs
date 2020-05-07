@@ -185,7 +185,12 @@ signedClamp w x = checkNatRepr w $
      | otherwise -> BV x
 
 ----------------------------------------
--- Construction from 'Word' and 'Int'
+-- Construction from fixed-width data types
+
+-- | Construct a 'BV' from a 'Bool'.
+bool :: Bool -> BV 1
+bool True = BV 1
+bool False = BV 0
 
 -- | Construct a 'BV' from a 'Word8'.
 word8 :: Word8 -> BV 8
@@ -218,6 +223,34 @@ int32 = word32 . fromIntegral
 -- | Construct a 'BV' from a 'Int64'.
 int64 :: Int64 -> BV 64
 int64 = word64 . fromIntegral
+
+-- | Construct a 'BV' from a list of bits, in big endian order (bits
+-- with lower value index in the list are mapped to higher order bits
+-- in the output bitvector). Return the resulting 'BV' along with its
+-- width.
+--
+-- >>> case bitsBE [True, False] of p -> (fstPair p, sndPair p)
+--- (2,BV 2)
+bitsBE :: [Bool] -> P.Pair NatRepr BV
+bitsBE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
+bitsBE (b:bs) = case bitsBE bs of
+  P.Pair w bv -> P.Pair w' bv'
+    where w' = (P.knownNat @1) `addNat` w
+          bv' = concat (P.knownNat @1) w (bool b) bv
+
+-- | Construct a 'BV' from a list of bits, in little endian order
+-- (bits with lower value index in the list are mapped to lower order
+-- bits in the output bitvector). Return the resulting 'BV' along
+-- with its width.
+--
+-- >>> case bitsLE [True, False] of p -> (fstPair p, sndPair p)
+--- (2,BV 1)
+bitsLE :: [Bool] -> P.Pair NatRepr BV
+bitsLE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
+bitsLE (b:bs) = case bitsLE bs of
+  P.Pair w bv -> P.Pair w' bv'
+    where w' = w `addNat` (P.knownNat @1)
+          bv' = concat w (P.knownNat @1) bv (bool b)
 
 -- | Construct a 'BV' from a list of bytes, in big endian order (bytes
 -- with lower value index in the list are mapped to higher order bytes
