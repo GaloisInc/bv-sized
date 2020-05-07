@@ -353,14 +353,12 @@ bit' w ix = mkBV w (B.bit (fromIntegral ix))
 
 -- | @setBit w bv ix@ is the same as @or bv (bit w ix)@.
 setBit :: ix+1 <= w
-       => NatRepr w
-       -- ^ Desired output width
-       -> NatRepr ix
+       => NatRepr ix
        -- ^ Index of bit to set
        -> BV w
        -- ^ Original bitvector
        -> BV w
-setBit _w ix bv = or bv (BV (B.bit (widthVal ix)))
+setBit ix bv = or bv (BV (B.bit (widthVal ix)))
 
 -- | Like 'setBit', but without the requirement that the index bit
 -- refers to an actual bit in the input 'BV'. If it is out of range,
