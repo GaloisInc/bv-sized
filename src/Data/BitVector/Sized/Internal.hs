@@ -66,11 +66,10 @@ checkNatural n a = if n > (fromIntegral (maxBound :: Int) :: Natural)
   else a
 
 
--- | Unsafe corecion from @Natural@ to @Int@.  We mostly use
---   this to interact with operations from "Data.Bits".
---   This should only be called when we already know
---   the input @Natural@ is small enough, e.g., because
---   we previously called @checkNatural@.
+-- | Unsafe coercion from @Natural@ to @Int@.  We mostly use this to
+--   interact with operations from "Data.Bits".  This should only be
+--   called when we already know the input @Natural@ is small enough,
+--   e.g., because we previously called @checkNatural@.
 fromNatural :: Natural -> Int
 fromNatural = fromIntegral
 
@@ -85,7 +84,7 @@ data BV (w :: Nat) :: Type where
   -- that it must always be positive.
   --
   -- Secondly, we maintain the invariant that any constructed BV value
-  -- has a width whose value is representable in a Haskell @Int@
+  -- has a width whose value is representable in a Haskell @Int@.
   BV :: Integer -> BV w
 
   deriving (Generic, Show, Read, Eq, Ord, Lift)
