@@ -1,5 +1,5 @@
 sudo: false
-language: minimal
+language: haskell
 git:
   submodules: false
 
