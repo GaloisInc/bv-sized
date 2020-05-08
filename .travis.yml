@@ -20,3 +20,4 @@ matrix:
 
 install:
   - cabal v2-build bv-sized
+
