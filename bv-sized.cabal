@@ -24,6 +24,7 @@ library
   other-modules:       Data.BitVector.Sized.Internal
                        Data.BitVector.Sized.Panic
   build-depends:       base >= 4.7 && < 5,
+                       bitwise,
                        bytestring,
                        panic,
                        parameterized-utils,

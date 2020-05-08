@@ -26,11 +26,17 @@ module Data.BitVector.Sized.Internal where
 
 import Data.BitVector.Sized.Panic (panic)
 
-import qualified Data.Bits       as B
+-- Qualified imports
+import qualified Data.Bits                  as B
+import qualified Data.Bits.Bitwise          as B
 import qualified Data.ByteString as BS
-import qualified Numeric         as N
+import qualified Numeric                    as N
+import qualified Data.Parameterized.NatRepr as P
+import qualified Prelude as Prelude
 
+-- Unqualified imports
 import Data.Char (intToDigit)
+import Data.List (genericLength)
 import Data.Int
 import Data.Kind (Type)
 import Data.Maybe (fromJust)
@@ -46,13 +52,11 @@ import Data.Parameterized ( NatRepr
                           , Some(..)
                           , Pair(..)
                           )
-import qualified Data.Parameterized.NatRepr as P
 import GHC.Generics
 import GHC.TypeLits
 import Language.Haskell.TH.Lift (Lift)
 import Numeric.Natural
 import Prelude hiding (abs, or, and, negate, concat, signum)
-import qualified Prelude as Prelude
 
 ----------------------------------------
 -- Utility functions
@@ -246,11 +250,8 @@ int64 = word64 . (fromIntegral :: Int64 -> Word64)
 -- >>> case bitsBE [True, False] of p -> (fstPair p, sndPair p)
 -- (2,BV 2)
 bitsBE :: [Bool] -> Pair NatRepr BV
-bitsBE [] = Pair (P.knownNat @0) (zero (P.knownNat @0))
-bitsBE (b:bs) = case bitsBE bs of
-  Pair w bv -> Pair w' bv'
-    where w' = (P.knownNat @1) `addNat` w
-          bv' = concat (P.knownNat @1) w (bool b) bv
+bitsBE bs = case mkNatRepr (fromInteger (genericLength bs)) of
+  Some w -> checkNatRepr w $ Pair w (BV (B.fromListBE bs))
 
 -- | Construct a 'BV' from a list of bits, in little endian order
 -- (bits with lower value index in the list are mapped to lower order
@@ -260,11 +261,8 @@ bitsBE (b:bs) = case bitsBE bs of
 -- >>> case bitsLE [True, False] of p -> (fstPair p, sndPair p)
 -- (2,BV 1)
 bitsLE :: [Bool] -> Pair NatRepr BV
-bitsLE [] = Pair (P.knownNat @0) (zero (P.knownNat @0))
-bitsLE (b:bs) = case bitsLE bs of
-  Pair w bv -> Pair w' bv'
-    where w' = w `addNat` (P.knownNat @1)
-          bv' = concat w (P.knownNat @1) bv (bool b)
+bitsLE bs = case mkNatRepr (fromInteger (genericLength bs)) of
+  Some w -> checkNatRepr w $ Pair w (BV (B.fromListLE bs))
 
 -- | Convert a 'ByteString' (big-endian) of length @n@ to an 'Integer'
 -- with @8*n@ bits. This function uses a balanced binary fold to
