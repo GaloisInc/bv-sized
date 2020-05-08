@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/GaloisInc/bv-sized.svg?branch=master)](https://travis-ci.org/GaloisInc/bv-sized)
+
 bv-sized - A Haskell library for manipulating width-parameterized bitvectors
 ===
 
