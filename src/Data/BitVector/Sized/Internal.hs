@@ -69,7 +69,7 @@ checkNatRepr = checkNatural . natValue
 checkNatural :: Natural -> a -> a
 checkNatural n a = if n > (fromIntegral (maxBound :: Int) :: Natural)
   then panic "Data.BitVector.Sized.Internal.checkNatural"
-       [show n <> " not representable as Int"]
+       [show n ++ " not representable as Int"]
   else a
 
 
