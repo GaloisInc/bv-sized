@@ -269,8 +269,8 @@ bitsLE bs = case mkNatRepr (fromInteger (genericLength bs)) of
 -- achieve /O(n log n)/ total memory allocation and run-time, in
 -- contrast to the /O(n^2)/ that would be required by a naive
 -- left-fold.
-byteStringToIntegerBE :: BS.ByteString -> Integer
-byteStringToIntegerBE bs
+bytestringToIntegerBE :: BS.ByteString -> Integer
+bytestringToIntegerBE bs
   | l == 0 = 0
   | l == 1 = toInteger (BS.head bs)
   | otherwise = x1 `B.shiftL` (l2 * 8) B..|. x2
@@ -279,11 +279,11 @@ byteStringToIntegerBE bs
     l1 = l `div` 2
     l2 = l - l1
     (bs1, bs2) = BS.splitAt l1 bs
-    x1 = byteStringToIntegerBE bs1
-    x2 = byteStringToIntegerBE bs2
+    x1 = bytestringToIntegerBE bs1
+    x2 = bytestringToIntegerBE bs2
 
-byteStringToIntegerLE :: BS.ByteString -> Integer
-byteStringToIntegerLE bs
+bytestringToIntegerLE :: BS.ByteString -> Integer
+bytestringToIntegerLE bs
   | l == 0 = 0
   | l == 1 = toInteger (BS.head bs)
   | otherwise = x2 `B.shiftL` (l1 * 8) B..|. x1
@@ -291,24 +291,24 @@ byteStringToIntegerLE bs
     l = BS.length bs
     l1 = l `div` 2
     (bs1, bs2) = BS.splitAt l1 bs
-    x1 = byteStringToIntegerLE bs1
-    x2 = byteStringToIntegerLE bs2
+    x1 = bytestringToIntegerLE bs1
+    x2 = bytestringToIntegerLE bs2
 
 -- | Construct a 'BV' from a big-endian bytestring.
 --
--- >>> case byteStringBE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
+-- >>> case bytestringBE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
 -- (24,BV 257)
-byteStringBE :: BS.ByteString -> Pair NatRepr BV
-byteStringBE bs = case mkNatRepr (8*fromIntegral (BS.length bs)) of
-  Some w -> checkNatRepr w $ Pair w (BV (byteStringToIntegerBE bs))
+bytestringBE :: BS.ByteString -> Pair NatRepr BV
+bytestringBE bs = case mkNatRepr (8*fromIntegral (BS.length bs)) of
+  Some w -> checkNatRepr w $ Pair w (BV (bytestringToIntegerBE bs))
 
 -- | Construct a 'BV' from a little-endian bytestring.
 --
--- >>> case byteStringLE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
+-- >>> case bytestringLE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
 -- (24,BV 65792)
-byteStringLE :: BS.ByteString -> Pair NatRepr BV
-byteStringLE bs = case mkNatRepr (8*fromIntegral (BS.length bs)) of
-  Some w -> checkNatRepr w $ Pair w (BV (byteStringToIntegerLE bs))
+bytestringLE :: BS.ByteString -> Pair NatRepr BV
+bytestringLE bs = case mkNatRepr (8*fromIntegral (BS.length bs)) of
+  Some w -> checkNatRepr w $ Pair w (BV (bytestringToIntegerLE bs))
 
 -- | Construct a 'BV' from a list of bytes, in big endian order (bytes
 -- with lower value index in the list are mapped to higher order bytes
@@ -317,7 +317,7 @@ byteStringLE bs = case mkNatRepr (8*fromIntegral (BS.length bs)) of
 -- >>> case bytesBE [0, 1, 1] of p -> (fstPair p, sndPair p)
 -- (24,BV 257)
 bytesBE :: [Word8] -> Pair NatRepr BV
-bytesBE = byteStringBE . BS.pack
+bytesBE = bytestringBE . BS.pack
 
 -- | Construct a 'BV' from a list of bytes, in little endian order
 -- (bytes with lower value index in the list are mapped to lower
@@ -326,7 +326,7 @@ bytesBE = byteStringBE . BS.pack
 -- >>> case bytesLE [0, 1, 1] of p -> (fstPair p, sndPair p)
 -- (24,BV 65792)
 bytesLE :: [Word8] -> Pair NatRepr BV
-bytesLE = byteStringLE . BS.pack
+bytesLE = bytestringLE . BS.pack
 
 ----------------------------------------
 -- BitVector -> Integer functions
@@ -368,6 +368,54 @@ asBitsBE w bv = [ testBit' i bv | i <- fromInteger <$> [wi - 1, wi - 2 .. 0] ]
 asBitsLE :: NatRepr w -> BV w -> [Bool]
 asBitsLE w bv = [ testBit' i bv | i <- fromInteger <$> [0 .. wi - 1] ]
   where wi = intValue w
+
+integerToBytesBE :: Natural
+                 -- ^ number of bytes
+                 -> Integer
+                 -> [Word8]
+integerToBytesBE n x =
+  [ fromIntegral (x `B.shiftR` (8*ix)) | ix <- [ni-1, ni-2 .. 0] ]
+  where ni = fromIntegral n
+
+integerToBytesLE :: Natural
+                 -- ^ number of bytes
+                 -> Integer
+                 -> [Word8]
+integerToBytesLE n x =
+  [ fromIntegral (x `B.shiftR` (8*ix)) | ix <- [0 .. ni-1] ]
+  where ni = fromIntegral n
+
+-- | Convert a bitvector to a list of bytes, in big endian order
+-- (higher order bytes in the bitvector are mapped to lower indices in
+-- the output list). Return 'Nothing' if the width is not a multiple
+-- of 8.
+--
+-- >>> asBytesBE (knownNat @32) (mkBV knownNat 0xaabbccdd)
+-- Just [170,187,204,221]
+asBytesBE :: NatRepr w -> BV w -> Maybe [Word8]
+asBytesBE w (BV x)
+  | natValue w `mod` 8 == 0 = Just $ integerToBytesBE (natValue w `div` 8) x
+  | otherwise = Nothing
+
+-- | Convert a bitvector to a list of bytes, in little endian order
+-- (lower order bytes in the bitvector are mapped to lower indices in
+-- the output list). Return 'Nothing' if the width is not a multiple
+-- of 8.
+--
+-- >>> asBytesLE (knownNat @32) (mkBV knownNat 0xaabbccdd)
+-- Just [221,204,187,170]
+asBytesLE :: NatRepr w -> BV w -> Maybe [Word8]
+asBytesLE w (BV x)
+  | natValue w `mod` 8 == 0 = Just $ integerToBytesLE (natValue w `div` 8) x
+  | otherwise = Nothing
+
+-- | 'asBytesBE', but for bytestrings.
+asBytestringBE :: NatRepr w -> BV w -> Maybe BS.ByteString
+asBytestringBE w bv = BS.pack <$> asBytesBE w bv
+
+-- | 'asBytesLE', but for bytestrings.
+asBytestringLE :: NatRepr w -> BV w -> Maybe BS.ByteString
+asBytestringLE w bv = BS.pack <$> asBytesLE w bv
 
 ----------------------------------------
 -- BV w operations (fixed width)

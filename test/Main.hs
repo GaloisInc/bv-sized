@@ -18,8 +18,12 @@ import Test.Tasty.Hedgehog
 import qualified Data.BitVector.Sized as BV
 
 -- Auxiliary modules
+import qualified Data.ByteString as BS
+import Data.Maybe (isJust, fromJust)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.Some
+import Data.Parameterized.Pair
+import Data.Word
 
 ----------------------------------------
 -- Utilities
@@ -112,6 +116,9 @@ binPred genW p gen1 gen2 aPred bPred = property $ do
 anyWidth :: Gen (Some NatRepr)
 anyWidth = mkNatRepr <$> (Gen.integral $ Range.linear 0 128)
 
+byteWidth :: Gen (Some NatRepr)
+byteWidth = mkNatRepr <$> (8*) <$> (Gen.integral $ Range.linear 0 16)
+
 anyPosWidth :: Gen (Some NatRepr)
 anyPosWidth = mkNatRepr <$> (Gen.integral $ Range.linear 1 128)
 
@@ -120,6 +127,12 @@ anyWidthGT1 = mkNatRepr <$> (Gen.integral $ Range.linear 2 128)
 
 smallPosWidth :: Gen (Some NatRepr)
 smallPosWidth = mkNatRepr <$> (Gen.integral $ Range.linear 1 4)
+
+bytes :: Gen [Word8]
+bytes = Gen.list (Range.linear 0 16) $ Gen.word8 Range.linearBounded
+
+bits :: Gen [Bool]
+bits = Gen.list (Range.linear 0 128) $ Gen.bool
 
 unsigned :: NatRepr w -> Gen Integer
 unsigned w = Gen.integral $ Range.linear 0 (maxUnsigned w)
@@ -229,10 +242,78 @@ arithHomTests = testGroup "arithmetic homomorphisms tests"
     (const max) (const BV.umax)
   ]
 
+serdeTest :: Gen (Some NatRepr)
+          -> (forall w . NatRepr w -> BV.BV w -> Maybe a)
+          -> (a -> Pair NatRepr BV.BV)
+          -> Property
+serdeTest wGen ser de = property $ do
+  Some w <- forAll wGen
+  i <- forAll (largeUnsigned w)
+  let bv = BV.mkBV w i
+
+  let a = ser w bv
+  assert (isJust a)
+  Pair w' bv' <- return $ de $ fromJust a
+
+  assert (isJust (w' `testEquality` w))
+  Just Refl <- return $ w' `testEquality` w
+  bv' === bv
+
+deserTest :: (Show a, Eq a)
+          => Gen a
+          -> (a -> Int)
+          -> (a -> Pair NatRepr BV.BV)
+          -> (forall w . NatRepr w -> BV.BV w -> Maybe a)
+          -> Property
+deserTest genA lenA de ser = property $ do
+  a <- forAll genA
+  Some w' <- return $ mkNatRepr (fromIntegral (lenA a))
+
+  Pair w bv <- return $ de $ a
+
+  assert (isJust (w' `testEquality` w))
+  Just Refl <- return $ w' `testEquality` w
+
+  ser w bv === Just a
+
+serdeTests :: TestTree
+serdeTests = testGroup "serialization/deseriallization tests"
+  [ testProperty "bitsBE" $
+    serdeTest anyWidth (\w bv -> Just (BV.asBitsBE w bv)) BV.bitsBE
+  , testProperty "bitsLE" $
+    serdeTest anyWidth (\w bv -> Just (BV.asBitsLE w bv)) BV.bitsLE
+  , testProperty "bytesBE" $
+    serdeTest byteWidth BV.asBytesBE BV.bytesBE
+  , testProperty "bytesLE" $
+    serdeTest byteWidth BV.asBytesLE BV.bytesLE
+  , testProperty "bytestringBE" $
+    serdeTest byteWidth BV.asBytestringBE BV.bytestringBE
+  , testProperty "bytestringLE" $
+    serdeTest byteWidth BV.asBytestringLE BV.bytestringLE
+  ]
+
+deserTests :: TestTree
+deserTests = testGroup "deserialization/serialization tests"
+  [ testProperty "asBitsBE" $
+    deserTest bits length BV.bitsBE (\w bv -> Just (BV.asBitsBE w bv))
+  , testProperty "asBitsLE" $
+    deserTest bits length BV.bitsLE (\w bv -> Just (BV.asBitsLE w bv))
+  , testProperty "asBytesBE" $
+    deserTest bytes ((*8) . length) BV.bytesBE BV.asBytesBE
+  , testProperty "asBytesLE" $
+    deserTest bytes ((*8) . length) BV.bytesLE BV.asBytesLE
+  , testProperty "asBytesBE" $
+    deserTest (BS.pack <$> bytes) ((*8) . BS.length) BV.bytestringBE BV.asBytestringBE
+  , testProperty "asBytesLE" $
+    deserTest (BS.pack <$> bytes) ((*8) . BS.length) BV.bytestringLE BV.asBytestringLE
+  ]
+
 tests :: TestTree
 tests = testGroup "bv-sized tests"
   [ arithHomTests
+  , serdeTests
+  , deserTests
   ]
 
 main :: IO ()
-main = defaultMain arithHomTests
+main = defaultMain tests

@@ -28,9 +28,9 @@ library
   other-modules:       Data.BitVector.Sized.Internal
                        Data.BitVector.Sized.Panic
   build-depends:       base >= 4.10 && <5,
-                       bitwise >= 1.0.0.1 && < 1.1,
-                       bytestring >= 0.10.10.0 && < 0.11,
-                       panic >= 0.4.0.1 && < 5,
+                       bitwise >= 1.0.0 && < 1.1,
+                       bytestring >= 0.10.10 && < 0.11,
+                       panic >= 0.4.0 && < 0.5,
                        parameterized-utils >= 2.0.2 && < 2.1,
                        th-lift >= 0.8.1 && < 0.9
   hs-source-dirs:      src
@@ -43,6 +43,7 @@ test-suite bv-sized-tests
   main-is:             Main.hs
   build-depends:       base >= 4.7 && < 5,
                        bv-sized,
+                       bytestring >= 0.10.10 && < 0.11,
                        hedgehog >= 1.0.2 && < 1.1,
                        parameterized-utils >= 2.0.2 && < 2.1,
                        tasty >= 1.2.3 && < 1.3,

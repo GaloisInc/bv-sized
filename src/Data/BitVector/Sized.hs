@@ -48,13 +48,15 @@ module Data.BitVector.Sized
   , word8, word16, word32, word64
   , int8, int16, int32, int64
   , bitsBE, bitsLE
-  , byteStringBE, byteStringLE
   , bytesBE, bytesLE
+  , bytestringBE, bytestringLE
     -- * Conversions to primitive types
   , asSigned
   , asUnsigned
   , asNatural
   , asBitsBE, asBitsLE
+  , asBytesBE, asBytesLE
+  , asBytestringBE, asBytestringLE
     -- * Bits operations (width-preserving)
     -- | 'BV' versions of the functions in @Data.Bits@.
   , and, or, xor
