@@ -48,6 +48,7 @@ module Data.BitVector.Sized
   , word8, word16, word32, word64
   , int8, int16, int32, int64
   , bitsBE, bitsLE
+  , byteStringBE, byteStringLE
   , bytesBE, bytesLE
     -- * Conversions to primitive types
   , asSigned

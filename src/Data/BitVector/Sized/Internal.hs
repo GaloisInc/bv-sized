@@ -26,8 +26,9 @@ module Data.BitVector.Sized.Internal where
 
 import Data.BitVector.Sized.Panic (panic)
 
-import qualified Data.Bits as B
-import qualified Numeric as N
+import qualified Data.Bits       as B
+import qualified Data.ByteString as BS
+import qualified Numeric         as N
 
 import Data.Char (intToDigit)
 import Data.Int
@@ -35,15 +36,17 @@ import Data.Kind (Type)
 import Data.Maybe (fromJust)
 import Data.Word
 import Data.Parameterized ( NatRepr
+                          , mkNatRepr
                           , natValue
                           , intValue
                           , addNat
                           , ShowF
                           , EqF(..)
                           , Hashable(..)
+                          , Some(..)
+                          , Pair(..)
                           )
 import qualified Data.Parameterized.NatRepr as P
-import qualified Data.Parameterized.Pair as P
 import GHC.Generics
 import GHC.TypeLits
 import Language.Haskell.TH.Lift (Lift)
@@ -242,10 +245,10 @@ int64 = word64 . (fromIntegral :: Int64 -> Word64)
 --
 -- >>> case bitsBE [True, False] of p -> (fstPair p, sndPair p)
 -- (2,BV 2)
-bitsBE :: [Bool] -> P.Pair NatRepr BV
-bitsBE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
+bitsBE :: [Bool] -> Pair NatRepr BV
+bitsBE [] = Pair (P.knownNat @0) (zero (P.knownNat @0))
 bitsBE (b:bs) = case bitsBE bs of
-  P.Pair w bv -> P.Pair w' bv'
+  Pair w bv -> Pair w' bv'
     where w' = (P.knownNat @1) `addNat` w
           bv' = concat (P.knownNat @1) w (bool b) bv
 
@@ -256,40 +259,76 @@ bitsBE (b:bs) = case bitsBE bs of
 --
 -- >>> case bitsLE [True, False] of p -> (fstPair p, sndPair p)
 -- (2,BV 1)
-bitsLE :: [Bool] -> P.Pair NatRepr BV
-bitsLE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
+bitsLE :: [Bool] -> Pair NatRepr BV
+bitsLE [] = Pair (P.knownNat @0) (zero (P.knownNat @0))
 bitsLE (b:bs) = case bitsLE bs of
-  P.Pair w bv -> P.Pair w' bv'
+  Pair w bv -> Pair w' bv'
     where w' = w `addNat` (P.knownNat @1)
           bv' = concat w (P.knownNat @1) bv (bool b)
 
+-- | Convert a 'ByteString' (big-endian) of length @n@ to an 'Integer'
+-- with @8*n@ bits. This function uses a balanced binary fold to
+-- achieve /O(n log n)/ total memory allocation and run-time, in
+-- contrast to the /O(n^2)/ that would be required by a naive
+-- left-fold.
+byteStringToIntegerBE :: BS.ByteString -> Integer
+byteStringToIntegerBE bs
+  | l == 0 = 0
+  | l == 1 = toInteger (BS.head bs)
+  | otherwise = x1 `B.shiftL` (l2 * 8) B..|. x2
+  where
+    l = BS.length bs
+    l1 = l `div` 2
+    l2 = l - l1
+    (bs1, bs2) = BS.splitAt l1 bs
+    x1 = byteStringToIntegerBE bs1
+    x2 = byteStringToIntegerBE bs2
+
+byteStringToIntegerLE :: BS.ByteString -> Integer
+byteStringToIntegerLE bs
+  | l == 0 = 0
+  | l == 1 = toInteger (BS.head bs)
+  | otherwise = x2 `B.shiftL` (l1 * 8) B..|. x1
+  where
+    l = BS.length bs
+    l1 = l `div` 2
+    (bs1, bs2) = BS.splitAt l1 bs
+    x1 = byteStringToIntegerLE bs1
+    x2 = byteStringToIntegerLE bs2
+
+-- | Construct a 'BV' from a big-endian bytestring.
+--
+-- >>> case byteStringBE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
+-- (24,BV 257)
+byteStringBE :: BS.ByteString -> Pair NatRepr BV
+byteStringBE bs = case mkNatRepr (8*fromIntegral (BS.length bs)) of
+  Some w -> Pair w (BV (byteStringToIntegerBE bs))
+
+-- | Construct a 'BV' from a little-endian bytestring.
+--
+-- >>> case byteStringLE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
+-- (24,BV 65792)
+byteStringLE :: BS.ByteString -> Pair NatRepr BV
+byteStringLE bs = case mkNatRepr (8*fromIntegral (BS.length bs)) of
+  Some w -> Pair w (BV (byteStringToIntegerLE bs))
+
 -- | Construct a 'BV' from a list of bytes, in big endian order (bytes
 -- with lower value index in the list are mapped to higher order bytes
--- in the output bitvector). Return the resulting 'BV' along with its
--- width.
+-- in the output bitvector).
 --
--- >>> case bytesBE [2, 1] of p -> (fstPair p, sndPair p)
--- (16,BV 513)
-bytesBE :: [Word8] -> P.Pair NatRepr BV
-bytesBE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
-bytesBE (b:bs) = case bytesBE bs of
-  P.Pair w bv ->  P.Pair w' bv'
-    where w' = (P.knownNat @8) `addNat` w
-          bv' = concat (P.knownNat @8) w (word8 b) bv
+-- >>> case bytesBE [0, 1, 1] of p -> (fstPair p, sndPair p)
+-- (24,BV 257)
+bytesBE :: [Word8] -> Pair NatRepr BV
+bytesBE = byteStringBE . BS.pack
 
 -- | Construct a 'BV' from a list of bytes, in little endian order
--- (bytes with lower value index in the list are mapped to lower order
--- bytes in the output bitvector). Return the resulting 'BV' along
--- with its width.
+-- (bytes with lower value index in the list are mapped to lower
+-- order bytes in the output bitvector).
 --
--- >>> case bytesLE [2, 1] of p -> (fstPair p, sndPair p)
--- (16,BV 258)
-bytesLE :: [Word8] -> P.Pair NatRepr BV
-bytesLE [] = P.Pair (P.knownNat @0) (zero (P.knownNat @0))
-bytesLE (b:bs) = case bytesLE bs of
-  P.Pair w bv ->  P.Pair w' bv'
-    where w' = w `addNat` (P.knownNat @8)
-          bv' = concat w (P.knownNat @8) bv (word8 b)
+-- >>> case bytesLE [0, 1, 1] of p -> (fstPair p, sndPair p)
+-- (24,BV 65792)
+bytesLE :: [Word8] -> Pair NatRepr BV
+bytesLE = byteStringLE . BS.pack
 
 ----------------------------------------
 -- BitVector -> Integer functions
