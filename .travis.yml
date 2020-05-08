@@ -1,0 +1,22 @@
+sudo: false
+language: minimal
+git:
+  submodules: false
+
+cabal: "3.3"
+
+cache:
+  directories:
+  - "$HOME/.cabal/store"
+
+matrix:
+  include:
+
+  # Cabal
+  - ghc: 8.2.2
+  - ghc: 8.4.4
+  - ghc: 8.6.5
+  - ghc: 8.8.3
+
+install:
+  - cabal v2-build bv-sized
