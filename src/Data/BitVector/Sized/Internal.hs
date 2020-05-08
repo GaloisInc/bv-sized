@@ -302,7 +302,7 @@ byteStringToIntegerLE bs
 -- (24,BV 257)
 byteStringBE :: BS.ByteString -> Pair NatRepr BV
 byteStringBE bs = case mkNatRepr (8*fromIntegral (BS.length bs)) of
-  Some w -> Pair w (BV (byteStringToIntegerBE bs))
+  Some w -> checkNatRepr w $ Pair w (BV (byteStringToIntegerBE bs))
 
 -- | Construct a 'BV' from a little-endian bytestring.
 --
@@ -310,7 +310,7 @@ byteStringBE bs = case mkNatRepr (8*fromIntegral (BS.length bs)) of
 -- (24,BV 65792)
 byteStringLE :: BS.ByteString -> Pair NatRepr BV
 byteStringLE bs = case mkNatRepr (8*fromIntegral (BS.length bs)) of
-  Some w -> Pair w (BV (byteStringToIntegerLE bs))
+  Some w -> checkNatRepr w $ Pair w (BV (byteStringToIntegerLE bs))
 
 -- | Construct a 'BV' from a list of bytes, in big endian order (bytes
 -- with lower value index in the list are mapped to higher order bytes
