@@ -1,6 +1,6 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
-## 0.8.0 *May 2020*
+## 1.0.0 *May 2020*
 
 This is a completely breaking change and it is completely incompatible
 with any previous use for this library.
