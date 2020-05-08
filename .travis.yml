@@ -3,7 +3,7 @@ language: haskell
 git:
   submodules: false
 
-cabal: "3.3"
+cabal: "2.4"
 
 cache:
   directories:
