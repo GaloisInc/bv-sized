@@ -1,10 +1,37 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## 0.8.0 *May 2020*
+
+This is a completely breaking change and it is completely incompatible
+with any previous use for this library.
+
+  * Bitvectors no longer track their own width. Every operations that
+    relies on runtime awareness of the width (for instance,
+    truncations) requires an expicit 'NatRepr' argument.
+  * Bitvectors do not support any typical instances you might hope for
+    (Num, Bits, etc.). This is because they are not interpreted by
+    default as signed or unsigned, so any class that requires such an
+    interpretation is not supported. We do provide wrapper types that
+    supply those instances when the bitvector width is known
+    (SignedBV/UnsignedBV).
+  * Every operation has been renamed. Most are pretty straightforward
+    (e.g. bvAdd ==> add).
+  * Several previously unsupported operations have been added
+    (e.g. count leading zeros, conversion to/from bit/bytestrings)
+  * The App and BitLayout modules have been removed entirely. Both are
+    potentially useful, but are out of date and probably should be in
+    a different package anyway.
+  * New modules
+	  * Data.BitVector.Sized.{Signed,Unsigned}: wrappers for BV that
+		provide many instances
+	  * Data.BitVector.Sized.Overflow: wrappers for operations that
+        provide overflow information as part of the output
+
 ## 0.7.0 *April 2019*
-  * extractWithRepr now takes a NatRepr as an argument to specify the index, which it
-    always should have.
-  * Updated to recent parameterized-utils hackage release, which fixes the build
-    failures in the previous bv-sized release.
+  * extractWithRepr now takes a NatRepr as an argument to specify the
+    index, which it always should have.
+  * Updated to recent parameterized-utils hackage release, which fixes
+    the build failures in the previous bv-sized release.
 
 ## 0.6.0 *March 2019*
   * changed WithRepr functions to '
@@ -17,8 +44,9 @@
   * fixed github URL
 
 ## 0.5.0 *August 2018*
-  * Added a lot of better support for the App module, including a type class for
-    embedding BVApp expressions along with associated smart constructors
+  * Added a lot of better support for the App module, including a type
+    class for embedding BVApp expressions along with associated smart
+    constructors
 
 ## 0.4.0 *April 2018*
   * Added App module for BitVector expression languages and evaluation
@@ -33,8 +61,9 @@
 ## 0.2.1 *March 2018*
   * bvMulFSU
   * bvDivU, bvDivS
-  * Added Read instance, fixed Show to be compatible. Using prettyclass for
-    pretty printing. (I guess this is semi-breaking, but whatever.)
+  * Added Read instance, fixed Show to be compatible. Using
+    prettyclass for pretty printing. (I guess this is semi-breaking,
+    but whatever.)
 
 ## 0.2 *March 2018*
   * bv -> bitVector, so this is very much a breaking change
@@ -45,10 +74,11 @@
   * added BitLayout
 
 ## 0.1.1.0 *March 2018*
-  * added functions `bvMulFS`/`bvMulFU` for full bitvector multiplication
-    without truncation
+  * added functions `bvMulFS`/`bvMulFU` for full bitvector
+    multiplication without truncation
   * removed Internal module, now export all those functions in Data.BitVector.Sized
-  * fixed the bv*WithRepr functions, which were not truncating the inputs properly
+  * fixed the bv*WithRepr functions, which were not truncating the
+    inputs properly
 
 ## 0.1.0.0 *March 2018*
   * First release
