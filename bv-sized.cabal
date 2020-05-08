@@ -1,5 +1,5 @@
 name:                bv-sized
-version:             0.7.0
+version:             1.0.0
 category:            Bit Vectors
 synopsis:            a BitVector datatype that is parameterized by the vector width
 description:
@@ -18,26 +18,30 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     Data.BitVector.Sized
-                     , Data.BitVector.Sized.App
-                     , Data.BitVector.Sized.BitLayout
+                       Data.BitVector.Sized.Signed
+                       Data.BitVector.Sized.Unsigned
+                       Data.BitVector.Sized.Overflow
   other-modules:       Data.BitVector.Sized.Internal
-  build-depends:       base >= 4.7 && < 5
-                     , containers >= 0.5.10 && < 0.7
-                     , lens >= 4 && < 5
-                     , mtl >= 2 && < 3
-                     , parameterized-utils >= 2.0 && < 3
-                     , pretty
-                     , random >= 1.1 && < 1.2
+                       Data.BitVector.Sized.Panic
+  build-depends:       base >= 4.10 && <5,
+                       bitwise >= 1.0.0.1 && < 1.1,
+                       bytestring >= 0.10.10.0 && < 0.11,
+                       panic >= 0.4.0.1 && < 5,
+                       parameterized-utils >= 2.0.2 && < 2.1,
+                       th-lift >= 0.8.1 && < 0.9
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-test-suite bv-tests
-  type: exitcode-stdio-1.0
-  default-language: Haskell2010
-  ghc-options: -Wall
-  main-is: Test.hs
-  hs-source-dirs: test
-  build-depends:       base >= 4.7 && < 5
-                     , bv-sized
-                     , QuickCheck >= 2.11
+test-suite bv-sized-tests
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Main.hs
+  build-depends:       base >= 4.7 && < 5,
+                       bv-sized,
+                       hedgehog >= 1.0.2 && < 1.1,
+                       parameterized-utils >= 2.0.2 && < 2.1,
+                       tasty >= 1.2.3 && < 1.3,
+                       tasty-hedgehog >= 1.0.0.2 && < 1.1
+  default-language:    Haskell2010
+  ghc-options:         -Wall -Wcompat
