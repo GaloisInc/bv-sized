@@ -94,7 +94,15 @@ data BV (w :: Nat) :: Type where
   -- has a width whose value is representable in a Haskell @Int@.
   BV :: Integer -> BV w
 
-  deriving (Generic, Show, Read, Eq, Ord, Lift)
+  deriving ( Generic
+           , Show
+           , Read
+           , Eq
+           , Ord -- ^ Uses an unsigned ordering, but 'ule' and 'ult' are
+                 -- preferred. We provide this instance to allow the use of 'BV'
+                 -- in situations where an arbitrary ordering is required (e.g.,
+                 -- as the keys in a map)
+           , Lift)
 
 instance ShowF BV
 
