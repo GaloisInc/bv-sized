@@ -18,6 +18,7 @@ import Test.Tasty.Hedgehog
 import qualified Data.BitVector.Sized as BV
 
 -- Auxiliary modules
+import qualified Data.Bits as Bits
 import qualified Data.ByteString as BS
 import Data.Maybe (isJust, fromJust)
 import Data.Parameterized.NatRepr
@@ -80,7 +81,7 @@ bin genW p gen1 gen2 aOp bOp = property $ do
   let pa1     = p w a1
   let pa2     = p w a2
   let pa1_pa2 = bOp w pa1 pa2
-  
+
   pa1_a2 === pa1_pa2
 
 binPred :: Show a
@@ -107,7 +108,7 @@ binPred genW p gen1 gen2 aPred bPred = property $ do
   let pa1     = p w a1
   let pa2     = p w a2
   let pa1_pa2 = bPred w pa1 pa2
-  
+
   a1_a2 === pa1_pa2
 
 ----------------------------------------
@@ -172,6 +173,22 @@ genPair gen gen' = do
 ----------------------------------------
 -- Tests
 
+bitwiseHomTests :: TestTree
+bitwiseHomTests = testGroup "bitwise homomorphisms tests"
+  [ testProperty "and" $ bin anyWidth BV.mkBV
+    largeUnsigned largeUnsigned
+    (const (Bits..&.)) (const BV.and)
+  , testProperty "or" $ bin anyWidth BV.mkBV
+    largeUnsigned largeUnsigned
+    (const (Bits..|.)) (const BV.or)
+  , testProperty "xor" $ bin anyWidth BV.mkBV
+    largeUnsigned largeUnsigned
+    (const Bits.xor) (const BV.xor)
+  , testProperty "complement" $ un anyWidth BV.mkBV
+    largeUnsigned
+    (const Bits.complement) BV.complement
+  ]
+
 arithHomTests :: TestTree
 arithHomTests = testGroup "arithmetic homomorphisms tests"
   [ testProperty "add" $ bin anyWidth BV.mkBV
@@ -222,6 +239,9 @@ arithHomTests = testGroup "arithmetic homomorphisms tests"
   , testProperty "signBit" $ un anyPosWidth BV.mkBV
     signed
     (\_ a -> if a < 0 then 1 else 0) (forcePos BV.signBit)
+  , testProperty "signum" $ un anyPosWidth BV.mkBV
+    signed
+    (\_ a -> signum a) (forcePos BV.signum)
   , testProperty "slt" $ binPred anyPosWidth BV.mkBV
     signed signed
     (const (<)) (forcePos BV.slt)
@@ -240,6 +260,12 @@ arithHomTests = testGroup "arithmetic homomorphisms tests"
   , testProperty "umax" $ bin anyWidth BV.mkBV
     unsigned unsigned
     (const max) (const BV.umax)
+  , testProperty "smin" $ bin anyPosWidth BV.mkBV
+    signed signed
+    (const min) (forcePos BV.smin)
+  , testProperty "smax" $ bin anyPosWidth BV.mkBV
+    signed signed
+    (const max) (forcePos BV.smax)
   ]
 
 serdeTest :: Gen (Some NatRepr)
@@ -311,6 +337,7 @@ deserTests = testGroup "deserialization/serialization tests"
 tests :: TestTree
 tests = testGroup "bv-sized tests"
   [ arithHomTests
+  , bitwiseHomTests
   , serdeTests
   , deserTests
   ]
