@@ -1,5 +1,10 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## 1.0.1 *May 2020*
+
+This fixed a subtle bug in the test suite which occasionally caused a
+divide by zero exception.
+
 ## 1.0.0 *May 2020*
 
 This is a completely breaking change and it is completely incompatible
