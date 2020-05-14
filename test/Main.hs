@@ -209,25 +209,25 @@ arithHomTests = testGroup "arithmetic homomorphisms tests"
   , testProperty "squot-pos-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedPos
     (const quot) (forcePos BV.squot)
-  , testProperty "squot-neg-denom" $ bin anyPosWidth BV.mkBV
+  , testProperty "squot-neg-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedNeg
     (const quot) (forcePos BV.squot)
-  , testProperty "srem-pos-denom" $ bin anyPosWidth BV.mkBV
+  , testProperty "srem-pos-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedPos
     (const rem) (forcePos BV.srem)
-  , testProperty "srem-neg-denom" $ bin anyPosWidth BV.mkBV
+  , testProperty "srem-neg-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedNeg
     (const rem) (forcePos BV.srem)
-  , testProperty "sdiv-pos-denom" $ bin anyPosWidth BV.mkBV
+  , testProperty "sdiv-pos-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedPos
     (const div) (forcePos BV.sdiv)
-  , testProperty "sdiv-neg-denom" $ bin anyPosWidth BV.mkBV
+  , testProperty "sdiv-neg-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedNeg
     (const div) (forcePos BV.sdiv)
-  , testProperty "smod-pos-denom" $ bin anyPosWidth BV.mkBV
+  , testProperty "smod-pos-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedPos
     (const mod) (forcePos BV.smod)
-  , testProperty "smod-neg-denom" $ bin anyPosWidth BV.mkBV
+  , testProperty "smod-neg-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedNeg
     (const mod) (forcePos BV.smod)
   , testProperty "abs" $ un anyPosWidth BV.mkBV
