@@ -43,6 +43,7 @@ module Data.BitVector.Sized
   , unsignedClamp, signedClamp
   , minUnsigned, maxUnsigned
   , minSigned, maxSigned
+  , zero, one, width
     -- * Construction from fixed-width data types
   , bool
   , word8, word16, word32, word64
@@ -62,7 +63,6 @@ module Data.BitVector.Sized
   , and, or, xor
   , complement
   , shl, lshr, ashr, rotateL, rotateR
-  , zero, one, width
   , bit, bit'
   , setBit, setBit'
   , clearBit, clearBit'

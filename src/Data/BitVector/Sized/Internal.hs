@@ -178,6 +178,18 @@ mkBVSigned :: 1 <= w => NatRepr w
            -> Maybe (BV w)
 mkBVSigned w x = checkNatRepr w $ BV <$> signedToUnsigned w x
 
+-- | The zero bitvector of any width.
+zero :: NatRepr w -> BV w
+zero w = checkNatRepr w $ BV 0
+
+-- | The bitvector with value 1, of any positive width.
+one :: 1 <= w => NatRepr w -> BV w
+one w = checkNatRepr w $ BV 1
+
+-- | The bitvector whose value is its own width, of any width.
+width :: NatRepr w -> BV w
+width w = checkNatRepr w $ BV (intValue w)
+
 -- | The minimum unsigned value for bitvector with given width (always 0).
 minUnsigned :: NatRepr w -> BV w
 minUnsigned w = checkNatRepr w $ BV 0
@@ -208,7 +220,7 @@ signedClamp :: 1 <= w => NatRepr w -> Integer -> BV w
 signedClamp w x = checkNatRepr w $
   if | x < P.minSigned w -> mkBV' w (P.minSigned w)
      | x > P.maxSigned w -> BV (P.maxSigned w)
-     | otherwise -> BV x
+     | otherwise -> mkBV' w x
 
 ----------------------------------------
 -- Construction from fixed-width data types
@@ -481,18 +493,6 @@ rotateR w bv rot' = leftChunk `or` rightChunk
         rightChunk = lshr w bv rot
         leftChunk = shl w bv (wNatural - rot)
         wNatural = natValue w
-
--- | The zero bitvector of any width.
-zero :: NatRepr w -> BV w
-zero w = checkNatRepr w $ BV 0
-
--- | The bitvector with value 1, of any positive width.
-one :: 1 <= w => NatRepr w -> BV w
-one w = checkNatRepr w $ BV 1
-
--- | The bitvector whose value is its own width, of any width.
-width :: NatRepr w -> BV w
-width w = checkNatRepr w $ BV (intValue w)
 
 -- | The 'BV' that has a particular bit set, and is 0 everywhere
 -- else.
