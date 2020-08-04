@@ -206,7 +206,7 @@ unsignedClamp w x = checkNatRepr w $
 -- @-2^(w-1)@ and @2^(w-1) - 1@ (inclusive).
 signedClamp :: 1 <= w => NatRepr w -> Integer -> BV w
 signedClamp w x = checkNatRepr w $
-  if | x < P.minSigned w -> BV (P.minSigned w)
+  if | x < P.minSigned w -> mkBV' w (P.minSigned w)
      | x > P.maxSigned w -> BV (P.maxSigned w)
      | otherwise -> BV x
 
