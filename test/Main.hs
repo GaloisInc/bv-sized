@@ -25,6 +25,7 @@ import Data.Parameterized.NatRepr
 import Data.Parameterized.Some
 import Data.Parameterized.Pair
 import Data.Word
+import Numeric.Natural
 
 ----------------------------------------
 -- Utilities
@@ -334,12 +335,112 @@ deserTests = testGroup "deserialization/serialization tests"
     deserTest (BS.pack <$> bytes) ((*8) . BS.length) BV.bytestringLE BV.asBytestringLE
   ]
 
+checkBounds :: MonadTest m => Integer -> NatRepr w -> m ()
+checkBounds x w = do
+  diff 0 (<=) x
+  diff x (<=) (2 ^ natValue w)
+
+wfCtor :: Gen (Some NatRepr)
+       -- ^ generator for width
+       -> (forall w . NatRepr w -> Integer -> Maybe (BV.BV w))
+       -- ^ constructor
+       -> Property
+wfCtor genW ctor = property $ do
+  Some w <- forAll genW
+  x <- forAll (largeSigned w)
+
+  let mBV = ctor w x
+  case mBV of
+    Just (BV.BV x') -> checkBounds x' w
+    Nothing -> return ()
+
+wfCtor' :: NatRepr w
+        -- ^ fixed width of constructor
+        -> (Integer -> BV.BV w)
+        -- ^ embedding of integer into constructor arg
+        -> Property
+wfCtor' w ctor = property $ do
+  x <- forAll (largeSigned w)
+
+  let BV.BV x' = ctor x
+
+  checkBounds x' w
+
+wfUnary :: Gen (Some NatRepr)
+        -- ^ generator for width
+        -> (forall w . NatRepr w -> BV.BV w -> BV.BV w)
+        -- ^ unary operator
+        -> Property
+wfUnary genW op = property $ do
+  Some w <- forAll genW
+  bv <- BV.mkBV w <$> forAll (unsigned w)
+
+  let BV.BV x' = op w bv
+  checkBounds x' w
+
+wfBinary :: Gen (Some NatRepr)
+         -- ^ generator for width
+         -> (forall w . NatRepr w -> BV.BV w -> BV.BV w -> BV.BV w)
+         -- ^ binary operator
+         -> Property
+wfBinary genW op = property $ do
+  Some w <- forAll genW
+  bv1 <- BV.mkBV w <$> forAll (unsigned w)
+  bv2 <- BV.mkBV w <$> forAll (unsigned w)
+
+  let BV.BV x' = op w bv1 bv2
+  checkBounds x' w
+
+wfBinaryN :: Gen (Some NatRepr)
+          -- ^ generator for width
+          -> (forall w . NatRepr w -> BV.BV w -> Natural -> BV.BV w)
+          -- ^ binary operator with Natural arg
+          -> Property
+wfBinaryN genW op = property $ do
+  Some w <- forAll genW
+  bv <- BV.mkBV w <$> forAll (unsigned w)
+  n <- fromInteger <$> forAll (largeUnsigned w)
+
+  let BV.BV x' = op w bv n
+  checkBounds x' w
+
+wellFormedTests :: TestTree
+wellFormedTests = testGroup "well-formedness tests"
+  [ testProperty "mkBV" $ wfCtor anyWidth (fmap Just . BV.mkBV)
+  , testProperty "mkBVUnsigned" $ wfCtor anyWidth BV.mkBVUnsigned
+  , testProperty "mkBVSigned" $ wfCtor anyPosWidth (forcePos BV.mkBVSigned)
+  , testProperty "signedClamp" $ wfCtor anyPosWidth (fmap Just . forcePos BV.signedClamp)
+  , testProperty "minUnsigned" $ wfCtor anyWidth (\w _ -> Just (BV.minUnsigned w))
+  , testProperty "maxUnsigned" $ wfCtor anyWidth (\w _ -> Just (BV.maxUnsigned w))
+  , testProperty "minSigned" $ wfCtor anyPosWidth (\w _ -> Just (forcePos BV.minSigned w))
+  , testProperty "maxSigned" $ wfCtor anyPosWidth (\w _ -> Just (forcePos BV.maxSigned w))
+  , testProperty "bool" $ wfCtor' knownNat (BV.bool . odd)
+  , testProperty "word8" $ wfCtor' knownNat (BV.word8 . fromInteger)
+  , testProperty "word16" $ wfCtor' knownNat (BV.word16 . fromInteger)
+  , testProperty "word32" $ wfCtor' knownNat (BV.word32 . fromInteger)
+  , testProperty "word64" $ wfCtor' knownNat (BV.word64 . fromInteger)
+  , testProperty "int8" $ wfCtor' knownNat (BV.int8 . fromInteger)
+  , testProperty "int16" $ wfCtor' knownNat (BV.int16 . fromInteger)
+  , testProperty "int32" $ wfCtor' knownNat (BV.int32 . fromInteger)
+  , testProperty "int64" $ wfCtor' knownNat (BV.int64 . fromInteger)
+  , testProperty "and" $ wfBinary anyWidth (const BV.and)
+  , testProperty "or" $ wfBinary anyWidth (const BV.or)
+  , testProperty "xor" $ wfBinary anyWidth (const BV.xor)
+  , testProperty "complement" $ wfUnary anyWidth BV.complement
+  , testProperty "shl" $ wfBinaryN anyWidth BV.shl
+  , testProperty "ashr" $ wfBinaryN anyPosWidth (forcePos BV.ashr)
+  , testProperty "lshr" $ wfBinaryN anyWidth BV.lshr
+  , testProperty "rotateL" $ wfBinaryN anyWidth BV.rotateL
+  , testProperty "rotateR" $ wfBinaryN anyWidth BV.rotateR
+  ]
+
 tests :: TestTree
 tests = testGroup "bv-sized tests"
   [ arithHomTests
   , bitwiseHomTests
   , serdeTests
   , deserTests
+  , wellFormedTests
   ]
 
 main :: IO ()
