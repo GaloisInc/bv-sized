@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -129,6 +130,43 @@ anyWidthGT1 = mkNatRepr <$> (Gen.integral $ Range.linear 2 128)
 
 smallPosWidth :: Gen (Some NatRepr)
 smallPosWidth = mkNatRepr <$> (Gen.integral $ Range.linear 1 4)
+
+data NatReprLte w where
+  NatReprLte :: (i <= w) => NatRepr i -> NatReprLte w
+
+deriving instance Show (NatReprLte w)
+
+natReprLte :: NatRepr w -> Gen (NatReprLte w)
+natReprLte w = do
+  n <- Gen.integral $ Range.linear 0 (natValue w)
+  Some i <- return $ mkNatRepr n
+  Just LeqProof <- return $ i `testLeq` w
+  return $ NatReprLte i
+
+data NatReprLt w where
+  NatReprLt :: (i+1 <= w) => NatRepr i -> NatReprLt w
+
+deriving instance Show (NatReprLt w)
+
+natReprLt :: NatRepr w -> Gen (NatReprLt w)
+natReprLt w = do
+  n <- Gen.integral $ Range.linear 0 (natValue w - 1)
+  Some i <- return $ mkNatRepr n
+  NatCaseLT LeqProof <- return $ i `testNatCases` w
+  return $ NatReprLt i
+
+data NatReprPosLt w where
+  NatReprPosLt :: (1 <= i, i+1 <= w) => NatRepr i -> NatReprPosLt w
+
+deriving instance Show (NatReprPosLt w)
+
+natReprPosLt :: NatRepr w -> Gen (NatReprPosLt w)
+natReprPosLt w = do
+  n <- Gen.integral $ Range.linear 1 (natValue w - 1)
+  Some i <- return $ mkNatRepr n
+  NatCaseLT LeqProof <- return $ i `testNatCases` w
+  Right LeqProof <- return $ isZeroOrGT1 i
+  return $ NatReprPosLt i
 
 bytes :: Gen [Word8]
 bytes = Gen.list (Range.linear 0 16) $ Gen.word8 Range.linearBounded
@@ -349,8 +387,7 @@ wfCtor genW ctor = property $ do
   Some w <- forAll genW
   x <- forAll (largeSigned w)
 
-  let mBV = ctor w x
-  case mBV of
+  case ctor w x of
     Just (BV.BV x') -> checkBounds x' w
     Nothing -> return ()
 
@@ -378,6 +415,19 @@ wfUnary genW op = property $ do
   let BV.BV x' = op w bv
   checkBounds x' w
 
+wfUnaryMaybe :: Gen (Some NatRepr)
+             -- ^ generator for width
+             -> (forall w . NatRepr w -> BV.BV w -> Maybe (BV.BV w))
+             -- ^ unary operator
+             -> Property
+wfUnaryMaybe genW op = property $ do
+  Some w <- forAll genW
+  bv <- BV.mkBV w <$> forAll (unsigned w)
+
+  case op w bv of
+    Just (BV.BV x') -> checkBounds x' w
+    Nothing -> return ()
+
 wfBinary :: Gen (Some NatRepr)
          -- ^ generator for width
          -> (forall w . NatRepr w -> BV.BV w -> BV.BV w -> BV.BV w)
@@ -387,6 +437,19 @@ wfBinary genW op = property $ do
   Some w <- forAll genW
   bv1 <- BV.mkBV w <$> forAll (unsigned w)
   bv2 <- BV.mkBV w <$> forAll (unsigned w)
+
+  let BV.BV x' = op w bv1 bv2
+  checkBounds x' w
+
+wfBinaryDiv :: Gen (Some NatRepr)
+            -- ^ generator for width
+            -> (forall w . NatRepr w -> BV.BV w -> BV.BV w -> BV.BV w)
+            -- ^ binary division-like operator
+            -> Property
+wfBinaryDiv genW op = property $ do
+  Some w <- forAll genW
+  bv1 <- BV.mkBV w <$> forAll (unsigned w)
+  bv2 <- BV.mkBV w <$> forAll (unsignedPos w)
 
   let BV.BV x' = op w bv1 bv2
   checkBounds x' w
@@ -403,6 +466,32 @@ wfBinaryN genW op = property $ do
 
   let BV.BV x' = op w bv n
   checkBounds x' w
+
+wfBit :: Gen (Some NatRepr)
+      -- ^ generator for width
+      -> (forall w ix . ix+1 <= w => NatRepr w -> NatRepr ix -> BV.BV w -> BV.BV w)
+      -- ^ bit twiddling function
+      -> Property
+wfBit genW f = property $ do
+  Some w <- forAll genW
+  bv <- BV.mkBV w <$> forAll (unsigned w)
+  NatReprLt ix <- forAll (natReprLt w)
+
+  let BV.BV x = f w ix bv
+  checkBounds x w
+
+wfBitN :: Gen (Some NatRepr)
+       -- ^ generator for width
+       -> (forall w . NatRepr w -> Natural -> BV.BV w -> BV.BV w)
+       -- ^ bit twiddling function
+       -> Property
+wfBitN genW f = property $ do
+  Some w <- forAll genW
+  bv <- BV.mkBV w <$> forAll (unsigned w)
+  n <- fromInteger <$> forAll (largeUnsigned w)
+
+  let BV.BV x = f w n bv
+  checkBounds x w
 
 wellFormedTests :: TestTree
 wellFormedTests = testGroup "well-formedness tests"
@@ -432,7 +521,118 @@ wellFormedTests = testGroup "well-formedness tests"
   , testProperty "lshr" $ wfBinaryN anyWidth BV.lshr
   , testProperty "rotateL" $ wfBinaryN anyWidth BV.rotateL
   , testProperty "rotateR" $ wfBinaryN anyWidth BV.rotateR
-  ]
+  , testProperty "bit" $ property $ do
+      Some w <- forAll anyPosWidth
+      NatReprLt i <- forAll (natReprLt w)
+
+      let BV.BV x = BV.bit w i
+      checkBounds x w
+  , testProperty "bit'" $ property $ do
+      Some w <- forAll anyPosWidth
+      n <- forAll $ Gen.integral $ Range.linear 0 (2 * natValue w)
+
+      let BV.BV x = BV.bit' w n
+      checkBounds x w
+  , testProperty "setBit" $ wfBit anyPosWidth (const BV.setBit)
+  , testProperty "setBit'" $ wfBitN anyPosWidth BV.setBit'
+  , testProperty "clearBit" $ wfBit anyPosWidth BV.clearBit
+  , testProperty "clearBit'" $ wfBitN anyPosWidth BV.clearBit'
+  , testProperty "complementBit" $ wfBit anyPosWidth (const BV.complementBit)
+  , testProperty "complementBit'" $ wfBitN anyPosWidth BV.complementBit'
+  , testProperty "popCount" $ wfUnary anyWidth (const BV.popCount)
+  , testProperty "ctz" $ wfUnary anyWidth BV.ctz
+  , testProperty "clz" $ wfUnary anyWidth BV.clz
+  , testProperty "truncBits" $ property $ do
+      Some w <- forAll anyWidth
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+      n <- forAll $ Gen.integral $ Range.linear 0 (2 * natValue w)
+
+      let BV.BV x = BV.truncBits n bv
+      checkBounds x w
+  , testProperty "add" $ wfBinary anyWidth BV.add
+  , testProperty "sub" $ wfBinary anyWidth BV.sub
+  , testProperty "mul" $ wfBinary anyWidth BV.mul
+  , testProperty "uquot" $ wfBinaryDiv anyPosWidth (const BV.uquot)
+  , testProperty "urem" $ wfBinaryDiv anyPosWidth (const BV.urem)
+  , testProperty "squot" $ wfBinaryDiv anyPosWidth (forcePos BV.squot)
+  , testProperty "srem" $ wfBinaryDiv anyPosWidth (forcePos BV.srem)
+  , testProperty "sdiv" $ wfBinaryDiv anyPosWidth (forcePos BV.sdiv)
+  , testProperty "smod" $ wfBinaryDiv anyPosWidth (forcePos BV.smod)
+  , testProperty "abs" $ wfUnary anyPosWidth (forcePos BV.abs)
+  , testProperty "negate" $ wfUnary anyWidth BV.negate
+  , testProperty "signBit" $ wfUnary anyPosWidth (forcePos BV.signBit)
+  , testProperty "signum" $ wfUnary anyPosWidth (forcePos BV.signum)
+  , testProperty "umin" $ wfBinary anyWidth (const BV.umin)
+  , testProperty "umax" $ wfBinary anyWidth (const BV.umax)
+  , testProperty "smin" $ wfBinary anyPosWidth (forcePos BV.smin)
+  , testProperty "smax" $ wfBinary anyPosWidth (forcePos BV.smax)
+  , testProperty "concat" $ property $ do
+      Some w <- forAll anyWidth
+      Some w' <- forAll anyWidth
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+      bv' <- BV.mkBV w' <$> forAll (unsigned w')
+
+      let BV.BV x = BV.concat w w' bv bv'
+      checkBounds x (w `addNat` w')
+  , testProperty "select" $ property $ do
+      Some w <- forAll anyWidth
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+      NatReprLte ix <- forAll (natReprLte w)
+      Just LeqProof <- return $ ix `testLeq` w
+      NatReprLte w' <- forAll (natReprLte (w `subNat` ix))
+      Just LeqProof <- return $ (ix `addNat` w') `testLeq` w
+
+      let BV.BV x = BV.select ix w' bv
+      checkBounds x w'
+  , testProperty "select'" $ property $ do
+      Some w <- forAll anyWidth
+      Some w' <- forAll anyWidth
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+      n <- forAll $ Gen.integral $ Range.linear 0 (2 * natValue w)
+
+      let BV.BV x = BV.select' n w' bv
+      checkBounds x w'
+  , testProperty "zext" $ property $ do
+      Some w' <- forAll anyPosWidth
+      NatReprLt w <- forAll (natReprLt w')
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+
+      let BV.BV x = BV.zext w' bv
+      checkBounds x w'
+  , testProperty "sext" $ property $ do
+      Some w' <- forAll anyWidthGT1
+      NatReprPosLt w <- forAll (natReprPosLt w')
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+
+      let BV.BV x = BV.sext w w' bv
+      checkBounds x w'
+  , testProperty "trunc" $ property $ do
+      Some w <- forAll anyPosWidth
+      NatReprLt w' <- forAll (natReprLt w)
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+
+      let BV.BV x = BV.trunc w' bv
+      checkBounds x w'
+  , testProperty "trunc'" $ property $ do
+      Some w <- forAll anyWidth
+      Some w' <- forAll anyWidth
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+
+      let BV.BV x = BV.trunc' w' bv
+      checkBounds x w'
+  , testProperty "mulWide" $ property $ do
+      Some w <- forAll anyWidth
+      Some w' <- forAll anyWidth
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+      bv' <- BV.mkBV w' <$> forAll (unsigned w')
+
+      let BV.BV x = BV.mulWide w w' bv bv'
+      checkBounds x (w `addNat` w')
+    , testProperty "succUnsigned" $ wfUnaryMaybe anyWidth BV.succUnsigned
+    , testProperty "succSigned" $ wfUnaryMaybe anyPosWidth (forcePos BV.succUnsigned)
+    , testProperty "predUnsigned" $ wfUnaryMaybe anyWidth BV.predUnsigned
+    , testProperty "predSigned" $ wfUnaryMaybe anyPosWidth (forcePos BV.predUnsigned)
+    ]
 
 tests :: TestTree
 tests = testGroup "bv-sized tests"
