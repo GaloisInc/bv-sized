@@ -481,7 +481,7 @@ lshr w (BV x) shf =
 -- | Bitwise rotate left.
 rotateL :: NatRepr w -> BV w -> Natural -> BV w
 rotateL w bv rot' = leftChunk `or` rightChunk
-  where rot = rot' `mod` wNatural
+  where rot = if wNatural == 0 then 0 else rot' `mod` wNatural
         leftChunk = shl w bv rot
         rightChunk = lshr w bv (wNatural - rot)
         wNatural = natValue w
@@ -489,7 +489,7 @@ rotateL w bv rot' = leftChunk `or` rightChunk
 -- | Bitwise rotate right.
 rotateR :: NatRepr w -> BV w -> Natural -> BV w
 rotateR w bv rot' = leftChunk `or` rightChunk
-  where rot = rot' `mod` wNatural
+  where rot = if wNatural == 0 then 0 else rot' `mod` wNatural
         rightChunk = lshr w bv rot
         leftChunk = shl w bv (wNatural - rot)
         wNatural = natValue w
