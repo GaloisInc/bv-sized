@@ -1,5 +1,15 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## 1.0.2 *August 2020*
+
+* Allows tasty 1.3 for test suite
+* Fixes bug in signedClamp function which made it possible to violate
+  the nonnegative invariant on the internal representation of BVs
+* Fixes divide by zero error in rotateL and rotateR
+* Enhances test suite to test well-formedness of all operators that
+  return a BV
+* Fixes some documentation
+
 ## 1.0.1 *May 2020*
 
 This fixed a subtle bug in the test suite which occasionally caused a
