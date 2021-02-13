@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE GADTs #-}
@@ -29,12 +30,13 @@ import Data.BitVector.Sized.Panic (panic)
 -- Qualified imports
 import qualified Data.Bits                  as B
 import qualified Data.Bits.Bitwise          as B
-import qualified Data.ByteString as BS
+import qualified Data.ByteString            as BS
 import qualified Numeric                    as N
 import qualified Data.Parameterized.NatRepr as P
-import qualified Prelude as Prelude
+import qualified Prelude                    as Prelude
 
 -- Unqualified imports
+import Control.DeepSeq
 import Data.Char (intToDigit)
 import Data.List (genericLength)
 import Data.Int
@@ -95,6 +97,7 @@ data BV (w :: Nat) :: Type where
   BV :: Integer -> BV w
 
   deriving ( Generic
+           , NFData
            , Show
            , Read
            , Eq
