@@ -47,6 +47,6 @@ test-suite bv-sized-tests
                        hedgehog,
                        parameterized-utils,
                        tasty >= 1.2.3 && < 1.5,
-                       tasty-hedgehog >= 1.0.0.2 && < 1.1
+                       tasty-hedgehog >= 1.0.0.2 && < 1.2
   default-language:    Haskell2010
   ghc-options:         -Wall -Wcompat
