@@ -621,14 +621,14 @@ popCount (BV x) = BV (toInteger (B.popCount x))
 ctz :: NatRepr w -> BV w -> BV w
 ctz w (BV x) = BV (go 0)
   where go !i | i < intValue w &&
-                B.testBit x (fromInteger i) == False = go (i+1)
+                not (B.testBit x (fromInteger i)) = go (i+1)
               | otherwise = i
 
 -- | Count leading zeros in a 'BV'.
 clz :: NatRepr w -> BV w -> BV w
 clz w (BV x) = BV (go 0)
  where go !i | i < intValue w &&
-               B.testBit x (fromInteger (intValue w - i - 1)) == False =
+               not (B.testBit x (fromInteger (intValue w - i - 1))) =
                  go (i+1)
              | otherwise = i
 
@@ -771,7 +771,7 @@ concat :: NatRepr w
        -- ^ Lower-order bits
        -> BV (w+w')
 concat w w' (BV hi) (BV lo) = checkNatRepr (w `addNat` w') $
-  BV ((hi `B.shiftL` (fromNatural (natValue w'))) B..|. lo)
+  BV ((hi `B.shiftL` fromNatural (natValue w')) B..|. lo)
 
 -- | Slice out a smaller bitvector from a larger one.
 --
@@ -789,7 +789,7 @@ select :: ix + w' <= w
        -> BV w'
 select ix w' (BV x) = mkBV' w' xShf
   -- NB fromNatural is OK because of (ix + w' <= w) constraint
-  where xShf = x `B.shiftR` (fromNatural (natValue ix))
+  where xShf = x `B.shiftR` fromNatural (natValue ix)
 
 -- | Like 'select', but takes a 'Natural' as the index to start
 -- selecting from. Neither the index nor the output width is checked
@@ -809,7 +809,7 @@ select' :: Natural
         -- ^ Bitvector to select from
         -> BV w'
 select' ix w' (BV x)
-  | toInteger ix < toInteger (maxBound :: Int) = mkBV w' (x `B.shiftR` (fromNatural ix))
+  | toInteger ix < toInteger (maxBound :: Int) = mkBV w' (x `B.shiftR` fromNatural ix)
   | otherwise = zero w'
 
 -- | Zero-extend a bitvector to one of strictly greater width.
@@ -908,7 +908,8 @@ enumFromToSigned :: 1 <= w => NatRepr w
                  -> BV w
                  -- ^ Upper bound
                  -> [BV w]
-enumFromToSigned w bv1 bv2 = (BV . fromJust . signedToUnsigned w) <$> [asSigned w bv1 .. asSigned w bv2]
+enumFromToSigned w bv1 bv2 =
+  BV . fromJust . signedToUnsigned w <$> [asSigned w bv1 .. asSigned w bv2]
 
 ----------------------------------------
 -- Pretty printing
