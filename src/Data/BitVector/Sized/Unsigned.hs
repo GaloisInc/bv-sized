@@ -28,13 +28,13 @@ module Data.BitVector.Sized.Unsigned
 import           Data.BitVector.Sized.Internal (BV(..), mkBV)
 import qualified Data.BitVector.Sized.Internal as BV
 import           Data.BitVector.Sized.Panic (panic)
-import Data.Parameterized.NatRepr
+import           Data.Parameterized.NatRepr (NatRepr, knownNat, maxUnsigned, widthVal)
 
 import Data.Bits (Bits(..), FiniteBits(..))
-import Data.Ix
-import GHC.Generics
-import GHC.TypeLits
-import Numeric.Natural
+import Data.Ix (Ix(inRange, range, index))
+import GHC.Generics (Generic)
+import GHC.TypeLits (KnownNat)
+import Numeric.Natural (Natural)
 
 -- | Signed bit vector.
 newtype UnsignedBV w = UnsignedBV { asBV :: BV w }
