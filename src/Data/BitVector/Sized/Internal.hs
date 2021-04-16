@@ -33,16 +33,16 @@ import qualified Data.Bits.Bitwise          as B
 import qualified Data.ByteString            as BS
 import qualified Numeric                    as N
 import qualified Data.Parameterized.NatRepr as P
-import qualified Prelude                    as Prelude
+import qualified Prelude
 
 -- Unqualified imports
-import Control.DeepSeq
+import Control.DeepSeq (NFData)
 import Data.Char (intToDigit)
 import Data.List (genericLength)
-import Data.Int
+import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Kind (Type)
 import Data.Maybe (fromJust)
-import Data.Word
+import Data.Word (Word8, Word16, Word32, Word64)
 import Data.Parameterized ( NatRepr
                           , mkNatRepr
                           , natValue
@@ -54,10 +54,10 @@ import Data.Parameterized ( NatRepr
                           , Some(..)
                           , Pair(..)
                           )
-import GHC.Generics
-import GHC.TypeLits
+import GHC.Generics (Generic)
+import GHC.TypeLits (Nat, type(+), type(<=))
 import Language.Haskell.TH.Lift (Lift)
-import Numeric.Natural
+import Numeric.Natural (Natural)
 import Prelude hiding (abs, or, and, negate, concat, signum)
 
 ----------------------------------------
