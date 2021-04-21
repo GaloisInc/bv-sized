@@ -130,13 +130,10 @@ instance (KnownNat w, 1 <= w) => Bounded (SignedBV w) where
   maxBound = SignedBV (BV.maxSigned knownNat)
 
 instance KnownNat w => Uniform (SignedBV w) where
-  uniformM g = SignedBV <$> uniformM g
+  uniformM g = SignedBV <$> BV.uniformM knownNat g
 
 instance (KnownNat w, 1 <= w) => UniformRange (SignedBV w) where
   uniformRM (SignedBV lo, SignedBV hi) g =
-    let loI = BV.asSigned w lo
-        hiI = BV.asSigned w hi
-    in SignedBV . BV.BV <$> uniformRM (loI, hiI) g
-    where w = knownNat :: NatRepr w
+    SignedBV <$> BV.sUniformRM knownNat (lo, hi) g
 
 instance (KnownNat w, 1 <= w) => Random (SignedBV w)

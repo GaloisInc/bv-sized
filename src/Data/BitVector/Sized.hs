@@ -94,6 +94,11 @@ module Data.BitVector.Sized
   , succUnsigned, succSigned
   , predUnsigned, predSigned
   , enumFromToUnsigned, enumFromToSigned
+    -- * Generating random bitvectors
+    -- | 'BV' versions of the functions in 'System.Random'.
+  , uniformM
+  , uUniformRM
+  , sUniformRM
     -- * Pretty printing
   , ppHex
   , ppBin

@@ -44,7 +44,6 @@ import Data.Kind (Type)
 import Data.Maybe (fromJust)
 import Data.Word (Word8, Word16, Word32, Word64)
 import Data.Parameterized ( NatRepr
-                          , knownNat
                           , mkNatRepr
                           , natValue
                           , intValue
@@ -56,11 +55,10 @@ import Data.Parameterized ( NatRepr
                           , Pair(..)
                           )
 import GHC.Generics (Generic)
-import GHC.TypeLits (Nat, type(+), type(<=), KnownNat)
+import GHC.TypeLits (Nat, type(+), type(<=))
 import Language.Haskell.TH.Lift (Lift)
 import Numeric.Natural (Natural)
 import Prelude hiding (abs, or, and, negate, concat, signum)
-import System.Random
 import System.Random.Stateful
 
 ----------------------------------------
@@ -117,10 +115,6 @@ instance EqF BV where
 
 instance Hashable (BV w) where
   hashWithSalt salt (BV i) = hashWithSalt salt i
-
-instance KnownNat w => Uniform (BV w) where
-  uniformM g = BV <$> uniformRM (P.minUnsigned w, P.maxUnsigned w) g
-    where w = knownNat :: NatRepr w
 
 ----------------------------------------
 -- BV construction
@@ -917,6 +911,34 @@ enumFromToSigned :: 1 <= w => NatRepr w
                  -> [BV w]
 enumFromToSigned w bv1 bv2 =
   BV . fromJust . signedToUnsigned w <$> [asSigned w bv1 .. asSigned w bv2]
+
+----------------------------------------
+-- Generating random bitvectors
+
+-- | Generates a bitvector uniformly distributed over all possible values for a
+-- given width. (See 'System.Random.Stateful.uniformM').
+uniformM :: StatefulGen g m => NatRepr w -> g -> m (BV w)
+uniformM w g = BV <$> uniformRM (P.minUnsigned w, P.maxUnsigned w) g
+
+-- | Generates a bitvector uniformly distributed over the provided range
+-- (interpreted as a range of /unsigned/ bitvectors), which is interpreted as
+-- inclusive in the lower and upper bound. (See
+-- 'System.Random.Stateful.uniformRM').
+uUniformRM :: StatefulGen g m => (BV w, BV w) -> g -> m (BV w)
+uUniformRM (lo, hi) g =
+  let loI = asUnsigned lo
+      hiI = asUnsigned hi
+  in BV <$> uniformRM (loI, hiI) g
+
+-- | Generates a bitvector uniformly distributed over the provided range
+-- (interpreted as a range of /signed/ bitvectors), which is interpreted as
+-- inclusive in the lower and upper bound. (See
+-- 'System.Random.Stateful.uniformRM').
+sUniformRM :: (StatefulGen g m, 1 <= w) => NatRepr w -> (BV w, BV w) -> g -> m (BV w)
+sUniformRM w (lo, hi) g =
+  let loI = asSigned w lo
+      hiI = asSigned w hi
+  in mkBV w <$> uniformRM (loI, hiI) g
 
 ----------------------------------------
 -- Pretty printing

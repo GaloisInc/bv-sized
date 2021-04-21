@@ -122,12 +122,10 @@ instance KnownNat w => Bounded (UnsignedBV w) where
   maxBound = UnsignedBV (BV.maxUnsigned knownNat)
 
 instance KnownNat w => Uniform (UnsignedBV w) where
-  uniformM g = UnsignedBV <$> uniformM g
+  uniformM g = UnsignedBV <$> BV.uniformM knownNat g
 
-instance KnownNat w => UniformRange (UnsignedBV w) where
+instance UniformRange (UnsignedBV w) where
   uniformRM (UnsignedBV lo, UnsignedBV hi) g =
-    let loI = BV.asUnsigned lo
-        hiI = BV.asUnsigned hi
-    in UnsignedBV . BV.BV <$> uniformRM (loI, hiI) g
+    UnsignedBV <$> BV.uUniformRM (lo, hi) g
 
 instance KnownNat w => Random (UnsignedBV w)
