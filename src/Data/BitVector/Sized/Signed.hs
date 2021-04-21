@@ -36,20 +36,22 @@ import Data.Ix
 import GHC.Generics
 import GHC.TypeLits
 import Numeric.Natural
+import System.Random
+import System.Random.Stateful
 
 -- | Signed bit vector.
 newtype SignedBV w = SignedBV (BV w)
   deriving (Generic, Show, Read, Eq)
-
--- | Convenience wrapper for 'BV.mkBV'.
-mkSignedBV :: NatRepr w -> Integer -> SignedBV w
-mkSignedBV w x = SignedBV (BV.mkBV w x)
 
 instance (KnownNat w, 1 <= w) => Ord (SignedBV w) where
   SignedBV bv1 `compare` SignedBV bv2 =
     if | bv1 == bv2              -> EQ
        | BV.slt knownNat bv1 bv2 -> LT
        | otherwise               -> GT
+
+-- | Convenience wrapper for 'BV.mkBV'.
+mkSignedBV :: NatRepr w -> Integer -> SignedBV w
+mkSignedBV w x = SignedBV (BV.mkBV w x)
 
 liftUnary :: (BV w -> BV w)
           -> SignedBV w
@@ -126,3 +128,11 @@ instance (KnownNat w, 1 <= w) => Ix (SignedBV w) where
 instance (KnownNat w, 1 <= w) => Bounded (SignedBV w) where
   minBound = SignedBV (BV.minSigned knownNat)
   maxBound = SignedBV (BV.maxSigned knownNat)
+
+instance KnownNat w => UniformRange (SignedBV w) where
+  uniformRM (SignedBV lo, SignedBV hi) g = SignedBV <$> uniformRM (lo, hi) g
+
+instance KnownNat w => Uniform (SignedBV w) where
+  uniformM g = SignedBV <$> uniformRM (BV.minUnsigned knownNat, BV.maxUnsigned knownNat) g
+
+instance KnownNat w => Random (SignedBV w)
