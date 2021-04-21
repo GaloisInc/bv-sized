@@ -40,7 +40,7 @@ import System.Random
 import System.Random.Stateful
 
 -- | Signed bit vector.
-newtype SignedBV w = SignedBV (BV w)
+newtype SignedBV w = SignedBV { asBV :: BV w }
   deriving (Generic, Show, Read, Eq)
 
 instance (KnownNat w, 1 <= w) => Ord (SignedBV w) where
