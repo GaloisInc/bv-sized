@@ -855,6 +855,26 @@ trunc' :: NatRepr w'
        -- ^ Bitvector to truncate
        -> BV w'
 trunc' w' (BV x) = mkBV w' x
+{-# DEPRECATED trunc' "Use zresize instead" #-}
+
+-- | Resizes a bitvector. If @w' > w@, perform a zero extension.
+zresize :: NatRepr w'
+        -- ^ Desired output width
+        -> BV w
+        -- ^ Bitvector to resize
+        -> BV w'
+zresize w' (BV x) = mkBV w' x
+
+-- | Resizes a bitvector. If @w' > w@, perform a signed extension.
+sresize :: 1 <= w
+        => NatRepr w
+        -- ^ Width of input vector
+        -> NatRepr w'
+        -- ^ Desired output width
+        -> BV w
+        -- ^ Bitvector to resize
+        -> BV w'
+sresize w w' bv = mkBV w' (asSigned w bv)
 
 -- | Wide multiply of two bitvectors.
 mulWide :: NatRepr w -> NatRepr w' -> BV w -> BV w' -> BV (w+w')
