@@ -118,13 +118,9 @@ instance EqF BV where
 instance Hashable (BV w) where
   hashWithSalt salt (BV i) = hashWithSalt salt i
 
-instance KnownNat w => UniformRange (BV w) where
-  uniformRM (BV lo, BV hi) g = BV <$> uniformRM (lo, hi) g
-
 instance KnownNat w => Uniform (BV w) where
-  uniformM g = uniformRM (minUnsigned knownNat, maxUnsigned knownNat) g
-
-instance KnownNat w => Random (BV w)
+  uniformM g = BV <$> uniformRM (P.minUnsigned w, P.maxUnsigned w) g
+    where w = knownNat :: NatRepr w
 
 ----------------------------------------
 -- BV construction
