@@ -46,6 +46,7 @@ test-suite bv-sized-tests
                        bv-sized,
                        bytestring,
                        hedgehog,
+                       MonadRandom >= 0.5.3 && < 0.6,
                        parameterized-utils,
                        tasty >= 1.2.3 && < 1.5,
                        tasty-hedgehog >= 1.0.0.2 && < 1.2

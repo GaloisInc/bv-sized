@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
@@ -17,8 +18,11 @@ import Test.Tasty.Hedgehog
 
 -- Modules under test
 import qualified Data.BitVector.Sized as BV
+import qualified Data.BitVector.Sized.Unsigned as BV
+import qualified Data.BitVector.Sized.Signed as BV
 
 -- Auxiliary modules
+import Control.Monad.Random
 import qualified Data.Bits as Bits
 import qualified Data.ByteString as BS
 import Data.Maybe (isJust, fromJust)
@@ -634,6 +638,16 @@ wellFormedTests = testGroup "well-formedness tests"
     , testProperty "predSigned" $ wfUnaryMaybe anyPosWidth (forcePos BV.predUnsigned)
     ]
 
+randomTests :: TestTree
+randomTests = testGroup "tests for random generation"
+  [ testProperty "randomUnsigned" $ property $ do
+      BV.UnsignedBV (BV.BV x) :: BV.UnsignedBV 32 <- liftIO $ getRandom
+      checkBounds x (knownNat @32)
+  , testProperty "randomSigned" $ property $ do
+      BV.SignedBV (BV.BV x) :: BV.SignedBV 32 <- liftIO $ getRandom
+      checkBounds x (knownNat @32)
+  ]
+
 tests :: TestTree
 tests = testGroup "bv-sized tests"
   [ arithHomTests
@@ -641,6 +655,7 @@ tests = testGroup "bv-sized tests"
   , serdeTests
   , deserTests
   , wellFormedTests
+  , randomTests
   ]
 
 main :: IO ()
