@@ -638,14 +638,39 @@ wellFormedTests = testGroup "well-formedness tests"
     , testProperty "predSigned" $ wfUnaryMaybe anyPosWidth (forcePos BV.predUnsigned)
     ]
 
+testRandomR :: (Ord (f w), Random (f w), Show (f w), Show a)
+            => NatRepr w
+            -> (forall w' . NatRepr w' -> a -> f w')
+            -> (NatRepr w -> Gen a)
+            -> Property
+testRandomR w mk gen = property $ do
+  x <- mk w <$> forAll (gen w)
+  y <- mk w <$> forAll (gen w)
+
+  let l = min x y
+      h = max x y
+
+  rand  <- liftIO $ getRandomR (l, h)
+  rand' <- liftIO $ getRandomR (h, l)
+
+  diff l    (<=) rand
+  diff rand (<=) h
+
+  diff l     (<=) rand'
+  diff rand' (<=) h
+
 randomTests :: TestTree
 randomTests = testGroup "tests for random generation"
-  [ testProperty "randomUnsigned" $ property $ do
+  [ testProperty "random unsigned well-formed" $ property $ do
       BV.UnsignedBV (BV.BV x) :: BV.UnsignedBV 32 <- liftIO $ getRandom
       checkBounds x (knownNat @32)
-  , testProperty "randomSigned" $ property $ do
+  , testProperty "random signed well-formed" $ property $ do
       BV.SignedBV (BV.BV x) :: BV.SignedBV 32 <- liftIO $ getRandom
       checkBounds x (knownNat @32)
+  , testProperty "randomR unsigned well-formed and in bounds" $
+    testRandomR (knownNat @32) BV.mkUnsignedBV unsigned
+  , testProperty "randomR signed well-formed and in bounds" $
+    testRandomR (knownNat @32) BV.mkSignedBV unsigned
   ]
 
 tests :: TestTree
