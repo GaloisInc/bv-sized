@@ -1,5 +1,11 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## 1.0.3 *April 2021*
+
+* New instances (`NFData`, `Random`)
+* New functions for `BV` that create uniformly random bitvectors
+* Fix: Adds `asBV` for `SignedBV` (should have been there to begin with)
+
 ## 1.0.2 *August 2020*
 
 * Allows tasty 1.3 for test suite

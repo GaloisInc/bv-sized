@@ -35,6 +35,8 @@ import Data.Ix (Ix(inRange, range, index))
 import GHC.Generics (Generic)
 import GHC.TypeLits (KnownNat)
 import Numeric.Natural (Natural)
+import System.Random
+import System.Random.Stateful
 
 -- | Signed bit vector.
 newtype UnsignedBV w = UnsignedBV { asBV :: BV w }
@@ -118,3 +120,12 @@ instance KnownNat w => Ix (UnsignedBV w) where
 instance KnownNat w => Bounded (UnsignedBV w) where
   minBound = UnsignedBV (BV.minUnsigned knownNat)
   maxBound = UnsignedBV (BV.maxUnsigned knownNat)
+
+instance KnownNat w => Uniform (UnsignedBV w) where
+  uniformM g = UnsignedBV <$> BV.uniformM knownNat g
+
+instance UniformRange (UnsignedBV w) where
+  uniformRM (UnsignedBV lo, UnsignedBV hi) g =
+    UnsignedBV <$> BV.uUniformRM (lo, hi) g
+
+instance KnownNat w => Random (UnsignedBV w)
