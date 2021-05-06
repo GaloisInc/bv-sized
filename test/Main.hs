@@ -624,6 +624,21 @@ wellFormedTests = testGroup "well-formedness tests"
 
       let BV.BV x = BV.trunc' w' bv
       checkBounds x w'
+  , testProperty "zresize" $ property $ do
+      Some w <- forAll anyWidth
+      Some w' <- forAll anyWidth
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+
+      let BV.BV x = BV.zresize w' bv
+      checkBounds x w'
+  , testProperty "sresize" $ property $ do
+      Some w <- forAll anyPosWidth
+      Just LeqProof <- return $ isPosNat w
+      Some w' <- forAll anyWidth
+      bv <- BV.mkBV w <$> forAll (unsigned w)
+
+      let BV.BV x = BV.sresize w w' bv
+      checkBounds x w'
   , testProperty "mulWide" $ property $ do
       Some w <- forAll anyWidth
       Some w' <- forAll anyWidth

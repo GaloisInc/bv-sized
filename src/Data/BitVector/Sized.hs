@@ -89,6 +89,8 @@ module Data.BitVector.Sized
   , zext
   , sext
   , trunc, trunc'
+  , zresize
+  , sresize
   , mulWide
     -- * Enum operations
   , succUnsigned, succSigned
