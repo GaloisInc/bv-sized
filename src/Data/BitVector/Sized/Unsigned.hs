@@ -25,7 +25,7 @@ module Data.BitVector.Sized.Unsigned
     -- * Constructors
   , mkUnsignedBV, mkUnsignedBV'
   , clamp
-  , zero , one , width
+  , zero, one, width
     -- * Construction from fixed-width data types
   , bool, word8, word16, word32, word64
   , bitsBE, bitsLE
@@ -224,7 +224,7 @@ word64 = UnsignedBV . BV.word64
 -- with lower value index in the list are mapped to higher order bits in the
 -- output bitvector). Return the resulting 'UnsignedBV' along with its width.
 --
--- >>> case bitsBE [True, False] of p -> (fstPair p, sndPair p)
+-- >>> case BV.bitsBE [True, False] of p -> (fstPair p, sndPair p)
 -- (2,UnsignedBV {asBV = BV 2})
 bitsBE :: [Bool] -> Pair NatRepr UnsignedBV
 bitsBE = viewPair (\w bv -> Pair w (UnsignedBV bv)) . BV.bitsBE
@@ -233,21 +233,21 @@ bitsBE = viewPair (\w bv -> Pair w (UnsignedBV bv)) . BV.bitsBE
 -- with lower value index in the list are mapped to lower order bits in the
 -- output bitvector). Return the resulting 'UnsignedBV' along with its width.
 --
--- >>> case bitsLE [True, False] of p -> (fstPair p, sndPair p)
+-- >>> case BV.bitsLE [True, False] of p -> (fstPair p, sndPair p)
 -- (2,UnsignedBV {asBV = BV 1})
 bitsLE :: [Bool] -> Pair NatRepr UnsignedBV
 bitsLE = viewPair (\w bv -> Pair w (UnsignedBV bv)) . BV.bitsLE
 
 -- | Construct an 'UnsignedBV' from a big-endian bytestring.
 --
--- >>> case bytestringBE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
+-- >>> case BV.bytestringBE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
 -- (24,UnsignedBV {asBV = BV 257})
 bytestringBE :: BS.ByteString -> Pair NatRepr UnsignedBV
 bytestringBE = viewPair (\w bv -> Pair w (UnsignedBV bv)) . BV.bytestringBE
 
 -- | Construct an 'UnsignedBV' from a little-endian bytestring.
 --
--- >>> case bytestringLE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
+-- >>> case BV.bytestringLE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
 -- (24,UnsignedBV {asBV = BV 65792})
 bytestringLE :: BS.ByteString -> Pair NatRepr UnsignedBV
 bytestringLE = viewPair (\w bv -> Pair w (UnsignedBV bv)) . BV.bytestringLE
@@ -256,7 +256,7 @@ bytestringLE = viewPair (\w bv -> Pair w (UnsignedBV bv)) . BV.bytestringLE
 -- with lower value index in the list are mapped to higher order bytes in the
 -- output bitvector).
 --
--- >>> case bytesBE [0, 1, 1] of p -> (fstPair p, sndPair p)
+-- >>> case BV.bytesBE [0, 1, 1] of p -> (fstPair p, sndPair p)
 -- (24,UnsignedBV {asBV = BV 257})
 bytesBE :: [Word8] -> Pair NatRepr UnsignedBV
 bytesBE = viewPair (\w bv -> Pair w (UnsignedBV bv)) . BV.bytesBE
@@ -265,7 +265,7 @@ bytesBE = viewPair (\w bv -> Pair w (UnsignedBV bv)) . BV.bytesBE
 -- (bytes with lower value index in the list are mapped to lower order bytes in
 -- the output bitvector).
 --
--- >>> case bytesLE [0, 1, 1] of p -> (fstPair p, sndPair p)
+-- >>> case BV.bytesLE [0, 1, 1] of p -> (fstPair p, sndPair p)
 -- (24,UnsignedBV {asBV = BV 65792})
 bytesLE :: [Word8] -> Pair NatRepr UnsignedBV
 bytesLE = viewPair (\w bv -> Pair w (UnsignedBV bv)) . BV.bytesLE
@@ -274,7 +274,7 @@ bytesLE = viewPair (\w bv -> Pair w (UnsignedBV bv)) . BV.bytesLE
 -- (higher order bits in the bitvector are mapped to lower indices in
 -- the output list).
 --
--- >>> asBitsBE (knownNat @5) (mkUnsignedBV knownNat 0b1101)
+-- >>> BV.asBitsBE (knownNat @5) (BV.mkUnsignedBV knownNat 0b1101)
 -- [False,True,True,False,True]
 asBitsBE :: NatRepr w -> UnsignedBV w -> [Bool]
 asBitsBE w (UnsignedBV bv) = BV.asBitsBE w bv
@@ -283,7 +283,7 @@ asBitsBE w (UnsignedBV bv) = BV.asBitsBE w bv
 -- (lower order bits in the bitvector are mapped to lower indices in
 -- the output list).
 --
--- >>> asBitsLE (knownNat @5) (mkUnsignedBV knownNat 0b1101)
+-- >>> BV.asBitsLE (knownNat @5) (BV.mkUnsignedBV knownNat 0b1101)
 -- [True,False,True,True,False]
 asBitsLE :: NatRepr w -> UnsignedBV w -> [Bool]
 asBitsLE w (UnsignedBV bv) = BV.asBitsLE w bv
@@ -293,7 +293,7 @@ asBitsLE w (UnsignedBV bv) = BV.asBitsLE w bv
 -- the output list). Return 'Nothing' if the width is not a multiple
 -- of 8.
 --
--- >>> asBytesBE (knownNat @32) (mkUnsignedBV knownNat 0xaabbccdd)
+-- >>> BV.asBytesBE (knownNat @32) (BV.mkUnsignedBV knownNat 0xaabbccdd)
 -- Just [170,187,204,221]
 asBytesBE :: NatRepr w -> UnsignedBV w -> Maybe [Word8]
 asBytesBE w (UnsignedBV bv) = BV.asBytesBE w bv
@@ -303,7 +303,7 @@ asBytesBE w (UnsignedBV bv) = BV.asBytesBE w bv
 -- the output list). Return 'Nothing' if the width is not a multiple
 -- of 8.
 --
--- >>> asBytesLE (knownNat @32) (mkUnsignedBV knownNat 0xaabbccdd)
+-- >>> BV.asBytesLE (knownNat @32) (BV.mkUnsignedBV knownNat 0xaabbccdd)
 -- Just [221,204,187,170]
 asBytesLE :: NatRepr w -> UnsignedBV w -> Maybe [Word8]
 asBytesLE w (UnsignedBV bv) = BV.asBytesLE w bv
