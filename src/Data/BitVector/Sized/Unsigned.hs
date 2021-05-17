@@ -98,7 +98,7 @@ instance KnownNat w => Num (UnsignedBV w) where
 
 instance KnownNat w => Enum (UnsignedBV w) where
   toEnum = UnsignedBV . mkBV knownNat . checkInt
-    where checkInt i | 0 <= i && toInteger i <= (maxUnsigned (knownNat @w)) = toInteger i
+    where checkInt i | 0 <= i && toInteger i <= maxUnsigned (knownNat @w) = toInteger i
                      | otherwise = panic "Data.BitVector.Sized.Unsigned"
                                    ["toEnum: bad argument"]
 
@@ -106,7 +106,7 @@ instance KnownNat w => Enum (UnsignedBV w) where
 
 instance KnownNat w => Ix (UnsignedBV w) where
   range (UnsignedBV loBV, UnsignedBV hiBV) =
-    (UnsignedBV . mkBV knownNat) <$>
+    UnsignedBV . mkBV knownNat <$>
     [BV.asUnsigned loBV .. BV.asUnsigned hiBV]
   index (UnsignedBV loBV, UnsignedBV hiBV) (UnsignedBV ixBV) =
     index ( BV.asUnsigned loBV,
