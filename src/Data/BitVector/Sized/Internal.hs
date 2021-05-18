@@ -40,6 +40,7 @@ import Control.DeepSeq (NFData)
 import Data.Char (intToDigit)
 import Data.List (genericLength)
 import Data.Int (Int8, Int16, Int32, Int64)
+import Data.Ix (Ix(..))
 import Data.Kind (Type)
 import Data.Maybe (fromJust)
 import Data.Word (Word8, Word16, Word32, Word64)
@@ -53,9 +54,10 @@ import Data.Parameterized ( NatRepr
                           , Hashable(..)
                           , Some(..)
                           , Pair(..)
+                          , knownNat
                           )
 import GHC.Generics (Generic)
-import GHC.TypeLits (Nat, type(+), type(<=))
+import GHC.TypeLits (KnownNat, Nat, type(+), type(<=))
 import Language.Haskell.TH.Lift (Lift)
 import Numeric.Natural (Natural)
 import Prelude hiding (abs, or, and, negate, concat, signum)
@@ -115,6 +117,15 @@ instance EqF BV where
 
 instance Hashable (BV w) where
   hashWithSalt salt (BV i) = hashWithSalt salt i
+
+instance KnownNat w => Enum (BV w) where
+  fromEnum (BV i) = fromIntegral i
+  toEnum = mkBV knownNat . fromIntegral
+
+instance KnownNat w => Ix (BV w) where
+  range (lo, hi) = mkBV knownNat <$> [asUnsigned lo .. asUnsigned hi]
+  index (lo, hi) bv = index (asUnsigned lo, asUnsigned hi) (asUnsigned bv)
+  inRange (lo, hi) bv = inRange (asUnsigned lo, asUnsigned hi) (asUnsigned bv)
 
 ----------------------------------------
 -- BV construction
