@@ -209,27 +209,27 @@ width = SignedBV . BV.width
 clamp :: 1 <= w => NatRepr w -> Integer -> SignedBV w
 clamp w x = SignedBV (BV.signedClamp w x)
 
--- | Construct an 'SignedBV' from a 'Bool'.
+-- | Construct a 'SignedBV' from a 'Bool'.
 bool :: Bool -> SignedBV 1
 bool = SignedBV . BV.bool
 
--- | Construct an 'SignedBV' from an 'Int8'.
+-- | Construct a 'SignedBV' from an 'Int8'.
 int8 :: Int8 -> SignedBV 8
 int8 = SignedBV . BV.int8
 
--- | Construct an 'SignedBV' from a 'Int16'.
+-- | Construct a 'SignedBV' from a 'Int16'.
 int16 :: Int16 -> SignedBV 16
 int16 = SignedBV . BV.int16
 
--- | Construct an 'SignedBV' from a 'Int32'.
+-- | Construct a 'SignedBV' from a 'Int32'.
 int32 :: Int32 -> SignedBV 32
 int32 = SignedBV . BV.int32
 
--- | Construct an 'SignedBV' from a 'Int64'.
+-- | Construct a 'SignedBV' from a 'Int64'.
 int64 :: Int64 -> SignedBV 64
 int64 = SignedBV . BV.int64
 
--- | Construct an 'SignedBV' from a list of bits, in big endian order (bits with
+-- | Construct a 'SignedBV' from a list of bits, in big endian order (bits with
 -- lower value index in the list are mapped to higher order bits in the output
 -- bitvector). Return the resulting 'SignedBV' along with its width.
 --
@@ -238,7 +238,7 @@ int64 = SignedBV . BV.int64
 bitsBE :: [Bool] -> Pair NatRepr SignedBV
 bitsBE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bitsBE
 
--- | Construct an 'SignedBV' from a list of bits, in little endian order (bits
+-- | Construct a 'SignedBV' from a list of bits, in little endian order (bits
 -- with lower value index in the list are mapped to lower order bits in the
 -- output bitvector). Return the resulting 'SignedBV' along with its width.
 --
@@ -247,21 +247,21 @@ bitsBE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bitsBE
 bitsLE :: [Bool] -> Pair NatRepr SignedBV
 bitsLE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bitsLE
 
--- | Construct an 'SignedBV' from a big-endian bytestring.
+-- | Construct a 'SignedBV' from a big-endian bytestring.
 --
 -- >>> case BV.bytestringBE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
 -- (24,SignedBV {asBV = BV 257})
 bytestringBE :: BS.ByteString -> Pair NatRepr SignedBV
 bytestringBE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bytestringBE
 
--- | Construct an 'SignedBV' from a little-endian bytestring.
+-- | Construct a 'SignedBV' from a little-endian bytestring.
 --
 -- >>> case BV.bytestringLE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
 -- (24,SignedBV {asBV = BV 65792})
 bytestringLE :: BS.ByteString -> Pair NatRepr SignedBV
 bytestringLE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bytestringLE
 
--- | Construct an 'SignedBV' from a list of bytes, in big endian order (bytes
+-- | Construct a 'SignedBV' from a list of bytes, in big endian order (bytes
 -- with lower value index in the list are mapped to higher order bytes in the
 -- output bitvector).
 --
@@ -270,7 +270,7 @@ bytestringLE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bytestringLE
 bytesBE :: [Word8] -> Pair NatRepr SignedBV
 bytesBE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bytesBE
 
--- | Construct an 'SignedBV' from a list of bytes, in little endian order
+-- | Construct a 'SignedBV' from a list of bytes, in little endian order
 -- (bytes with lower value index in the list are mapped to lower order bytes in
 -- the output bitvector).
 --
@@ -325,11 +325,11 @@ asBytestringBE w (SignedBV bv) = BV.asBytestringBE w bv
 asBytestringLE :: NatRepr w -> SignedBV w -> Maybe BS.ByteString
 asBytestringLE w (SignedBV bv) = BV.asBytestringLE w bv
 
--- | Count trailing zeros in an 'SignedBV'.
+-- | Count trailing zeros in a 'SignedBV'.
 ctz :: NatRepr w -> SignedBV w -> SignedBV w
 ctz w (SignedBV bv) = SignedBV (BV.ctz w bv)
 
--- | Count leading zeros in an 'SignedBV'.
+-- | Count leading zeros in a 'SignedBV'.
 clz :: NatRepr w -> SignedBV w -> SignedBV w
 clz w (SignedBV bv) = SignedBV (BV.clz w bv)
 
@@ -338,7 +338,7 @@ clz w (SignedBV bv) = SignedBV (BV.clz w bv)
 truncBits :: Natural -> SignedBV w -> SignedBV w
 truncBits b (SignedBV bv) = SignedBV (BV.truncBits b bv)
 
--- | Get the sign bit as an 'SignedBV'.
+-- | Get the sign bit as a 'SignedBV'.
 signBit :: 1 <= w => NatRepr w -> SignedBV w -> SignedBV w
 signBit w (SignedBV bv) = SignedBV (BV.signBit w bv)
 
