@@ -81,7 +81,6 @@ import qualified Data.ByteString as BS
 import Data.Int
 import Data.Ix (Ix(inRange, range, index))
 import Data.Word
-import GHC.Generics (Generic)
 import GHC.TypeLits (KnownNat, type (<=), type (+))
 import Numeric.Natural (Natural)
 import Prelude hiding (concat)
@@ -91,9 +90,7 @@ import System.Random.Stateful
 -- | Signed bit vector.
 data SignedBV w where
   SignedBV :: 1 <= w => { asBV :: BV w } -> SignedBV w
-  -- deriving (Generic, Show, Read, Eq)
 
--- deriving instance Generic (SignedBV w)
 deriving instance Show (SignedBV w)
 deriving instance 1 <= w => Read (SignedBV w)
 deriving instance Eq (SignedBV w)
