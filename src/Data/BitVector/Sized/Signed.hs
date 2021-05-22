@@ -2,9 +2,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeApplications #-}
@@ -60,7 +62,18 @@ import           Data.BitVector.Sized (BV, mkBV)
 import qualified Data.BitVector.Sized.Internal as BV
 import           Data.BitVector.Sized.Panic (panic)
 import Data.Parameterized.Classes
-import Data.Parameterized.NatRepr (NatRepr, knownNat, widthVal, minSigned, maxSigned)
+import Data.Parameterized.NatRepr
+  ( NatRepr
+  , knownNat
+  , widthVal
+  , minSigned
+  , maxSigned
+  , LeqProof(..)
+  , isPosNat
+  , leqAddPos
+  , addIsLeq
+  , leqTrans
+  )
 import Data.Parameterized.Pair
 
 import Data.Bits (Bits(..), FiniteBits(..))
@@ -68,7 +81,6 @@ import qualified Data.ByteString as BS
 import Data.Int
 import Data.Ix (Ix(inRange, range, index))
 import Data.Word
-import GHC.Generics (Generic)
 import GHC.TypeLits (KnownNat, type (<=), type (+))
 import Numeric.Natural (Natural)
 import Prelude hiding (concat)
@@ -76,8 +88,12 @@ import System.Random
 import System.Random.Stateful
 
 -- | Signed bit vector.
-newtype SignedBV w = SignedBV { asBV :: BV w }
-  deriving (Generic, Show, Read, Eq)
+data SignedBV w where
+  SignedBV :: 1 <= w => { asBV :: BV w } -> SignedBV w
+
+deriving instance Show (SignedBV w)
+deriving instance 1 <= w => Read (SignedBV w)
+deriving instance Eq (SignedBV w)
 
 instance (KnownNat w, 1 <= w) => Ord (SignedBV w) where
   SignedBV bv1 `compare` SignedBV bv2 =
@@ -180,7 +196,7 @@ instance (KnownNat w, 1 <= w) => Bounded (SignedBV w) where
   minBound = SignedBV (BV.minSigned knownNat)
   maxBound = SignedBV (BV.maxSigned knownNat)
 
-instance KnownNat w => Uniform (SignedBV w) where
+instance (KnownNat w, 1 <= w) => Uniform (SignedBV w) where
   uniformM g = SignedBV <$> BV.uniformM knownNat g
 
 instance (KnownNat w, 1 <= w) => UniformRange (SignedBV w) where
@@ -235,8 +251,10 @@ int64 = SignedBV . BV.int64
 --
 -- >>> case BV.bitsBE [True, False] of p -> (fstPair p, sndPair p)
 -- (2,SignedBV {asBV = BV 2})
-bitsBE :: [Bool] -> Pair NatRepr SignedBV
-bitsBE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bitsBE
+bitsBE :: [Bool] -> Maybe (Pair NatRepr SignedBV)
+bitsBE bs = case BV.bitsBE bs of
+  Pair w bv | Just LeqProof <- isPosNat w -> Just (Pair w (SignedBV bv))
+  _ -> Nothing
 
 -- | Construct a 'SignedBV' from a list of bits, in little endian order (bits
 -- with lower value index in the list are mapped to lower order bits in the
@@ -244,22 +262,28 @@ bitsBE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bitsBE
 --
 -- >>> case BV.bitsLE [True, False] of p -> (fstPair p, sndPair p)
 -- (2,SignedBV {asBV = BV 1})
-bitsLE :: [Bool] -> Pair NatRepr SignedBV
-bitsLE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bitsLE
+bitsLE :: [Bool] -> Maybe (Pair NatRepr SignedBV)
+bitsLE bs = case BV.bitsBE bs of
+  Pair w bv | Just LeqProof <- isPosNat w -> Just (Pair w (SignedBV bv))
+  _ -> Nothing
 
 -- | Construct a 'SignedBV' from a big-endian bytestring.
 --
 -- >>> case BV.bytestringBE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
 -- (24,SignedBV {asBV = BV 257})
-bytestringBE :: BS.ByteString -> Pair NatRepr SignedBV
-bytestringBE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bytestringBE
+bytestringBE :: BS.ByteString -> Maybe (Pair NatRepr SignedBV)
+bytestringBE bs = case BV.bytestringBE bs of
+  Pair w bv | Just LeqProof <- isPosNat w -> Just (Pair w (SignedBV bv))
+  _ -> Nothing
 
 -- | Construct a 'SignedBV' from a little-endian bytestring.
 --
 -- >>> case BV.bytestringLE (BS.pack [0, 1, 1]) of p -> (fstPair p, sndPair p)
 -- (24,SignedBV {asBV = BV 65792})
-bytestringLE :: BS.ByteString -> Pair NatRepr SignedBV
-bytestringLE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bytestringLE
+bytestringLE :: BS.ByteString -> Maybe (Pair NatRepr SignedBV)
+bytestringLE bs = case BV.bytestringLE bs of
+  Pair w bv | Just LeqProof <- isPosNat w -> Just (Pair w (SignedBV bv))
+  _ -> Nothing
 
 -- | Construct a 'SignedBV' from a list of bytes, in big endian order (bytes
 -- with lower value index in the list are mapped to higher order bytes in the
@@ -267,8 +291,10 @@ bytestringLE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bytestringLE
 --
 -- >>> case BV.bytesBE [0, 1, 1] of p -> (fstPair p, sndPair p)
 -- (24,SignedBV {asBV = BV 257})
-bytesBE :: [Word8] -> Pair NatRepr SignedBV
-bytesBE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bytesBE
+bytesBE :: [Word8] -> Maybe (Pair NatRepr SignedBV)
+bytesBE bs = case BV.bytesBE bs of
+  Pair w bv | Just LeqProof <- isPosNat w -> Just (Pair w (SignedBV bv))
+  _ -> Nothing
 
 -- | Construct a 'SignedBV' from a list of bytes, in little endian order
 -- (bytes with lower value index in the list are mapped to lower order bytes in
@@ -276,8 +302,10 @@ bytesBE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bytesBE
 --
 -- >>> case BV.bytesLE [0, 1, 1] of p -> (fstPair p, sndPair p)
 -- (24,SignedBV {asBV = BV 65792})
-bytesLE :: [Word8] -> Pair NatRepr SignedBV
-bytesLE = viewPair (\w bv -> Pair w (SignedBV bv)) . BV.bytesLE
+bytesLE :: [Word8] -> Maybe (Pair NatRepr SignedBV)
+bytesLE bs = case BV.bytesLE bs of
+  Pair w bv | Just LeqProof <- isPosNat w -> Just (Pair w (SignedBV bv))
+  _ -> Nothing
 
 -- | Convert a bitvector to a list of bits, in big endian order
 -- (higher order bits in the bitvector are mapped to lower indices in
@@ -358,7 +386,8 @@ concat :: NatRepr w
        -> SignedBV w'
        -- ^ Lower-order bits
        -> SignedBV (w+w')
-concat w w' (SignedBV hi) (SignedBV lo) = SignedBV (BV.concat w w' hi lo)
+concat w w' (SignedBV hi) (SignedBV lo)
+  | LeqProof <- w `leqAddPos` w' = SignedBV (BV.concat w w' hi lo)
 
 -- | Slice out a smaller bitvector from a larger one.
 --
@@ -366,7 +395,7 @@ concat w w' (SignedBV hi) (SignedBV lo) = SignedBV (BV.concat w w' hi lo)
 -- SignedBV {asBV = BV 3}
 -- >>> :type it
 -- it :: BV.SignedBV 4
-select :: ix + w' <= w
+select :: (1 <= w', ix + w' <= w)
        => NatRepr ix
        -- ^ Index to start selecting from
        -> NatRepr w'
@@ -386,7 +415,8 @@ select ix w' (SignedBV bv) = SignedBV (BV.select ix w' bv)
 -- SignedBV {asBV = BV 6}
 -- >>> :type it
 -- it :: BV.SignedBV 4
-select' :: Natural
+select' :: 1 <= w'
+        => Natural
         -- ^ Index to start selecting from
         -> NatRepr w'
         -- ^ Desired output width
@@ -401,7 +431,7 @@ select' ix w' (SignedBV bv) = SignedBV (BV.select' ix w' bv)
 -- SignedBV {asBV = BV 253}
 -- >>> :type it
 -- it :: BV.SignedBV 8
-ext :: (1 <= w, w + 1 <= w')
+ext :: forall w w' . w + 1 <= w'
     => NatRepr w
     -- ^ Width of input bitvector
     -> NatRepr w'
@@ -409,10 +439,14 @@ ext :: (1 <= w, w + 1 <= w')
     -> SignedBV w
     -- ^ Bitvector to extend
     -> SignedBV w'
-ext w w' (SignedBV bv) = SignedBV (BV.sext w w' bv)
+ext w w' (SignedBV bv)
+  | w_lt_w_plus_1@LeqProof <- addIsLeq w (knownNat @1)
+  , one_lt_w_plus_1@LeqProof <- leqTrans (LeqProof @1 @w) w_lt_w_plus_1
+  , LeqProof <- leqTrans one_lt_w_plus_1 (LeqProof @(w+1) @w')
+  = SignedBV (BV.sext w w' bv)
 
 -- | Truncate a bitvector to one of strictly smaller width.
-trunc :: w' + 1 <= w
+trunc :: (1 <= w', w' + 1 <= w)
       => NatRepr w'
       -- ^ Desired output width
       -> SignedBV w
@@ -421,7 +455,7 @@ trunc :: w' + 1 <= w
 trunc w' (SignedBV bv) = SignedBV (BV.trunc w' bv)
 
 -- | Resizes a bitvector. If @w' > w@, perform a sign extension.
-resize :: 1 <= w
+resize :: 1 <= w'
        => NatRepr w
        -- ^ Width of input vector
        -> NatRepr w'
@@ -433,7 +467,8 @@ resize w w' (SignedBV bv) = SignedBV (BV.sresize w w' bv)
 
 -- | Wide multiply of two bitvectors.
 mulWide :: NatRepr w -> NatRepr w' -> SignedBV w -> SignedBV w' -> SignedBV (w+w')
-mulWide w w' (SignedBV bv) (SignedBV bv') = SignedBV (BV.mulWide w w' bv bv')
+mulWide w w' (SignedBV bv) (SignedBV bv')
+  | LeqProof <- w `leqAddPos` w' = SignedBV (BV.mulWide w w' bv bv')
 
 ----------------------------------------
 -- Pretty printing
