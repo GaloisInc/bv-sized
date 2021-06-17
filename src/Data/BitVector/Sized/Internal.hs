@@ -87,7 +87,7 @@ fromNatural = fromIntegral
 -- BitVector data type definitions
 
 -- | Bitvector datatype, parameterized by width.
-data BV (w :: Nat) :: Type where
+newtype BV (w :: Nat) :: Type where
   -- | We store the value as an 'Integer' rather than a 'Natural',
   -- since many of the operations on bitvectors rely on a two's
   -- complement representation. However, an invariant on the value is
