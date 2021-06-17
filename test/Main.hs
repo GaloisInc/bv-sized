@@ -6,6 +6,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -Wno-warnings-deprecations #-}
 
 module Main where
 
@@ -18,8 +19,8 @@ import Test.Tasty.Hedgehog
 
 -- Modules under test
 import qualified Data.BitVector.Sized as BV
-import qualified Data.BitVector.Sized.Unsigned as BV
-import qualified Data.BitVector.Sized.Signed as BV
+import qualified Data.BitVector.Sized.Unsigned as UBV
+import qualified Data.BitVector.Sized.Signed as SBV
 
 -- Auxiliary modules
 import Control.Monad.Random
@@ -655,7 +656,7 @@ wellFormedTests = testGroup "well-formedness tests"
 
 testRandomR :: (Ord (f w), Random (f w), Show (f w), Show a)
             => NatRepr w
-            -> (forall w' . NatRepr w' -> a -> f w')
+            -> (NatRepr w -> a -> f w)
             -> (NatRepr w -> Gen a)
             -> Property
 testRandomR w mk gen = property $ do
@@ -677,15 +678,15 @@ testRandomR w mk gen = property $ do
 randomTests :: TestTree
 randomTests = testGroup "tests for random generation"
   [ testProperty "random unsigned well-formed" $ property $ do
-      BV.UnsignedBV (BV.BV x) :: BV.UnsignedBV 32 <- liftIO $ getRandom
+      UBV.UnsignedBV (BV.BV x) :: UBV.UnsignedBV 32 <- liftIO $ getRandom
       checkBounds x (knownNat @32)
   , testProperty "random signed well-formed" $ property $ do
-      BV.SignedBV (BV.BV x) :: BV.SignedBV 32 <- liftIO $ getRandom
+      SBV.SignedBV (BV.BV x) :: SBV.SignedBV 32 <- liftIO $ getRandom
       checkBounds x (knownNat @32)
   , testProperty "randomR unsigned well-formed and in bounds" $
-    testRandomR (knownNat @32) BV.mkUnsignedBV unsigned
+    testRandomR (knownNat @32) UBV.mkUnsignedBV unsigned
   , testProperty "randomR signed well-formed and in bounds" $
-    testRandomR (knownNat @32) BV.mkSignedBV unsigned
+    testRandomR (knownNat @32) SBV.mkSignedBV signed
   ]
 
 tests :: TestTree
