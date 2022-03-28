@@ -34,8 +34,8 @@ import Data.Parameterized.NatRepr
 import Data.Bits (Bits(..), FiniteBits(..))
 import Data.Ix
 import GHC.Generics
-import GHC.TypeLits
-import Numeric.Natural
+import GHC.TypeLits (KnownNat)
+import Numeric.Natural (Natural)
 import System.Random
 import System.Random.Stateful
 
