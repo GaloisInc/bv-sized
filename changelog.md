@@ -1,5 +1,11 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## 1.0.4 *March 2022*
+
+* Deprecates trunc' and adds two alternatives, sresize and zresize
+* Support for GHC 9.2
+* BV is now a newtype
+
 ## 1.0.3 *April 2021*
 
 * New instances (`NFData`, `Random`)

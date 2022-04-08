@@ -1,5 +1,5 @@
 name:                bv-sized
-version:             1.0.3.99
+version:             1.0.4
 category:            Bit Vectors
 synopsis:            a bitvector datatype that is parameterized by the vector width
 description:
@@ -26,7 +26,7 @@ library
                        Data.BitVector.Sized.Overflow
   other-modules:       Data.BitVector.Sized.Internal
                        Data.BitVector.Sized.Panic
-  build-depends:       base >= 4.10 && <5,
+  build-depends:       base >= 4.11 && <5,
                        bitwise >= 1.0.0 && < 1.1,
                        bytestring >= 0.10 && < 0.12,
                        deepseq >= 1.4.0 && < 1.5.0,
