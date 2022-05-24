@@ -29,8 +29,25 @@ import Data.Maybe (isJust, fromJust)
 import Data.Parameterized.NatRepr
 import Data.Parameterized.Some
 import Data.Parameterized.Pair
+import Data.String ( fromString )
 import Data.Word
 import Numeric.Natural
+
+-- | This is a wrapper around 'testPropertyNamed' that somewhat addresses a
+-- deprecation warning.  Newer versions of the test library deprecated
+-- 'testProperty' in favor of 'testPropertyNamed', which is intended to provide
+-- better human-readable instructions to reproduce test failures.
+--
+-- However, doing that requires all properties to have a top-level definition
+-- corresponding to them, which we do not here. We just re-use the string
+-- description as the test name, which will produce incorrect instructions to
+-- reproduce failures, but will provide sufficient context clues for a developer
+-- to figure out which test failed.
+--
+-- The alternative is to refactor all of the tests into top-level properties to
+-- use the API as intended.
+testPropertyString :: String -> Property -> TestTree
+testPropertyString desc = testPropertyNamed desc (fromString desc)
 
 ----------------------------------------
 -- Utilities
@@ -218,95 +235,95 @@ genPair gen gen' = do
 
 bitwiseHomTests :: TestTree
 bitwiseHomTests = testGroup "bitwise homomorphisms tests"
-  [ testProperty "and" $ bin anyWidth BV.mkBV
+  [ testPropertyString "and" $ bin anyWidth BV.mkBV
     largeUnsigned largeUnsigned
     (const (Bits..&.)) (const BV.and)
-  , testProperty "or" $ bin anyWidth BV.mkBV
+  , testPropertyString "or" $ bin anyWidth BV.mkBV
     largeUnsigned largeUnsigned
     (const (Bits..|.)) (const BV.or)
-  , testProperty "xor" $ bin anyWidth BV.mkBV
+  , testPropertyString "xor" $ bin anyWidth BV.mkBV
     largeUnsigned largeUnsigned
     (const Bits.xor) (const BV.xor)
-  , testProperty "complement" $ un anyWidth BV.mkBV
+  , testPropertyString "complement" $ un anyWidth BV.mkBV
     largeUnsigned
     (const Bits.complement) BV.complement
   ]
 
 arithHomTests :: TestTree
 arithHomTests = testGroup "arithmetic homomorphisms tests"
-  [ testProperty "add" $ bin anyWidth BV.mkBV
+  [ testPropertyString "add" $ bin anyWidth BV.mkBV
     largeSigned largeSigned
     (const (+)) BV.add
-  , testProperty "sub" $ bin anyWidth BV.mkBV
+  , testPropertyString "sub" $ bin anyWidth BV.mkBV
     largeSigned largeSigned
     (const (-)) BV.sub
-  , testProperty "mul" $ bin anyWidth BV.mkBV
+  , testPropertyString "mul" $ bin anyWidth BV.mkBV
     largeSigned largeSigned
     (const (*)) BV.mul
-  , testProperty "uquot" $ bin anyPosWidth BV.mkBV
+  , testPropertyString "uquot" $ bin anyPosWidth BV.mkBV
     unsigned unsignedPos
     (const quot) (const BV.uquot)
-  , testProperty "urem" $ bin anyPosWidth BV.mkBV
+  , testPropertyString "urem" $ bin anyPosWidth BV.mkBV
     unsigned unsignedPos
     (const rem) (const BV.urem)
-  , testProperty "squot-pos-denom" $ bin anyWidthGT1 BV.mkBV
+  , testPropertyString "squot-pos-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedPos
     (const quot) (forcePos BV.squot)
-  , testProperty "squot-neg-denom" $ bin anyWidthGT1 BV.mkBV
+  , testPropertyString "squot-neg-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedNeg
     (const quot) (forcePos BV.squot)
-  , testProperty "srem-pos-denom" $ bin anyWidthGT1 BV.mkBV
+  , testPropertyString "srem-pos-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedPos
     (const rem) (forcePos BV.srem)
-  , testProperty "srem-neg-denom" $ bin anyWidthGT1 BV.mkBV
+  , testPropertyString "srem-neg-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedNeg
     (const rem) (forcePos BV.srem)
-  , testProperty "sdiv-pos-denom" $ bin anyWidthGT1 BV.mkBV
+  , testPropertyString "sdiv-pos-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedPos
     (const div) (forcePos BV.sdiv)
-  , testProperty "sdiv-neg-denom" $ bin anyWidthGT1 BV.mkBV
+  , testPropertyString "sdiv-neg-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedNeg
     (const div) (forcePos BV.sdiv)
-  , testProperty "smod-pos-denom" $ bin anyWidthGT1 BV.mkBV
+  , testPropertyString "smod-pos-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedPos
     (const mod) (forcePos BV.smod)
-  , testProperty "smod-neg-denom" $ bin anyWidthGT1 BV.mkBV
+  , testPropertyString "smod-neg-denom" $ bin anyWidthGT1 BV.mkBV
     signed signedNeg
     (const mod) (forcePos BV.smod)
-  , testProperty "abs" $ un anyPosWidth BV.mkBV
+  , testPropertyString "abs" $ un anyPosWidth BV.mkBV
     signed
     (const abs) (forcePos BV.abs)
-  , testProperty "negate" $ un anyPosWidth BV.mkBV
+  , testPropertyString "negate" $ un anyPosWidth BV.mkBV
     largeSigned
     (const negate) BV.negate
-  , testProperty "signBit" $ un anyPosWidth BV.mkBV
+  , testPropertyString "signBit" $ un anyPosWidth BV.mkBV
     signed
     (\_ a -> if a < 0 then 1 else 0) (forcePos BV.signBit)
-  , testProperty "signum" $ un anyPosWidth BV.mkBV
+  , testPropertyString "signum" $ un anyPosWidth BV.mkBV
     signed
     (\_ a -> signum a) (forcePos BV.signum)
-  , testProperty "slt" $ binPred anyPosWidth BV.mkBV
+  , testPropertyString "slt" $ binPred anyPosWidth BV.mkBV
     signed signed
     (const (<)) (forcePos BV.slt)
-  , testProperty "sle" $ binPred anyPosWidth BV.mkBV
+  , testPropertyString "sle" $ binPred anyPosWidth BV.mkBV
     signed signed
     (const (<=)) (forcePos BV.sle)
-  , testProperty "ult" $ binPred anyWidth BV.mkBV
+  , testPropertyString "ult" $ binPred anyWidth BV.mkBV
     unsigned unsigned
     (const (<)) (const BV.ult)
-  , testProperty "ule" $ binPred anyWidth BV.mkBV
+  , testPropertyString "ule" $ binPred anyWidth BV.mkBV
     unsigned unsigned
     (const (<=)) (const BV.ule)
-  , testProperty "umin" $ bin anyWidth BV.mkBV
+  , testPropertyString "umin" $ bin anyWidth BV.mkBV
     unsigned unsigned
     (const min) (const BV.umin)
-  , testProperty "umax" $ bin anyWidth BV.mkBV
+  , testPropertyString "umax" $ bin anyWidth BV.mkBV
     unsigned unsigned
     (const max) (const BV.umax)
-  , testProperty "smin" $ bin anyPosWidth BV.mkBV
+  , testPropertyString "smin" $ bin anyPosWidth BV.mkBV
     signed signed
     (const min) (forcePos BV.smin)
-  , testProperty "smax" $ bin anyPosWidth BV.mkBV
+  , testPropertyString "smax" $ bin anyPosWidth BV.mkBV
     signed signed
     (const max) (forcePos BV.smax)
   ]
@@ -347,33 +364,33 @@ deserTest genA lenA de ser = property $ do
 
 serdeTests :: TestTree
 serdeTests = testGroup "serialization/deseriallization tests"
-  [ testProperty "bitsBE" $
+  [ testPropertyString "bitsBE" $
     serdeTest anyWidth (\w bv -> Just (BV.asBitsBE w bv)) BV.bitsBE
-  , testProperty "bitsLE" $
+  , testPropertyString "bitsLE" $
     serdeTest anyWidth (\w bv -> Just (BV.asBitsLE w bv)) BV.bitsLE
-  , testProperty "bytesBE" $
+  , testPropertyString "bytesBE" $
     serdeTest byteWidth BV.asBytesBE BV.bytesBE
-  , testProperty "bytesLE" $
+  , testPropertyString "bytesLE" $
     serdeTest byteWidth BV.asBytesLE BV.bytesLE
-  , testProperty "bytestringBE" $
+  , testPropertyString "bytestringBE" $
     serdeTest byteWidth BV.asBytestringBE BV.bytestringBE
-  , testProperty "bytestringLE" $
+  , testPropertyString "bytestringLE" $
     serdeTest byteWidth BV.asBytestringLE BV.bytestringLE
   ]
 
 deserTests :: TestTree
 deserTests = testGroup "deserialization/serialization tests"
-  [ testProperty "asBitsBE" $
+  [ testPropertyString "asBitsBE" $
     deserTest bits length BV.bitsBE (\w bv -> Just (BV.asBitsBE w bv))
-  , testProperty "asBitsLE" $
+  , testPropertyString "asBitsLE" $
     deserTest bits length BV.bitsLE (\w bv -> Just (BV.asBitsLE w bv))
-  , testProperty "asBytesBE" $
+  , testPropertyString "asBytesBE" $
     deserTest bytes ((*8) . length) BV.bytesBE BV.asBytesBE
-  , testProperty "asBytesLE" $
+  , testPropertyString "asBytesLE" $
     deserTest bytes ((*8) . length) BV.bytesLE BV.asBytesLE
-  , testProperty "asBytesBE" $
+  , testPropertyString "asBytesBE" $
     deserTest (BS.pack <$> bytes) ((*8) . BS.length) BV.bytestringBE BV.asBytestringBE
-  , testProperty "asBytesLE" $
+  , testPropertyString "asBytesLE" $
     deserTest (BS.pack <$> bytes) ((*8) . BS.length) BV.bytestringLE BV.asBytestringLE
   ]
 
@@ -499,78 +516,78 @@ wfBitN genW f = property $ do
 
 wellFormedTests :: TestTree
 wellFormedTests = testGroup "well-formedness tests"
-  [ testProperty "mkBV" $ wfCtor anyWidth (fmap Just . BV.mkBV)
-  , testProperty "mkBVUnsigned" $ wfCtor anyWidth BV.mkBVUnsigned
-  , testProperty "mkBVSigned" $ wfCtor anyPosWidth (forcePos BV.mkBVSigned)
-  , testProperty "signedClamp" $ wfCtor anyPosWidth (fmap Just . forcePos BV.signedClamp)
-  , testProperty "minUnsigned" $ wfCtor anyWidth (\w _ -> Just (BV.minUnsigned w))
-  , testProperty "maxUnsigned" $ wfCtor anyWidth (\w _ -> Just (BV.maxUnsigned w))
-  , testProperty "minSigned" $ wfCtor anyPosWidth (\w _ -> Just (forcePos BV.minSigned w))
-  , testProperty "maxSigned" $ wfCtor anyPosWidth (\w _ -> Just (forcePos BV.maxSigned w))
-  , testProperty "bool" $ wfCtor' knownNat (BV.bool . odd)
-  , testProperty "word8" $ wfCtor' knownNat (BV.word8 . fromInteger)
-  , testProperty "word16" $ wfCtor' knownNat (BV.word16 . fromInteger)
-  , testProperty "word32" $ wfCtor' knownNat (BV.word32 . fromInteger)
-  , testProperty "word64" $ wfCtor' knownNat (BV.word64 . fromInteger)
-  , testProperty "int8" $ wfCtor' knownNat (BV.int8 . fromInteger)
-  , testProperty "int16" $ wfCtor' knownNat (BV.int16 . fromInteger)
-  , testProperty "int32" $ wfCtor' knownNat (BV.int32 . fromInteger)
-  , testProperty "int64" $ wfCtor' knownNat (BV.int64 . fromInteger)
-  , testProperty "and" $ wfBinary anyWidth (const BV.and)
-  , testProperty "or" $ wfBinary anyWidth (const BV.or)
-  , testProperty "xor" $ wfBinary anyWidth (const BV.xor)
-  , testProperty "complement" $ wfUnary anyWidth BV.complement
-  , testProperty "shl" $ wfBinaryN anyWidth BV.shl
-  , testProperty "ashr" $ wfBinaryN anyPosWidth (forcePos BV.ashr)
-  , testProperty "lshr" $ wfBinaryN anyWidth BV.lshr
-  , testProperty "rotateL" $ wfBinaryN anyWidth BV.rotateL
-  , testProperty "rotateR" $ wfBinaryN anyWidth BV.rotateR
-  , testProperty "bit" $ property $ do
+  [ testPropertyString "mkBV" $ wfCtor anyWidth (fmap Just . BV.mkBV)
+  , testPropertyString "mkBVUnsigned" $ wfCtor anyWidth BV.mkBVUnsigned
+  , testPropertyString "mkBVSigned" $ wfCtor anyPosWidth (forcePos BV.mkBVSigned)
+  , testPropertyString "signedClamp" $ wfCtor anyPosWidth (fmap Just . forcePos BV.signedClamp)
+  , testPropertyString "minUnsigned" $ wfCtor anyWidth (\w _ -> Just (BV.minUnsigned w))
+  , testPropertyString "maxUnsigned" $ wfCtor anyWidth (\w _ -> Just (BV.maxUnsigned w))
+  , testPropertyString "minSigned" $ wfCtor anyPosWidth (\w _ -> Just (forcePos BV.minSigned w))
+  , testPropertyString "maxSigned" $ wfCtor anyPosWidth (\w _ -> Just (forcePos BV.maxSigned w))
+  , testPropertyString "bool" $ wfCtor' knownNat (BV.bool . odd)
+  , testPropertyString "word8" $ wfCtor' knownNat (BV.word8 . fromInteger)
+  , testPropertyString "word16" $ wfCtor' knownNat (BV.word16 . fromInteger)
+  , testPropertyString "word32" $ wfCtor' knownNat (BV.word32 . fromInteger)
+  , testPropertyString "word64" $ wfCtor' knownNat (BV.word64 . fromInteger)
+  , testPropertyString "int8" $ wfCtor' knownNat (BV.int8 . fromInteger)
+  , testPropertyString "int16" $ wfCtor' knownNat (BV.int16 . fromInteger)
+  , testPropertyString "int32" $ wfCtor' knownNat (BV.int32 . fromInteger)
+  , testPropertyString "int64" $ wfCtor' knownNat (BV.int64 . fromInteger)
+  , testPropertyString "and" $ wfBinary anyWidth (const BV.and)
+  , testPropertyString "or" $ wfBinary anyWidth (const BV.or)
+  , testPropertyString "xor" $ wfBinary anyWidth (const BV.xor)
+  , testPropertyString "complement" $ wfUnary anyWidth BV.complement
+  , testPropertyString "shl" $ wfBinaryN anyWidth BV.shl
+  , testPropertyString "ashr" $ wfBinaryN anyPosWidth (forcePos BV.ashr)
+  , testPropertyString "lshr" $ wfBinaryN anyWidth BV.lshr
+  , testPropertyString "rotateL" $ wfBinaryN anyWidth BV.rotateL
+  , testPropertyString "rotateR" $ wfBinaryN anyWidth BV.rotateR
+  , testPropertyString "bit" $ property $ do
       Some w <- forAll anyPosWidth
       NatReprLt i <- forAll (natReprLt w)
 
       let BV.BV x = BV.bit w i
       checkBounds x w
-  , testProperty "bit'" $ property $ do
+  , testPropertyString "bit'" $ property $ do
       Some w <- forAll anyPosWidth
       n <- forAll $ Gen.integral $ Range.linear 0 (2 * natValue w)
 
       let BV.BV x = BV.bit' w n
       checkBounds x w
-  , testProperty "setBit" $ wfBit anyPosWidth (const BV.setBit)
-  , testProperty "setBit'" $ wfBitN anyPosWidth BV.setBit'
-  , testProperty "clearBit" $ wfBit anyPosWidth BV.clearBit
-  , testProperty "clearBit'" $ wfBitN anyPosWidth BV.clearBit'
-  , testProperty "complementBit" $ wfBit anyPosWidth (const BV.complementBit)
-  , testProperty "complementBit'" $ wfBitN anyPosWidth BV.complementBit'
-  , testProperty "popCount" $ wfUnary anyWidth (const BV.popCount)
-  , testProperty "ctz" $ wfUnary anyWidth BV.ctz
-  , testProperty "clz" $ wfUnary anyWidth BV.clz
-  , testProperty "truncBits" $ property $ do
+  , testPropertyString "setBit" $ wfBit anyPosWidth (const BV.setBit)
+  , testPropertyString "setBit'" $ wfBitN anyPosWidth BV.setBit'
+  , testPropertyString "clearBit" $ wfBit anyPosWidth BV.clearBit
+  , testPropertyString "clearBit'" $ wfBitN anyPosWidth BV.clearBit'
+  , testPropertyString "complementBit" $ wfBit anyPosWidth (const BV.complementBit)
+  , testPropertyString "complementBit'" $ wfBitN anyPosWidth BV.complementBit'
+  , testPropertyString "popCount" $ wfUnary anyWidth (const BV.popCount)
+  , testPropertyString "ctz" $ wfUnary anyWidth BV.ctz
+  , testPropertyString "clz" $ wfUnary anyWidth BV.clz
+  , testPropertyString "truncBits" $ property $ do
       Some w <- forAll anyWidth
       bv <- BV.mkBV w <$> forAll (unsigned w)
       n <- forAll $ Gen.integral $ Range.linear 0 (2 * natValue w)
 
       let BV.BV x = BV.truncBits n bv
       checkBounds x w
-  , testProperty "add" $ wfBinary anyWidth BV.add
-  , testProperty "sub" $ wfBinary anyWidth BV.sub
-  , testProperty "mul" $ wfBinary anyWidth BV.mul
-  , testProperty "uquot" $ wfBinaryDiv anyPosWidth (const BV.uquot)
-  , testProperty "urem" $ wfBinaryDiv anyPosWidth (const BV.urem)
-  , testProperty "squot" $ wfBinaryDiv anyPosWidth (forcePos BV.squot)
-  , testProperty "srem" $ wfBinaryDiv anyPosWidth (forcePos BV.srem)
-  , testProperty "sdiv" $ wfBinaryDiv anyPosWidth (forcePos BV.sdiv)
-  , testProperty "smod" $ wfBinaryDiv anyPosWidth (forcePos BV.smod)
-  , testProperty "abs" $ wfUnary anyPosWidth (forcePos BV.abs)
-  , testProperty "negate" $ wfUnary anyWidth BV.negate
-  , testProperty "signBit" $ wfUnary anyPosWidth (forcePos BV.signBit)
-  , testProperty "signum" $ wfUnary anyPosWidth (forcePos BV.signum)
-  , testProperty "umin" $ wfBinary anyWidth (const BV.umin)
-  , testProperty "umax" $ wfBinary anyWidth (const BV.umax)
-  , testProperty "smin" $ wfBinary anyPosWidth (forcePos BV.smin)
-  , testProperty "smax" $ wfBinary anyPosWidth (forcePos BV.smax)
-  , testProperty "concat" $ property $ do
+  , testPropertyString "add" $ wfBinary anyWidth BV.add
+  , testPropertyString "sub" $ wfBinary anyWidth BV.sub
+  , testPropertyString "mul" $ wfBinary anyWidth BV.mul
+  , testPropertyString "uquot" $ wfBinaryDiv anyPosWidth (const BV.uquot)
+  , testPropertyString "urem" $ wfBinaryDiv anyPosWidth (const BV.urem)
+  , testPropertyString "squot" $ wfBinaryDiv anyPosWidth (forcePos BV.squot)
+  , testPropertyString "srem" $ wfBinaryDiv anyPosWidth (forcePos BV.srem)
+  , testPropertyString "sdiv" $ wfBinaryDiv anyPosWidth (forcePos BV.sdiv)
+  , testPropertyString "smod" $ wfBinaryDiv anyPosWidth (forcePos BV.smod)
+  , testPropertyString "abs" $ wfUnary anyPosWidth (forcePos BV.abs)
+  , testPropertyString "negate" $ wfUnary anyWidth BV.negate
+  , testPropertyString "signBit" $ wfUnary anyPosWidth (forcePos BV.signBit)
+  , testPropertyString "signum" $ wfUnary anyPosWidth (forcePos BV.signum)
+  , testPropertyString "umin" $ wfBinary anyWidth (const BV.umin)
+  , testPropertyString "umax" $ wfBinary anyWidth (const BV.umax)
+  , testPropertyString "smin" $ wfBinary anyPosWidth (forcePos BV.smin)
+  , testPropertyString "smax" $ wfBinary anyPosWidth (forcePos BV.smax)
+  , testPropertyString "concat" $ property $ do
       Some w <- forAll anyWidth
       Some w' <- forAll anyWidth
       bv <- BV.mkBV w <$> forAll (unsigned w)
@@ -578,7 +595,7 @@ wellFormedTests = testGroup "well-formedness tests"
 
       let BV.BV x = BV.concat w w' bv bv'
       checkBounds x (w `addNat` w')
-  , testProperty "select" $ property $ do
+  , testPropertyString "select" $ property $ do
       Some w <- forAll anyWidth
       bv <- BV.mkBV w <$> forAll (unsigned w)
       NatReprLte ix <- forAll (natReprLte w)
@@ -588,7 +605,7 @@ wellFormedTests = testGroup "well-formedness tests"
 
       let BV.BV x = BV.select ix w' bv
       checkBounds x w'
-  , testProperty "select'" $ property $ do
+  , testPropertyString "select'" $ property $ do
       Some w <- forAll anyWidth
       Some w' <- forAll anyWidth
       bv <- BV.mkBV w <$> forAll (unsigned w)
@@ -596,42 +613,42 @@ wellFormedTests = testGroup "well-formedness tests"
 
       let BV.BV x = BV.select' n w' bv
       checkBounds x w'
-  , testProperty "zext" $ property $ do
+  , testPropertyString "zext" $ property $ do
       Some w' <- forAll anyPosWidth
       NatReprLt w <- forAll (natReprLt w')
       bv <- BV.mkBV w <$> forAll (unsigned w)
 
       let BV.BV x = BV.zext w' bv
       checkBounds x w'
-  , testProperty "sext" $ property $ do
+  , testPropertyString "sext" $ property $ do
       Some w' <- forAll anyWidthGT1
       NatReprPosLt w <- forAll (natReprPosLt w')
       bv <- BV.mkBV w <$> forAll (unsigned w)
 
       let BV.BV x = BV.sext w w' bv
       checkBounds x w'
-  , testProperty "trunc" $ property $ do
+  , testPropertyString "trunc" $ property $ do
       Some w <- forAll anyPosWidth
       NatReprLt w' <- forAll (natReprLt w)
       bv <- BV.mkBV w <$> forAll (unsigned w)
 
       let BV.BV x = BV.trunc w' bv
       checkBounds x w'
-  , testProperty "trunc'" $ property $ do
+  , testPropertyString "trunc'" $ property $ do
       Some w <- forAll anyWidth
       Some w' <- forAll anyWidth
       bv <- BV.mkBV w <$> forAll (unsigned w)
 
       let BV.BV x = BV.trunc' w' bv
       checkBounds x w'
-  , testProperty "zresize" $ property $ do
+  , testPropertyString "zresize" $ property $ do
       Some w <- forAll anyWidth
       Some w' <- forAll anyWidth
       bv <- BV.mkBV w <$> forAll (unsigned w)
 
       let BV.BV x = BV.zresize w' bv
       checkBounds x w'
-  , testProperty "sresize" $ property $ do
+  , testPropertyString "sresize" $ property $ do
       Some w <- forAll anyPosWidth
       Just LeqProof <- return $ isPosNat w
       Some w' <- forAll anyWidth
@@ -639,7 +656,7 @@ wellFormedTests = testGroup "well-formedness tests"
 
       let BV.BV x = BV.sresize w w' bv
       checkBounds x w'
-  , testProperty "mulWide" $ property $ do
+  , testPropertyString "mulWide" $ property $ do
       Some w <- forAll anyWidth
       Some w' <- forAll anyWidth
       bv <- BV.mkBV w <$> forAll (unsigned w)
@@ -647,10 +664,10 @@ wellFormedTests = testGroup "well-formedness tests"
 
       let BV.BV x = BV.mulWide w w' bv bv'
       checkBounds x (w `addNat` w')
-    , testProperty "succUnsigned" $ wfUnaryMaybe anyWidth BV.succUnsigned
-    , testProperty "succSigned" $ wfUnaryMaybe anyPosWidth (forcePos BV.succUnsigned)
-    , testProperty "predUnsigned" $ wfUnaryMaybe anyWidth BV.predUnsigned
-    , testProperty "predSigned" $ wfUnaryMaybe anyPosWidth (forcePos BV.predUnsigned)
+    , testPropertyString "succUnsigned" $ wfUnaryMaybe anyWidth BV.succUnsigned
+    , testPropertyString "succSigned" $ wfUnaryMaybe anyPosWidth (forcePos BV.succUnsigned)
+    , testPropertyString "predUnsigned" $ wfUnaryMaybe anyWidth BV.predUnsigned
+    , testPropertyString "predSigned" $ wfUnaryMaybe anyPosWidth (forcePos BV.predUnsigned)
     ]
 
 testRandomR :: (Ord (f w), Random (f w), Show (f w), Show a)
@@ -676,15 +693,15 @@ testRandomR w mk gen = property $ do
 
 randomTests :: TestTree
 randomTests = testGroup "tests for random generation"
-  [ testProperty "random unsigned well-formed" $ property $ do
+  [ testPropertyString "random unsigned well-formed" $ property $ do
       BV.UnsignedBV (BV.BV x) :: BV.UnsignedBV 32 <- liftIO $ getRandom
       checkBounds x (knownNat @32)
-  , testProperty "random signed well-formed" $ property $ do
+  , testPropertyString "random signed well-formed" $ property $ do
       BV.SignedBV (BV.BV x) :: BV.SignedBV 32 <- liftIO $ getRandom
       checkBounds x (knownNat @32)
-  , testProperty "randomR unsigned well-formed and in bounds" $
+  , testPropertyString "randomR unsigned well-formed and in bounds" $
     testRandomR (knownNat @32) BV.mkUnsignedBV unsigned
-  , testProperty "randomR signed well-formed and in bounds" $
+  , testPropertyString "randomR signed well-formed and in bounds" $
     testRandomR (knownNat @32) BV.mkSignedBV unsigned
   ]
 
