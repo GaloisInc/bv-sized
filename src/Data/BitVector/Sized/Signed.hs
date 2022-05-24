@@ -1,5 +1,7 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiWayIf #-}
@@ -26,22 +28,25 @@ module Data.BitVector.Sized.Signed
   , mkSignedBV
   ) where
 
+import Control.DeepSeq (NFData)
 import           Data.BitVector.Sized (BV, mkBV)
 import qualified Data.BitVector.Sized.Internal as BV
 import           Data.BitVector.Sized.Panic (panic)
+import Data.Parameterized.Classes (Hashable(..))
 import Data.Parameterized.NatRepr
 
 import Data.Bits (Bits(..), FiniteBits(..))
 import Data.Ix
 import GHC.Generics
 import GHC.TypeLits (KnownNat)
+import Language.Haskell.TH.Lift (Lift)
 import Numeric.Natural (Natural)
 import System.Random
 import System.Random.Stateful
 
 -- | Signed bit vector.
 newtype SignedBV w = SignedBV { asBV :: BV w }
-  deriving (Generic, Show, Read, Eq)
+  deriving (Generic, Show, Read, Eq, Lift, NFData)
 
 instance (KnownNat w, 1 <= w) => Ord (SignedBV w) where
   SignedBV bv1 `compare` SignedBV bv2 =
@@ -137,3 +142,6 @@ instance (KnownNat w, 1 <= w) => UniformRange (SignedBV w) where
     SignedBV <$> BV.sUniformRM knownNat (lo, hi) g
 
 instance (KnownNat w, 1 <= w) => Random (SignedBV w)
+
+instance Hashable (SignedBV w) where
+  hashWithSalt salt (SignedBV b) = hashWithSalt salt b

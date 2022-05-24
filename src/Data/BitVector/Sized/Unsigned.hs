@@ -1,5 +1,7 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -25,22 +27,25 @@ module Data.BitVector.Sized.Unsigned
   , mkUnsignedBV
   ) where
 
+import Control.DeepSeq (NFData)
 import           Data.BitVector.Sized.Internal (BV(..), mkBV)
 import qualified Data.BitVector.Sized.Internal as BV
 import           Data.BitVector.Sized.Panic (panic)
+import           Data.Parameterized.Classes (Hashable(..))
 import           Data.Parameterized.NatRepr (NatRepr, knownNat, maxUnsigned, widthVal)
 
 import Data.Bits (Bits(..), FiniteBits(..))
 import Data.Ix (Ix(inRange, range, index))
 import GHC.Generics (Generic)
 import GHC.TypeLits (KnownNat)
+import Language.Haskell.TH.Lift (Lift)
 import Numeric.Natural (Natural)
 import System.Random
 import System.Random.Stateful
 
 -- | Signed bit vector.
 newtype UnsignedBV w = UnsignedBV { asBV :: BV w }
-  deriving (Generic, Show, Read, Eq, Ord)
+  deriving (Generic, Show, Read, Eq, Ord, Lift, NFData)
 
 -- | Convenience wrapper for 'BV.mkBV'.
 mkUnsignedBV :: NatRepr w -> Integer -> UnsignedBV w
@@ -129,3 +134,6 @@ instance UniformRange (UnsignedBV w) where
     UnsignedBV <$> BV.uUniformRM (lo, hi) g
 
 instance KnownNat w => Random (UnsignedBV w)
+
+instance Hashable (UnsignedBV w) where
+  hashWithSalt salt (UnsignedBV b) = hashWithSalt salt b
