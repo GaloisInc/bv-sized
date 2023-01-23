@@ -1,5 +1,11 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## 1.0.5 *January 2023*
+
+* Support building with GHC 9.4
+* Add `Lift`, `NFData`, and `Hashable` instances for `SignedBV` and
+  `UnsignedBV`
+
 ## 1.0.4 *March 2022*
 
 * Deprecates trunc' and adds two alternatives, sresize and zresize
