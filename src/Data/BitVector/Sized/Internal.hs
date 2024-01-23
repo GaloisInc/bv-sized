@@ -33,6 +33,7 @@ import qualified Data.Bits.Bitwise          as B
 import qualified Data.ByteString            as BS
 import qualified Numeric                    as N
 import qualified Data.Parameterized.NatRepr as P
+import qualified Data.Parameterized.Vector  as V
 import qualified Prelude
 
 -- Unqualified imports
@@ -773,6 +774,26 @@ concat :: NatRepr w
        -> BV (w+w')
 concat w w' (BV hi) (BV lo) = checkNatRepr (w `addNat` w') $
   BV ((hi `B.shiftL` fromNatural (natValue w')) B..|. lo)
+
+
+-- | Concatenate multiple bitvectors, little endian.
+concatMany :: NatRepr w -> V.Vector n (BV w) -> BV (n P.* w)
+concatMany w v
+  | Pair _ (BV x) <- bytesLE bytes
+  = mkBV (V.length v `P.natMultiply` w) x
+  where bytes = fromInteger . asUnsigned <$> V.toList v
+
+-- -- If a Vector eliminator gets added to parameterized-utils, here is a version
+-- -- using it:
+-- concatMany :: NatRepr w -> V.Vector n (BV w) -> BV (n P.* w)
+-- concatMany w v =
+--   V.elim v
+--   (\ P.Refl bv -> bv)
+--   (\ P.Refl bv bvs ->
+--       let pn = V.length bvs in
+--       P.withAddMulDistribRight pn (P.knownNat @1) w $
+--         concat (P.natMultiply pn w) w (concatMany w bvs) bv
+--     )
 
 -- | Slice out a smaller bitvector from a larger one.
 --
