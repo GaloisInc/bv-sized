@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -132,6 +133,10 @@ instance KnownNat w => Uniform (UnsignedBV w) where
 instance UniformRange (UnsignedBV w) where
   uniformRM (UnsignedBV lo, UnsignedBV hi) g =
     UnsignedBV <$> BV.uUniformRM (lo, hi) g
+#if MIN_VERSION_random(1,3,0)
+  isInRange (lo, hi) x =
+    lo <= x && x <= hi
+#endif
 
 instance KnownNat w => Random (UnsignedBV w)
 
