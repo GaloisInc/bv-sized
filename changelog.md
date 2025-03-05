@@ -1,5 +1,9 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## next *TBA*
+
+* Support building with `random-1.3.*`
+
 ## 1.0.5 *January 2023*
 
 * Support building with GHC 9.4
