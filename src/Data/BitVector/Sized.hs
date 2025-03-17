@@ -84,7 +84,7 @@ module Data.BitVector.Sized
   , smin, smax
     -- * Variable-width operations
     -- | These are functions that involve bit vectors of different lengths.
-  , concat
+  , concat, concatMany
   , select, select'
   , zext
   , sext
