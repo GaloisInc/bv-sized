@@ -40,7 +40,6 @@ jobs:
             ${{ env.key }}-${{ github.ref }}
           restore-keys: |
             ${{ env.key }}-
-      - run: cabal update
       - run: cabal check
       - run: cabal configure --enable-tests
       - run: cabal build
