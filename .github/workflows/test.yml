@@ -5,61 +5,15 @@ on:
   pull_request:
   workflow_dispatch:
 
-defaults:
-  run:
-    shell: bash
-
 jobs:
   test:
     name: ${{ matrix.os }} GHC-${{ matrix.ghc }}
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-24.04]
         ghc: [9.6.7, 9.8.4, 9.10.1]
       fail-fast: false
-    steps:
-      - uses: actions/checkout@v4
-      - uses: haskell-actions/setup@v2
-        id: setup-haskell
-        with:
-          ghc-version: ${{ matrix.ghc }}
-      - uses: actions/cache/restore@v4
-        name: Restore cabal store cache
-        id: cache
-        env:
-          # NB: Each `matrix.os` (e.g., `ubuntu-22.04-arm`) uniquely determines
-          # a `runner.arch` (e.g., ARM64), so there is no need to include the
-          # latter as part of the cache key
-          key: cabal-${{ matrix.os }}-ghc${{ matrix.ghc }}
-        with:
-          path: |
-            ${{ steps.setup-haskell.outputs.cabal-store }}
-            dist-newstyle
-          key: |
-            ${{ env.key }}-${{ github.ref }}
-          restore-keys: |
-            ${{ env.key }}-
-      - run: cabal check
-      - run: cabal configure --enable-tests
-      - run: cabal build
-      - run: cabal test
-      # Build the Haddocks to ensure that they are well formed. Somewhat
-      # counterintuitively, we run this with the --disable-documentation flag.
-      # This does not mean "do not build the Haddocks", but rather, "build the
-      # Haddocks for the top-level library, but do not build dependencies with
-      # Haddocks". The upshot is that we do not change the build configuration
-      # for any dependencies, which means that we don't have to rebuild them.
-      # The downside is that the rendered Haddocks won't contain any links
-      # to identifiers from library dependencies. Since we are only building
-      # Haddocks to ensure well-formedness, we consider this an acceptable
-      # tradeoff.
-      - run: cabal haddock --disable-documentation
-      - uses: actions/cache/save@v4
-        name: Save cabal store cache
-        if: always()
-        with:
-          path: |
-            ${{ steps.setup-haskell.outputs.cabal-store }}
-            dist-newstyle
-          key: ${{ steps.cache.outputs.cache-primary-key }}
+    uses: GaloisInc/.github/.github/workflows/haskell-ci.yml@v1.2
+    with:
+      ghc: ${{ matrix.ghc }}
+      os: ${{ matrix.os }}
