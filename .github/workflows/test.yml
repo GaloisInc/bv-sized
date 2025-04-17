@@ -13,7 +13,7 @@ jobs:
         os: [ubuntu-24.04]
         ghc: [9.6.7, 9.8.4, 9.10.1]
       fail-fast: false
-    uses: GaloisInc/.github/.github/workflows/haskell-ci.yml@v1.2
+    uses: GaloisInc/.github/.github/workflows/haskell-ci.yml@v1
     with:
       ghc: ${{ matrix.ghc }}
       os: ${{ matrix.os }}
