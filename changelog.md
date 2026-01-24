@@ -1,5 +1,9 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## next
+
+* Support building with `parameterized-utils` 2.2.*
+
 ## 1.0.6 *March 2025*
 
 * Support building with `random-1.3.*`
