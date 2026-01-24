@@ -1,5 +1,7 @@
 # Changelog for [`bv-sized` package](http://hackage.haskell.org/package/bv-sized)
 
+## next
+
 ## 1.0.7 -- 2026-01-24
 
 * Support building with `parameterized-utils` 2.2.*
