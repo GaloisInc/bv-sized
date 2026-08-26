@@ -2,6 +2,8 @@
 
 ## next
 
+* Support building with `parameterized-utils` 2.3.*
+
 ## 1.0.7 -- 2026-01-24
 
 * Support building with `parameterized-utils` 2.2.*
