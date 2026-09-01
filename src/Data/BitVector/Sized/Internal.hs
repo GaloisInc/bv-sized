@@ -963,21 +963,52 @@ sUniformRM w (lo, hi) g =
 ----------------------------------------
 -- Pretty printing
 
+-- | Options for pretty printing a bitvector.
+newtype PPOpts = PPOpts
+  { poDisplayWidth :: Bool -- ^ Prints the width of the bitvector as @:[\<width\>]@ after the value
+  }
+
+-- | Default options for pretty printing (@poDisplayWidth = True@)
+defaultPPOpts :: PPOpts
+defaultPPOpts = PPOpts
+  { poDisplayWidth = True
+  }
+
 -- | Pretty print in hex
+ppHexOpts :: PPOpts -> NatRepr w -> BV w -> String
+ppHexOpts opts w (BV x) = "0x" ++ N.showHex x "" ++
+                          if poDisplayWidth opts then ppWidthSuffix w else ""
+
+-- | Pretty print in hex (default options)
 ppHex :: NatRepr w -> BV w -> String
-ppHex w (BV x) = "0x" ++ N.showHex x "" ++ ":" ++ ppWidth w
+ppHex = ppHexOpts defaultPPOpts
 
 -- | Pretty print in binary
+ppBinOpts :: PPOpts -> NatRepr w -> BV w -> String
+ppBinOpts opts w (BV x) = "0b" ++ N.showIntAtBase 2 intToDigit x "" ++
+                      if poDisplayWidth opts then ppWidthSuffix w else ""
+
+-- | Pretty print in binary (default options)
 ppBin :: NatRepr w -> BV w -> String
-ppBin w (BV x) = "0b" ++ N.showIntAtBase 2 intToDigit x "" ++ ":" ++ ppWidth w
+ppBin = ppBinOpts defaultPPOpts
 
 -- | Pretty print in octal
+ppOctOpts :: PPOpts -> NatRepr w -> BV w -> String
+ppOctOpts opts w (BV x) = "0o" ++ N.showOct x "" ++
+                          if poDisplayWidth opts then ppWidthSuffix w else ""
+
+-- | Pretty print in octal (default options)
 ppOct :: NatRepr w -> BV w -> String
-ppOct w (BV x) = "0o" ++ N.showOct x "" ++ ":" ++ ppWidth w
+ppOct = ppOctOpts defaultPPOpts
 
 -- | Pretty print in decimal
-ppDec :: NatRepr w -> BV w -> String
-ppDec w (BV x) = show x ++ ":" ++ ppWidth w
+ppDecOpts :: PPOpts -> NatRepr w -> BV w -> String
+ppDecOpts opts w (BV x) = show x ++
+                          if poDisplayWidth opts then ppWidthSuffix w else ""
 
-ppWidth :: NatRepr w -> String
-ppWidth w = "[" ++ show (natValue w) ++ "]"
+-- | Pretty print in decimal (default options)
+ppDec :: NatRepr w -> BV w -> String
+ppDec = ppDecOpts defaultPPOpts
+
+ppWidthSuffix :: NatRepr w -> String
+ppWidthSuffix w = ":[" ++ show (natValue w) ++ "]"

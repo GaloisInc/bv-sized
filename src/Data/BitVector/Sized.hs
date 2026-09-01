@@ -102,9 +102,15 @@ module Data.BitVector.Sized
   , uUniformRM
   , sUniformRM
     -- * Pretty printing
+  , PPOpts(..)
+  , defaultPPOpts
+  , ppHexOpts
   , ppHex
+  , ppBinOpts
   , ppBin
+  , ppOctOpts
   , ppOct
+  , ppDecOpts
   , ppDec
   ) where
 
